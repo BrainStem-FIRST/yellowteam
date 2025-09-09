@@ -30,7 +30,7 @@ public class AprilTagTest extends LinearOpMode {
                 .build();
 
         FtcDashboard dashboard = FtcDashboard.getInstance();
-        dashboard.startCameraStream(visionPortal, 0); //192.168.49.1:8080
+        dashboard.startCameraStream(visionPortal, 0); //192.168.43.1:8080
 
         waitForStart();
 
