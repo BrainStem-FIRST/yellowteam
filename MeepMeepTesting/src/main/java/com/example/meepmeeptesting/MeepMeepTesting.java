@@ -9,7 +9,7 @@ import com.noahbres.meepmeep.roadrunner.entity.RoadRunnerBotEntity;
 
 public class MeepMeepTesting {
     public static void main(String[] args) {
-        MeepMeep meepMeep = new MeepMeep(800);
+        MeepMeep meepMeep = new MeepMeep(500);
                 //scenario 4: red close launch zone green, purple, purple
         RoadRunnerBotEntity redCloseGPP = new DefaultBotBuilder(meepMeep)
                 .setColorScheme(new ColorSchemeRedDark())
