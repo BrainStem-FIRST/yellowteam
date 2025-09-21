@@ -19,7 +19,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(-64, -64, 0));
+        MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
         MathFunctions mathFunctions = new MathFunctions();
 
         waitForStart();
