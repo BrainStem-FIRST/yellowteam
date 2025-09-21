@@ -7,6 +7,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.MathFunctions;
 
@@ -19,29 +20,33 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
         MathFunctions mathFunctions = new MathFunctions();
+        BrainSTEMRobot brainSTEMRobot;
 
         waitForStart();
 
         while (opModeIsActive()) {
 
-            drive.updatePoseEstimate();
-            Pose2d currentPose = drive.localizer.getPose();
+            brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, new Pose2d(0, 0, 0));
+            brainSTEMRobot.update();
+            Pose2d currentPose = brainSTEMRobot.drive.localizer.getPose();
+
+            // drivetrain turning
             double turnPower = mathFunctions.getTurnPower(currentPose, targetPose);
 
-            drive.setDrivePowers(new PoseVelocity2d(
+            brainSTEMRobot.drive.setDrivePowers(new PoseVelocity2d(
                     new Vector2d(
                             -gamepad1.left_stick_y,
                             -gamepad1.left_stick_x
                     ),
-                    turnPower // -gamepad1.right_stick_x
+                    -gamepad1.right_stick_x //turnPower
             ));
 
             telemetry.addData("Pose X", currentPose.position.x);
             telemetry.addData("Pose Y", currentPose.position.y);
             telemetry.addData("Pose Heading", Math.toDegrees(currentPose.heading.toDouble()));
-            telemetry.addData("Turn Power", turnPower);
+//            telemetry.addData("Turn Power", turnPower);
+            telemetry.addData("Turret Encoder", brainSTEMRobot.turret.getTurretEncoder());
             telemetry.update();
         }
     }
