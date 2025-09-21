@@ -19,7 +19,7 @@ public class BrainSTEMRobot implements Component {
     // Initialization
     private LinearOpMode opMode;
     private Telemetry telemetry;
-    private HardwareMap map;
+    private HardwareMap hardwareMap;
 
 
     // components here
@@ -33,11 +33,12 @@ public class BrainSTEMRobot implements Component {
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;
-        this.map = hardwareMap;
+        this.hardwareMap = hardwareMap;
+        subsystems = new ArrayList<>();
 
         // init components
-        turret = new Turret(map, telemetry);
-        drive = new MecanumDrive(map, initialPose);
+        turret = new Turret(hardwareMap, telemetry);
+        drive = new MecanumDrive(hardwareMap, initialPose);
 
         // add components to list here
         subsystems.add(turret);
@@ -49,11 +50,17 @@ public class BrainSTEMRobot implements Component {
 
     @Override
     public void reset() {
-
+        for (Component c : subsystems) {
+            c.reset();
+        }
     }
 
     @Override
     public void update(){
+        for (Component c : subsystems) {
+            c.update();
+        }
+
         drive.updatePoseEstimate();
         drawRobot(this);
         telemetry.update();
