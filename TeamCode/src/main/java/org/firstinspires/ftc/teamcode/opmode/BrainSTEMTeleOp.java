@@ -18,18 +18,15 @@ import java.net.ProxySelector;
 
 @TeleOp(name = "TeleOp Test", group = "Robot")
 public class BrainSTEMTeleOp extends LinearOpMode {
-    Pose2d targetPose = new Pose2d(72, -72, 0);
+    Pose2d targetPose = new Pose2d(72, 72, 0);
     BrainSTEMRobot brainSTEMRobot;
-    private DcMotorEx shooterMotor;
 
     @Override
     public void runOpMode() {
 
         MathFunctions mathFunctions = new MathFunctions();
-        brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, new Pose2d(0, 0, 0));
-        shooterMotor = hardwareMap.get(DcMotorEx.class, "shooter");
-        shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, new Pose2d(0, 0, Math.toRadians(90)));
+
         waitForStart();
 
         while (opModeIsActive()) {
@@ -51,17 +48,18 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gamepad1.a)
                 brainSTEMRobot.turret.setTurretPosition(150);
 
-            if (gamepad1.b)
-                shooterMotor.setPower(-1);
-            else
-                shooterMotor.setPower(0);
+            if (gamepad1.y)
+                brainSTEMRobot.turret.pointTurretAtTarget(currentPose, targetPose);
+
+//            if (gamepad1.b)
+//                brainSTEMRobot.shooter.shooterMotor.setPower(-1);
+//            else
+//                brainSTEMRobot.shooter.shooterMotor.setPower(0);
+
 
 //            telemetry.addData("Pose X", currentPose.position.x);
 //            telemetry.addData("Pose Y", currentPose.position.y);
 //            telemetry.addData("Pose Heading", Math.toDegrees(currentPose.heading.toDouble()));
-//            telemetry.addData("Turn Power", turnPower);
-            telemetry.addData("Shooter Encoder", shooterMotor.getCurrentPosition());
-            telemetry.addData("Shooter Current", shooterMotor.getCurrent(CurrentUnit.AMPS));
             telemetry.update();
         }
     }

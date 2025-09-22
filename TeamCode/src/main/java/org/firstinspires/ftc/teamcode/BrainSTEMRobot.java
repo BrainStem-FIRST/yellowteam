@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 
 
@@ -16,32 +17,27 @@ import java.util.ArrayList;
 
 public class BrainSTEMRobot implements Component {
 
-    // Initialization
     private LinearOpMode opMode;
     private Telemetry telemetry;
     private HardwareMap hardwareMap;
 
-
-    // components here
     public Turret turret;
+    public Shooter shooter;
     public MecanumDrive drive;
 
-
-    //List of components to be initialized
     private ArrayList<Component> subsystems;
-
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;
         this.hardwareMap = hardwareMap;
         subsystems = new ArrayList<>();
 
-        // init components
         turret = new Turret(hardwareMap, telemetry);
+        shooter = new Shooter(hardwareMap, telemetry);
         drive = new MecanumDrive(hardwareMap, initialPose);
 
-        // add components to list here
         subsystems.add(turret);
+        subsystems.add(shooter);
     }
 
     public void getTelemetry(){
@@ -74,7 +70,6 @@ public class BrainSTEMRobot implements Component {
 
     @Override
     public String test() {
-
         return null;
     }
 }

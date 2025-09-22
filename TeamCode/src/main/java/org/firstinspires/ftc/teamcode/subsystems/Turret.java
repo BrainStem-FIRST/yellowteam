@@ -25,17 +25,17 @@ public class Turret implements Component {
 
     }
 
-    public static Params PARAMS = new Turret.Params();
+    public static Params TURRET_PARAMS = new Turret.Params();
 
     public Turret(HardwareMap hardwareMap, Telemetry telemetry){
         this.map = hardwareMap;
         this.telemetry = telemetry;
 
-        turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+        turretMotor = map.get(DcMotorEx.class, "turret");
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        pidController = new PIDController(PARAMS.kP, PARAMS.kI, PARAMS.kD);
+        pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
 //        pidController.setInputBounds(-300, 300);
 //        pidController.setOutputBounds(1, -1);
     }
@@ -54,23 +54,18 @@ public class Turret implements Component {
         turretMotor.setPower(-power);
     }
 
-//    public double getTurretPower(Pose2d robotPose, Pose2d targetPose) {
-//        double dx = targetPose.position.x - robotPose.position.x;
-//        double dy = targetPose.position.y - robotPose.position.y;
-//        double targetHeading = Math.atan2(dy, dx);
-//
-//        double turretHeading = robotPose.heading.toDouble()
-//                + (getTurretEncoder() * (2 * Math.PI / TICKS_PER_REV));
-//
-//        double error = normalizeAngle(targetHeading - turretHeading);
-//
-//        return pidController.updateWithError(error);
-//    }
+    public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
 
-    private double normalizeAngle(double angle) {
-        while (angle > Math.PI) angle -= 2 * Math.PI;
-        while (angle < -Math.PI) angle += 2 * Math.PI;
-        return angle;
+        double targetAngle = Math.atan2(deltaY, deltaX);
+        double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
+        turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
+
+        double ticksPerRev = -1680;
+        double turretTicksPerRadian = ticksPerRev / (2 * Math.PI);
+        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
+        setTurretPosition(targetTurretPosition);
     }
 
     @Override
@@ -82,7 +77,6 @@ public class Turret implements Component {
     }
     @Override
     public String test(){
-
         return null;
     }
 }
