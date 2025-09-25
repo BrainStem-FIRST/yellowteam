@@ -36,7 +36,7 @@ public class Shooter implements Component {
 
     @Override
     public void update(){
-        telemetry.addData("Shooter Current", shooterMotor.getCurrent(CurrentUnit.AMPS));
+//        telemetry.addData("Shooter Current", shooterMotor.getCurrent(CurrentUnit.AMPS));
         telemetry.update();
     }
     @Override

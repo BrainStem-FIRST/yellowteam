@@ -32,9 +32,9 @@ public class BrainSTEMRobot implements Component {
         this.hardwareMap = hardwareMap;
         subsystems = new ArrayList<>();
 
-        turret = new Turret(hardwareMap, telemetry);
         shooter = new Shooter(hardwareMap, telemetry);
         drive = new MecanumDrive(hardwareMap, initialPose);
+        turret = new Turret(hardwareMap, telemetry, drive);
 
         subsystems.add(turret);
         subsystems.add(shooter);
