@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.MathFunctions;
 
@@ -52,10 +53,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gamepad1.y)
                 brainSTEMRobot.turret.turretState = Turret.TurretState.TRACKING;
 
-//            if (gamepad1.b)
-//                brainSTEMRobot.shooter.shooterMotor.setPower(-1);
-//            else
-//                brainSTEMRobot.shooter.shooterMotor.setPower(0);
+            if (gamepad1.b)
+                brainSTEMRobot.shooter.shooterMotor.setPower(0.89 * Shooter.SHOOTER_PARAMS.TORQUE_CONSTANT);
+            else
+                brainSTEMRobot.shooter.shooterMotor.setPower(0);
 
 
 //            telemetry.addData("Pose X", currentPose.position.x);
