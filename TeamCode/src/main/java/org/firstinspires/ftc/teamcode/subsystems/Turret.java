@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.SensorAndyMarkTOF;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.Component;
@@ -51,6 +51,8 @@ public final class Turret implements Component {
         turretState = TurretState.OFF;
     }
 
+
+
     public int getTurretEncoder() {
         return turretMotor.getCurrentPosition();
     }
@@ -64,6 +66,8 @@ public final class Turret implements Component {
         telemetry.update();
         turretMotor.setPower(-power);
     }
+
+
 
     public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
@@ -91,11 +95,30 @@ public final class Turret implements Component {
             setTurretPosition(0);
         }
 
+
+
     }
+
+
+
 
     public enum TurretState {
         OFF, TRACKING, CENTER
     }
+
+    public void setTurretTracking(){
+        turretState = TurretState.TRACKING;
+    }
+
+    public void setTurretOff(){
+        turretState = TurretState.OFF;
+    }
+    public void setTurretCenter(){
+        turretState = TurretState.CENTER;
+    }
+
+
+
 
     @Override
     public void reset() {
