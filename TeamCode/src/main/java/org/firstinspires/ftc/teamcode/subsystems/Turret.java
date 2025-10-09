@@ -17,11 +17,11 @@ public final class Turret implements Component {
 
     private HardwareMap map;
     private Telemetry telemetry;
-    private DcMotorEx turretMotor;
+    public DcMotorEx turretMotor;
     private PIDController pidController;
 
-    private int RIGHT_BOUND = -300;
-    private int LEFT_BOUND = 300;
+    private int RIGHT_BOUND = -400;
+    private int LEFT_BOUND = 400;
 
     public TurretState turretState;
     Pose2d targetPose = new Pose2d(72, 72, 0);
@@ -33,7 +33,6 @@ public final class Turret implements Component {
 
     }
     public MecanumDrive drive;
-
     public static Params TURRET_PARAMS = new Turret.Params();
 
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive){
@@ -52,7 +51,6 @@ public final class Turret implements Component {
     }
 
 
-
     public int getTurretEncoder() {
         return turretMotor.getCurrentPosition();
     }
@@ -62,12 +60,10 @@ public final class Turret implements Component {
         double error = getTurretEncoder() - ticks;
         double power = pidController.updateWithError(error);
         telemetry.addData("power", -power);
-        telemetry.addData("Turret Encoder", getTurretEncoder());
+//        telemetry.addData("Turret Encoder", getTurretEncoder());
         telemetry.update();
         turretMotor.setPower(-power);
     }
-
-
 
     public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
@@ -76,49 +72,27 @@ public final class Turret implements Component {
         telemetry.addData("Pose Y", robotPose.position.y);
         telemetry.addData("Pose Heading", Math.toDegrees(robotPose.heading.toDouble()));
 
-
         double targetAngle = Math.atan2(deltaY, deltaX);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
-        telemetry.addData("Turret Angle", turretTargetAngle);
+//        telemetry.addData("Turret Angle", turretTargetAngle);
 
         double ticksPerRev = -1680;
         double turretTicksPerRadian = ticksPerRev / (2 * Math.PI);
         int targetTurretPosition = (int)(-turretTargetAngle * turretTicksPerRadian);
-        telemetry.addData("Turret Ticks", targetTurretPosition);
-        telemetry.addData("Turret Encoder", getTurretEncoder());
+//        telemetry.addData("Turret Ticks", targetTurretPosition);
+//        telemetry.addData("Turret Encoder", getTurretEncoder());
         telemetry.update();
 
-        if (targetTurretPosition > -350 && targetTurretPosition < 350)
+        if (targetTurretPosition > RIGHT_BOUND && targetTurretPosition < LEFT_BOUND)
             setTurretPosition(targetTurretPosition);
-        else{
+        else
             setTurretPosition(0);
-        }
-
-
-
     }
-
-
-
 
     public enum TurretState {
         OFF, TRACKING, CENTER
     }
-
-    public void setTurretTracking(){
-        turretState = TurretState.TRACKING;
-    }
-
-    public void setTurretOff(){
-        turretState = TurretState.OFF;
-    }
-    public void setTurretCenter(){
-        turretState = TurretState.CENTER;
-    }
-
-
-
 
     @Override
     public void reset() {
@@ -126,6 +100,8 @@ public final class Turret implements Component {
 
     @Override
     public void update(){
+//        telemetry.addData("Turret State", turretState.toString());
+        telemetry.update();
         switch (turretState) {
             case OFF: {
                 turretMotor.setPower(0);

@@ -9,26 +9,25 @@ import org.firstinspires.ftc.teamcode.subsystems.Turret;
 
 public class TurretTrackingCommand extends CommandBase {
     BrainSTEMRobot robot;
-    Turret turret;
     Telemetry telemetry;
     Pose2d pose;
 
 
-    public TurretTrackingCommand(BrainSTEMRobot robot, Telemetry telemetry, Turret turret, Pose2d pose){
+    public TurretTrackingCommand(BrainSTEMRobot robot, Telemetry telemetry){
         this.robot = robot;
         this.telemetry = telemetry;
-        this.turret = turret;
         this.pose = pose;
     }
 
     @Override
     public void initialize() {
-        turret.setTurretTracking();
     }
 
-
-    public void execute(){
-        telemetry.addData("turret encoder", turret.getTurretEncoder());
+    @Override
+    public void execute() {
+        robot.turret.turretState = Turret.TurretState.TRACKING;
+        telemetry.addData("Hi", "hi");
+        telemetry.update();
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -16,6 +17,7 @@ public class Shooter implements Component {
     private HardwareMap map;
     private Telemetry telemetry;
     public DcMotorEx shooterMotor;
+    public ServoImplEx hoodServo;
 
     public static class Params{
         public double TORQUE_CONSTANT = 3; // 1 for far and 3 for close
@@ -28,8 +30,16 @@ public class Shooter implements Component {
         this.telemetry = telemetry;
 
         shooterMotor = map.get(DcMotorEx.class, "shooter");
+//        hoodServo = map.get(ServoImplEx.class, "hood");
         shooterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+
+    public double getAlgorithmPower() {
+        return 0;
+    }
+
+    public void updateHoodPosition() {
     }
 
     @Override
@@ -38,9 +48,9 @@ public class Shooter implements Component {
 
     @Override
     public void update(){
-        telemetry.addData("Shooter Velocity", shooterMotor.getVelocity());
-        telemetry.addData("Shooter Power", shooterMotor.getPower());
-        telemetry.update();
+//        telemetry.addData("Shooter Velocity", shooterMotor.getVelocity());
+//        telemetry.addData("Shooter Power", shooterMotor.getPower());
+//        telemetry.update();
     }
     @Override
     public String test(){
