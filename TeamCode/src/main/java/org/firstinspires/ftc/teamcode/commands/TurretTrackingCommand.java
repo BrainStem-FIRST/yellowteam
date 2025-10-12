@@ -12,7 +12,6 @@ public class TurretTrackingCommand extends CommandBase {
     Telemetry telemetry;
     Pose2d pose;
 
-
     public TurretTrackingCommand(BrainSTEMRobot robot, Telemetry telemetry){
         this.robot = robot;
         this.telemetry = telemetry;
