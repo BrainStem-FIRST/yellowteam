@@ -1,6 +1,5 @@
-package org.firstinspires.ftc.teamcode.commands;
+package org.firstinspires.ftc.teamcode.commands.collectionCommands;
 
-import com.acmerobotics.roadrunner.Pose2d;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -19,7 +18,8 @@ public class CollectionCommand extends CommandBase {
 
     @Override
     public void initialize() {
-        timer.reset();
+
+         timer.reset();
         robot.collection.startIntake();
     }
 
