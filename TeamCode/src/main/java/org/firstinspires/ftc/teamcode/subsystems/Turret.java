@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.utils.PIDController;
 
 @Config
 public final class Turret implements Component {
-
+    public boolean isRedAlliance = true;
     private HardwareMap map;
     private Telemetry telemetry;
     public DcMotorEx turretMotor;
@@ -114,6 +114,12 @@ public final class Turret implements Component {
                 break;
             }
         }
+
+        if (isRedAlliance)
+            targetPose = new Pose2d(72, 72, 0);
+        else
+            targetPose = new Pose2d(72, -72, 0);
+
     }
     @Override
     public String test(){

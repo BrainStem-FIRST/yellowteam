@@ -25,8 +25,6 @@ public class TurretTrackingCommand extends CommandBase {
     @Override
     public void execute() {
         robot.turret.turretState = Turret.TurretState.TRACKING;
-        telemetry.addData("Hi", "hi");
-        telemetry.update();
     }
 
     @Override

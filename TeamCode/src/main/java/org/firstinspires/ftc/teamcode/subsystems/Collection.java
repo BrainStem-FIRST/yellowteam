@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -15,7 +16,7 @@ public class Collection implements Component {
     private HardwareMap map;
     private Telemetry telemetry;
     private DcMotorEx collectorMotor;
-    private ServoImplEx shifter;
+    private ServoImplEx clutch;
 
     //Swyft Sensors
     private DigitalChannel frontRightLaser;
@@ -24,6 +25,7 @@ public class Collection implements Component {
     private DigitalChannel backLeftLaser;
 
     public CollectionState collectionState;
+    public ClutchState clutchState;
 
     private double timerStart = 0;
     private boolean timerRunning = false;
@@ -44,7 +46,8 @@ public class Collection implements Component {
         collectorMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         collectorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        shifter = map.get(ServoImplEx.class, "shifter");
+        clutch = map.get(ServoImplEx.class, "clutch");
+        clutch.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.LOCK_POSITION, COLLECTOR_PARAMS.UNLOCK_POSITION));
 
         frontRightLaser = hardwareMap.get(DigitalChannel.class, "frontRightLaser");
         frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
@@ -57,6 +60,9 @@ public class Collection implements Component {
 
         backLeftLaser = hardwareMap.get(DigitalChannel.class, "backLeftLaser");
         backLeftLaser.setMode(DigitalChannel.Mode.INPUT);
+
+        collectionState = CollectionState.OFF;
+        clutchState = ClutchState.UNENGAGED;
     }
 
     private boolean isBackBallDetected() {
@@ -65,13 +71,6 @@ public class Collection implements Component {
 
     private boolean isFrontBallDetected() {
         return !frontLeftLaser.getState() || !frontRightLaser.getState();
-    }
-
-    public boolean isCollectorFull(double confirmationDelay, double startTime, double currentTime) {
-        if (isBackBallDetected() && isFrontBallDetected()) {
-            return (currentTime - startTime) > confirmationDelay;
-        }
-        return false;
     }
 
     public void startIntake() {
@@ -105,6 +104,10 @@ public class Collection implements Component {
         OFF, INTAKE, EXTAKE, TRANSFER
     }
 
+    public enum ClutchState {
+        ENGAGED, UNENGAGED
+    }
+
     @Override
     public void reset() {
     }
@@ -118,11 +121,11 @@ public class Collection implements Component {
                 break;
             }
             case INTAKE: {
-                collectorMotor.setPower(0.5);
+                collectorMotor.setPower(0.25);
                 break;
             }
             case EXTAKE: {
-                collectorMotor.setPower(-0.5);
+                collectorMotor.setPower(-0.25);
                 break;
             }
             case TRANSFER: {
@@ -130,9 +133,21 @@ public class Collection implements Component {
             }
         }
 
+        switch (clutchState) {
+            case ENGAGED: {
+                clutch.setPosition(COLLECTOR_PARAMS.LOCK_POSITION);
+                break;
+            }
+            case UNENGAGED: {
+                clutch.setPosition(COLLECTOR_PARAMS.UNLOCK_POSITION);
+                break;
+            }
+        }
+
         telemetry.addData("Back Ball Detected", isBackBallDetected());
         telemetry.addData("Front Ball Detected", isFrontBallDetected());
-        telemetry.update();
+        telemetry.addData("Collection State", collectionState.toString());
+        telemetry.addData("Clutch State", clutchState.toString());
     }
 
     @Override

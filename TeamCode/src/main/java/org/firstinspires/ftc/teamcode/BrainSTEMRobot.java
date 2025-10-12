@@ -26,7 +26,6 @@ public class BrainSTEMRobot implements Component {
     public Shooter shooter;
     public Collection collection;
     public MecanumDrive drive;
-
     private ArrayList<Component> subsystems;
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
