@@ -16,6 +16,7 @@ import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 @Autonomous(name="Test Auto", group="Robot")
 public class PreBotAuto extends LinearOpMode {
@@ -66,7 +67,11 @@ public class PreBotAuto extends LinearOpMode {
                                 robot.turret.turretState = Turret.TurretState.TRACKING;
                                 return false;
                             },
-                            firstMove
+                            firstMove,
+                            telemetryPacket -> {
+                                PoseStorage.currentPose = robot.drive.localizer.getPose();
+                                return false;
+                            }
                         )
                 )
         );

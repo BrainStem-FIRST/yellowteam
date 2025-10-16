@@ -129,6 +129,7 @@ public class Collection implements Component {
                 break;
             }
             case TRANSFER: {
+                collectorMotor.setPower(0.1);
                 break;
             }
         }

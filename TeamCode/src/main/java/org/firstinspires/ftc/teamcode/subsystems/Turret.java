@@ -59,30 +59,20 @@ public final class Turret implements Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double error = getTurretEncoder() - ticks;
         double power = pidController.updateWithError(error);
-        telemetry.addData("power", -power);
-//        telemetry.addData("Turret Encoder", getTurretEncoder());
-        telemetry.update();
         turretMotor.setPower(-power);
     }
 
     public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        telemetry.addData("Pose X", robotPose.position.x);
-        telemetry.addData("Pose Y", robotPose.position.y);
-        telemetry.addData("Pose Heading", Math.toDegrees(robotPose.heading.toDouble()));
 
         double targetAngle = Math.atan2(deltaY, deltaX);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
-//        telemetry.addData("Turret Angle", turretTargetAngle);
 
         double ticksPerRev = -1680;
         double turretTicksPerRadian = ticksPerRev / (2 * Math.PI);
         int targetTurretPosition = (int)(-turretTargetAngle * turretTicksPerRadian);
-//        telemetry.addData("Turret Ticks", targetTurretPosition);
-//        telemetry.addData("Turret Encoder", getTurretEncoder());
-        telemetry.update();
 
         if (targetTurretPosition > RIGHT_BOUND && targetTurretPosition < LEFT_BOUND)
             setTurretPosition(targetTurretPosition);
@@ -100,8 +90,6 @@ public final class Turret implements Component {
 
     @Override
     public void update(){
-//        telemetry.addData("Turret State", turretState.toString());
-        telemetry.update();
         switch (turretState) {
             case OFF: {
                 turretMotor.setPower(0);
@@ -120,6 +108,8 @@ public final class Turret implements Component {
         else
             targetPose = new Pose2d(72, -72, 0);
 
+        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
+        telemetry.addData("Turret State", turretState.toString());
     }
     @Override
     public String test(){

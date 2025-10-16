@@ -9,10 +9,11 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.commandGroups.FullCollectionSequence;
-import org.firstinspires.ftc.teamcode.commands.CollectionCommand;
-import org.firstinspires.ftc.teamcode.commands.TurretTrackingCommand;
+import org.firstinspires.ftc.teamcode.commands.collectionCommands.CollectionCommand;
+import org.firstinspires.ftc.teamcode.commands.turretCommands.TurretTrackingCommand;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.StickyButton;
 
 @TeleOp(name = "TeleOp", group = "Robot")
@@ -52,9 +53,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        telemetry.setMsTransmissionInterval(20);
+        telemetry.setMsTransmissionInterval(20); // faster telemetry speed
 
-        brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, new Pose2d(0, 0, Math.toRadians(90)));
+        brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, PoseStorage.currentPose); //take pose from auto
 
         collectionCommandGroup = new FullCollectionSequence(brainSTEMRobot, telemetry);
         turretTrackingCommand = new TurretTrackingCommand(brainSTEMRobot, telemetry);
@@ -119,10 +120,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         else
             brainSTEMRobot.collection.collectionState = Collection.CollectionState.OFF;
 
-        if (gamepad1YButton.getState())
-            brainSTEMRobot.shooter.shooterMotor.setPower(0.89 * Shooter.SHOOTER_PARAMS.TORQUE_CONSTANT);
-        else
-            brainSTEMRobot.shooter.shooterMotor.setPower(0);
+        if (gamepad1YButton.getState()) {
+            brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
+            brainSTEMRobot.collection.collectionState = Collection.CollectionState.TRANSFER;
+        }
 
         if (gamepad1XButton.getState())
             turretTrackingCommand.schedule();

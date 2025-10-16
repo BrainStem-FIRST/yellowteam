@@ -34,8 +34,8 @@ public class BrainSTEMRobot implements Component {
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
-        shooter = new Shooter(hardwareMap, telemetry);
         turret = new Turret(hardwareMap, telemetry, drive);
+        shooter = new Shooter(hardwareMap, telemetry, drive, turret);
         collection = new Collection(hardwareMap, telemetry);
 
         subsystems.add(turret);
