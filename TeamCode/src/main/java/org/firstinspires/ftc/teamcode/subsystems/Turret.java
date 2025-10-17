@@ -20,9 +20,6 @@ public final class Turret implements Component {
     public DcMotorEx turretMotor;
     private PIDController pidController;
 
-    private int RIGHT_BOUND = -400;
-    private int LEFT_BOUND = 400;
-
     public TurretState turretState;
     Pose2d targetPose = new Pose2d(72, 72, 0);
 
@@ -30,7 +27,12 @@ public final class Turret implements Component {
         public double kP = 0.01;
         public double kI = 0;
         public double kD = 0;
-
+        public int TURRET_INCREMENT = 30;
+        public int TURRET_MAX = 300;
+        public int TURRET_MIN = -300;
+        public int TICKS_PER_REV = -1680;
+        public int RIGHT_BOUND = -400;
+        public int LEFT_BOUND = 400;
     }
     public MecanumDrive drive;
     public static Params TURRET_PARAMS = new Turret.Params();
@@ -65,19 +67,29 @@ public final class Turret implements Component {
     public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
+        double turretMax = Math.toRadians(90);
+        double turretMin = Math.toRadians(-90);
 
         double targetAngle = Math.atan2(deltaY, deltaX);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
-        double ticksPerRev = -1680;
-        double turretTicksPerRadian = ticksPerRev / (2 * Math.PI);
+        // COMMENT OUT IF NOT WORKING //
+        if (turretTargetAngle > turretMax)
+            turretTargetAngle = Math.toRadians(180) - turretTargetAngle; // mirror
+        else if (turretTargetAngle < turretMin)
+            turretTargetAngle = -Math.toRadians(180) - turretTargetAngle; // mirror
+
+        double turretTicksPerRadian = TURRET_PARAMS.TICKS_PER_REV / (2 * Math.PI);
         int targetTurretPosition = (int)(-turretTargetAngle * turretTicksPerRadian);
 
-        if (targetTurretPosition > RIGHT_BOUND && targetTurretPosition < LEFT_BOUND)
-            setTurretPosition(targetTurretPosition);
-        else
-            setTurretPosition(0);
+//        if (targetTurretPosition > TURRET_PARAMS.RIGHT_BOUND && targetTurretPosition < TURRET_PARAMS.LEFT_BOUND)
+//            setTurretPosition(targetTurretPosition);
+//        else
+//            setTurretPosition(0);
+
+        targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
+        setTurretPosition(targetTurretPosition);
     }
 
     public enum TurretState {
@@ -110,6 +122,7 @@ public final class Turret implements Component {
 
         telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
         telemetry.addData("Turret State", turretState.toString());
+        telemetry.addData("Turret Encoder", getTurretEncoder());
     }
     @Override
     public String test(){

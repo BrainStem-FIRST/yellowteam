@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.commands.collectionCommands.CollectionComm
 import org.firstinspires.ftc.teamcode.commands.turretCommands.TurretTrackingCommand;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.StickyButton;
@@ -30,6 +31,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     //testing
     private double hood_position = 0.9;
+    private int turret_position = 0;
 
     @Override
     public void runOpMode() {
@@ -89,16 +91,27 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
 
         if (gp1.isFirstDpadUp()) {
-            if (hood_position - 0.1 >= 0.1)
-                hood_position -= 0.1;
+            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.05)
+                hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
         if (gp1.isFirstDpadDown()) {
-            if (hood_position + 0.1 <= 0.9)
-                hood_position += 0.1;
+            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 0.95)
+                hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
-        brainSTEMRobot.shooter.hoodServo.setPosition(hood_position);
+        if (gp1.isFirstDpadLeft()) {
+            if (turret_position - Turret.TURRET_PARAMS.TURRET_INCREMENT >= Turret.TURRET_PARAMS.TURRET_MIN)
+                turret_position -= Turret.TURRET_PARAMS.TURRET_INCREMENT;
+        }
+
+        if (gp1.isFirstDpadRight()) {
+            if (turret_position + Turret.TURRET_PARAMS.TURRET_INCREMENT <= Turret.TURRET_PARAMS.TURRET_MAX)
+                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
+        }
+
+//        brainSTEMRobot.shooter.hoodServo.setPosition(hood_position);
+//        brainSTEMRobot.turret.setTurretPosition(turret_position);
     }
 
     private void updateDriver1() {
@@ -117,6 +130,12 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         if (gp1.isFirstX())
             turretTrackingCommand.schedule();
+
+        if (gp1.isFirstRightBumper())
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.SHOOT)
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
+            else
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
     }
 
     private void updateDriver2() {

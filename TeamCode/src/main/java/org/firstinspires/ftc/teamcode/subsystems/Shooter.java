@@ -34,6 +34,7 @@ public class Shooter implements Component {
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 0.5;
+        public double HOOD_INCREMENT = 0.1;
     }
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
