@@ -24,6 +24,7 @@ public class Shooter implements Component {
     public DcMotorEx shooterMotorFront;
     public DcMotorEx shooterMotorBack;
     public ServoImplEx hoodServo;
+    public ShooterState shooterState;
 
     public static class Params{
         public double TORQUE_CONSTANT = 3; // 1 for far and 3 for close
@@ -32,6 +33,7 @@ public class Shooter implements Component {
         // (the height of the front wall of the goal is 38.75 in)
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
+        public double SHOOTER_POWER = 0.5;
     }
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
@@ -52,6 +54,7 @@ public class Shooter implements Component {
 
         hoodServo = map.get(ServoImplEx.class, "hood");
         hoodServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+        shooterState = ShooterState.OFF;
     }
 
     public double updateHoodPosition(Pose2d robotPose, Pose2d targetPose) {
@@ -65,7 +68,8 @@ public class Shooter implements Component {
         return hoodPWM;
     }
 
-    public void setShooterSpeed(double power) {
+
+    public void setShooterPower(double power) {
         shooterMotorBack.setPower(power);
         shooterMotorFront.setPower(power);
     }
@@ -101,14 +105,27 @@ public class Shooter implements Component {
         return revsPerSec * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV; // ticks per second
     }
 
+    public enum ShooterState {
+        OFF, SHOOT
+    }
+
     @Override
     public void reset() {
     }
 
     @Override
     public void update(){
-        updateHoodPosition(drive.localizer.getPose(), turret.targetPose);
-        updateShooterFlywheelSpeed(drive.localizer.getPose(), turret.targetPose);
+        switch (shooterState) {
+            case OFF:
+                setShooterPower(0);
+                break;
+
+            case SHOOT:
+                setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
+                break;
+        }
+//        updateHoodPosition(drive.localizer.getPose(), turret.targetPose);
+//        updateShooterFlywheelSpeed(drive.localizer.getPose(), turret.targetPose);
     }
     @Override
     public String test(){

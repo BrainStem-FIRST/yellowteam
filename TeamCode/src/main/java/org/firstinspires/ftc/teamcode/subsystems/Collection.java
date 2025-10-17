@@ -16,7 +16,8 @@ public class Collection implements Component {
     private HardwareMap map;
     private Telemetry telemetry;
     private DcMotorEx collectorMotor;
-    private ServoImplEx clutch;
+    private ServoImplEx clutchLeft;
+    private ServoImplEx clutchRight;
 
     //Swyft Sensors
     private DigitalChannel frontRightLaser;
@@ -31,9 +32,10 @@ public class Collection implements Component {
     private boolean timerRunning = false;
 
     public static class Params{
-        private double LOCK_POSITION = 0;
-        private double UNLOCK_POSITION = 1;
-        private double DELAY_PERIOD = 0.5;
+        public double ENGAGED_POS = 0.1;
+        public double DISENGAGED_POS = 0.9;
+        public double DELAY_PERIOD = 0.5;
+        public double INTAKE_SPEED = 0.25;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -46,8 +48,11 @@ public class Collection implements Component {
         collectorMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         collectorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        clutch = map.get(ServoImplEx.class, "clutch");
-        clutch.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.LOCK_POSITION, COLLECTOR_PARAMS.UNLOCK_POSITION));
+        clutchRight = map.get(ServoImplEx.class, "clutchRight");
+        clutchRight.setPwmRange(new PwmControl.PwmRange(1450, 1800));
+
+        clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
+        clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 1800));
 
         frontRightLaser = hardwareMap.get(DigitalChannel.class, "frontRightLaser");
         frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
@@ -116,33 +121,33 @@ public class Collection implements Component {
     public void update() {
 
         switch (collectionState) {
-            case OFF: {
+            case OFF:
                 collectorMotor.setPower(0);
                 break;
-            }
-            case INTAKE: {
-                collectorMotor.setPower(0.25);
+
+            case INTAKE:
+                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
                 break;
-            }
-            case EXTAKE: {
-                collectorMotor.setPower(-0.25);
+
+            case EXTAKE:
+                collectorMotor.setPower(-COLLECTOR_PARAMS.INTAKE_SPEED);
                 break;
-            }
-            case TRANSFER: {
+
+            case TRANSFER:
                 collectorMotor.setPower(0.1);
                 break;
-            }
         }
 
         switch (clutchState) {
-            case ENGAGED: {
-                clutch.setPosition(COLLECTOR_PARAMS.LOCK_POSITION);
+            case ENGAGED:
+                clutchRight.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
+                clutchLeft.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
                 break;
-            }
-            case UNENGAGED: {
-                clutch.setPosition(COLLECTOR_PARAMS.UNLOCK_POSITION);
+
+            case UNENGAGED:
+                clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
+                clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
                 break;
-            }
         }
 
         telemetry.addData("Back Ball Detected", isBackBallDetected());

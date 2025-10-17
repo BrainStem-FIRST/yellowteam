@@ -18,8 +18,7 @@ public class CollectionCommand extends CommandBase {
 
     @Override
     public void initialize() {
-
-         timer.reset();
+        timer.reset();
         robot.collection.startIntake();
     }
 
@@ -35,6 +34,6 @@ public class CollectionCommand extends CommandBase {
 
     @Override
     public void end(boolean interrupted) {
-        robot.collection.stopIntake();
+        robot.collection.stopIntake(); //remove if interruption is ok
     }
 }
