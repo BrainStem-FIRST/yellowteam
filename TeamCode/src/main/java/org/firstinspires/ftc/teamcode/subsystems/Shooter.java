@@ -27,7 +27,6 @@ public class Shooter implements Component {
     public ShooterState shooterState;
 
     public static class Params{
-        public double TORQUE_CONSTANT = 3; // 1 for far and 3 for close
         public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
         // (the height of the front wall of the goal is 38.75 in)
@@ -35,6 +34,9 @@ public class Shooter implements Component {
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 0.5;
         public double HOOD_INCREMENT = 0.1;
+        public double CLOSE_SHOOTER_VELOCITY = 1;
+        public double FAR_SHOOTER_VELOCITY = 1.5;
+        public double ZONE_THRESHOLD = 60;
     }
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
@@ -58,52 +60,87 @@ public class Shooter implements Component {
         shooterState = ShooterState.OFF;
     }
 
-    public double updateHoodPosition(Pose2d robotPose, Pose2d targetPose) {
-        double deltaX = Math.abs(robotPose.position.x - targetPose.position.x);
-        double deltaY = Math.abs(robotPose.position.y - targetPose.position.y);
-        double distanceToTarget = Math.hypot(deltaX, deltaY);
-
-        double hoodPWM = (0.0 * distanceToTarget) + 0.0; // adjust based on linear regression
-        hoodServo.setPosition(hoodPWM);
-
-        return hoodPWM;
-    }
-
-
     public void setShooterPower(double power) {
+        shooterMotorFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         shooterMotorBack.setPower(power);
         shooterMotorFront.setPower(power);
     }
 
-    public void updateShooterFlywheelSpeed(Pose2d robotPose, Pose2d targetPose) {
-        double heightToTarget = SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT;
+    public void setShooterVelocity(double targetVelocityTicksPerSec) {
+        shooterMotorFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterMotorBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        shooterMotorFront.setVelocity(targetVelocityTicksPerSec);
+        shooterMotorBack.setVelocity(targetVelocityTicksPerSec);
+    }
+
+    public enum ShootingZone {
+        CLOSE, FAR
+    }
+
+    public ShootingZone getShootingZone(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
-        double hoodPWM = updateHoodPosition(robotPose, targetPose);
-        double hoodAngleDeg = (-28.6 * hoodPWM) + 45.1;
-
-        double theta = Math.toRadians(hoodAngleDeg);
-        double denominator = distance * Math.tan(theta) - heightToTarget;
-
-        // y = x*tan(θ) − (gx^2)/(2v^2cos^2(θ))
-
-        double speedMps;
-        if (denominator <= 0) {
-            speedMps = 10.0; // fallback if impossible
-        } else {
-            speedMps = Math.sqrt(9.81 * distance * distance / (2 * Math.cos(theta) * Math.cos(theta) * denominator));
-        }
-
-        shooterMotorFront.setVelocity(speedMpsToTicksPerSec(speedMps));
-        shooterMotorBack.setVelocity(speedMpsToTicksPerSec(speedMps));
+        if (distance <= SHOOTER_PARAMS.ZONE_THRESHOLD)
+            return ShootingZone.CLOSE;
+        else
+            return ShootingZone.FAR;
     }
 
-    private double speedMpsToTicksPerSec(double mps) {
-        double circumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
-        double revsPerSec = mps / circumference;
-        return revsPerSec * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV; // ticks per second
+    public void setFlywheelSpeedByZone(ShootingZone zone) {
+        double targetVelocity = (zone == ShootingZone.CLOSE)
+                ? SHOOTER_PARAMS.CLOSE_SHOOTER_VELOCITY
+                : SHOOTER_PARAMS.FAR_SHOOTER_VELOCITY;
+
+        setShooterVelocity(targetVelocity);
+    }
+
+    public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY);
+
+        double actualVelocityMps = ticksPerSecToMps((shooterMotorFront.getVelocity() + shooterMotorBack.getVelocity()) / 2.0);
+
+        double heightToTarget = SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT;
+
+        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yh²))) / (gx)
+        double g = 9.81;
+        double term = Math.pow(actualVelocityMps, 4)
+                - g * (g * Math.pow(distance * 0.0254, 2) + 2 * heightToTarget * 0.0254 * Math.pow(actualVelocityMps, 2));
+
+        if (term <= 0)
+            return Math.toRadians(40); // safe angle
+
+        double numerator = Math.pow(actualVelocityMps, 2) - Math.sqrt(term);
+        double denominator = g * distance * 0.0254;
+
+        return Math.atan(numerator / denominator); //theta
+    }
+
+    public void setHoodFromAngle(double angleRadians) {
+        double angleDeg = Math.toDegrees(angleRadians);
+        double servoPos = (-1.7 / 25.0) * (angleDeg - 20) + 0.8;
+        servoPos = Math.max(0.05, Math.min(0.95, servoPos));
+
+        hoodServo.setPosition(servoPos);
+    }
+
+    public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
+        ShootingZone zone = getShootingZone(robotPose, targetPose);
+        setFlywheelSpeedByZone(zone);
+
+        double hoodAngle = calculateHoodAngle(robotPose, targetPose);
+        setHoodFromAngle(hoodAngle);
+    }
+
+    public double ticksPerSecToMps(double ticksPerSec) {
+        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
+        return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference;
     }
 
     public enum ShooterState {
@@ -125,8 +162,9 @@ public class Shooter implements Component {
                 setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
                 break;
         }
-//        updateHoodPosition(drive.localizer.getPose(), turret.targetPose);
-//        updateShooterFlywheelSpeed(drive.localizer.getPose(), turret.targetPose);
+
+//        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
+
     }
     @Override
     public String test(){
