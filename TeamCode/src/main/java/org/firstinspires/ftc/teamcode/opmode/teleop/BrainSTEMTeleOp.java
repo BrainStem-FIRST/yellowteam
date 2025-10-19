@@ -1,23 +1,19 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
-import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.commandGroups.FullCollectionSequence;
-import org.firstinspires.ftc.teamcode.commands.collectionCommands.CollectionCommand;
 import org.firstinspires.ftc.teamcode.commands.turretCommands.TurretTrackingCommand;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.StickyButton;
 
 @TeleOp(name = "TeleOp", group = "Robot")
 public class BrainSTEMTeleOp extends LinearOpMode {
@@ -29,7 +25,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     GamepadTracker gp1;
     GamepadTracker gp2;
 
-    //testing
+    // TESTING //
     private double hood_position = 0.9;
     private int turret_position = 0;
 
@@ -112,6 +108,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
 //        brainSTEMRobot.shooter.hoodServo.setPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
+        telemetry.addData("Turret Increment", turret_position);
+        telemetry.addData("Hood Increment", hood_position);
     }
 
     private void updateDriver1() {

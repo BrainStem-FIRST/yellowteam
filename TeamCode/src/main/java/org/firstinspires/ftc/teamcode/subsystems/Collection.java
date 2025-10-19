@@ -44,7 +44,7 @@ public class Collection implements Component {
         this.map = hardwareMap;
         this.telemetry = telemetry;
 
-        collectorMotor = map.get(DcMotorEx.class, "collection");
+        collectorMotor = map.get(DcMotorEx.class, "intake");
         collectorMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         collectorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -54,16 +54,16 @@ public class Collection implements Component {
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 1800));
 
-        frontRightLaser = hardwareMap.get(DigitalChannel.class, "frontRightLaser");
+        frontRightLaser = hardwareMap.get(DigitalChannel.class, "FRLaser");
         frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
 
-        frontLeftLaser = hardwareMap.get(DigitalChannel.class, "frontLeftLaser");
+        frontLeftLaser = hardwareMap.get(DigitalChannel.class, "FLLaser");
         frontLeftLaser.setMode(DigitalChannel.Mode.INPUT);
 
-        backRightLaser = hardwareMap.get(DigitalChannel.class, "backRightLaser");
+        backRightLaser = hardwareMap.get(DigitalChannel.class, "BRLaser");
         backRightLaser.setMode(DigitalChannel.Mode.INPUT);
 
-        backLeftLaser = hardwareMap.get(DigitalChannel.class, "backLeftLaser");
+        backLeftLaser = hardwareMap.get(DigitalChannel.class, "BLLaser");
         backLeftLaser.setMode(DigitalChannel.Mode.INPUT);
 
         collectionState = CollectionState.OFF;

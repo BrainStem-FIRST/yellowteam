@@ -23,7 +23,8 @@ public class Shooter implements Component {
     private Turret turret;
     public DcMotorEx shooterMotorFront;
     public DcMotorEx shooterMotorBack;
-    public ServoImplEx hoodServo;
+    public ServoImplEx hoodLeftServo;
+    public ServoImplEx hoodRightServo;
     public ShooterState shooterState;
 
     public static class Params{
@@ -35,7 +36,7 @@ public class Shooter implements Component {
         public double SHOOTER_POWER = 0.5;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_VELOCITY = 1;
-        public double FAR_SHOOTER_VELOCITY = 1.5;
+        public double FAR_SHOOTER_VELOCITY = 1;
         public double ZONE_THRESHOLD = 60;
     }
 
@@ -55,8 +56,12 @@ public class Shooter implements Component {
         shooterMotorBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        hoodServo = map.get(ServoImplEx.class, "hood");
-        hoodServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+        hoodLeftServo = map.get(ServoImplEx.class, "hoodLeft");
+        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+
+        hoodRightServo = map.get(ServoImplEx.class, "hoodRight");
+        hoodRightServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+
         shooterState = ShooterState.OFF;
     }
 
@@ -114,7 +119,7 @@ public class Shooter implements Component {
                 - g * (g * Math.pow(distance * 0.0254, 2) + 2 * heightToTarget * 0.0254 * Math.pow(actualVelocityMps, 2));
 
         if (term <= 0)
-            return Math.toRadians(40); // safe angle
+            return Math.toRadians(40); //safe angle
 
         double numerator = Math.pow(actualVelocityMps, 2) - Math.sqrt(term);
         double denominator = g * distance * 0.0254;
@@ -124,10 +129,11 @@ public class Shooter implements Component {
 
     public void setHoodFromAngle(double angleRadians) {
         double angleDeg = Math.toDegrees(angleRadians);
-        double servoPos = (-1.7 / 25.0) * (angleDeg - 20) + 0.8;
-        servoPos = Math.max(0.05, Math.min(0.95, servoPos));
+        angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
+        double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(0-1)
 
-        hoodServo.setPosition(servoPos);
+        hoodLeftServo.setPosition(servoPos);
+        hoodRightServo.setPosition(servoPos);
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
@@ -164,7 +170,7 @@ public class Shooter implements Component {
         }
 
 //        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
-
+        telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
     }
     @Override
     public String test(){

@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 
@@ -25,6 +26,7 @@ public class BrainSTEMRobot implements Component {
     public Turret turret;
     public Shooter shooter;
     public Collection collection;
+    public Parking parking;
     public MecanumDrive drive;
     private ArrayList<Component> subsystems;
 
@@ -37,15 +39,15 @@ public class BrainSTEMRobot implements Component {
         turret = new Turret(hardwareMap, telemetry, drive);
         shooter = new Shooter(hardwareMap, telemetry, drive, turret);
         collection = new Collection(hardwareMap, telemetry);
+        parking = new Parking(hardwareMap, telemetry, drive);
 
         subsystems.add(turret);
         subsystems.add(shooter);
         subsystems.add(collection);
+        subsystems.add(parking);
     }
 
-    public void getTelemetry(){
-
-    }
+    public void getTelemetry(){}
 
     @Override
     public void reset() {

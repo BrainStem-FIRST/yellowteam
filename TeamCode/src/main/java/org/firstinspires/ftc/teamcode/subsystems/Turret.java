@@ -24,7 +24,7 @@ public final class Turret implements Component {
     Pose2d targetPose = new Pose2d(72, 72, 0);
 
     public static class Params{
-        public double kP = 0.01;
+        public double kP = 0.0001;
         public double kI = 0;
         public double kD = 0;
         public int TURRET_INCREMENT = 30;
@@ -47,8 +47,6 @@ public final class Turret implements Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
-//        pidController.setInputBounds(-300, 300);
-//        pidController.setOutputBounds(1, -1);
         turretState = TurretState.OFF;
     }
 
