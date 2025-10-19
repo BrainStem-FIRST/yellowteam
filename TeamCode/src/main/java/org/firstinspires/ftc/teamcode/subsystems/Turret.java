@@ -31,8 +31,8 @@ public final class Turret implements Component {
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
         public int TICKS_PER_REV = -1680;
-        public int RIGHT_BOUND = -400;
-        public int LEFT_BOUND = 400;
+        public int RIGHT_BOUND = -300;
+        public int LEFT_BOUND = 300;
     }
     public MecanumDrive drive;
     public static Params TURRET_PARAMS = new Turret.Params();
@@ -59,6 +59,7 @@ public final class Turret implements Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double error = getTurretEncoder() - ticks;
         double power = pidController.updateWithError(error);
+        telemetry.addData("Turret Power", power);
         turretMotor.setPower(-power);
     }
 

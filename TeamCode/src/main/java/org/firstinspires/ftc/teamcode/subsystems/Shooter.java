@@ -3,17 +3,15 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.utils.PIDController;
+
 @Config
 public class Shooter implements Component {
 
@@ -21,8 +19,8 @@ public class Shooter implements Component {
     private Telemetry telemetry;
     private MecanumDrive drive;
     private Turret turret;
-    public DcMotorEx shooterMotorFront;
-    public DcMotorEx shooterMotorBack;
+    public DcMotorEx shooterMotorLow;
+    public DcMotorEx shooterMotorHigh;
     public ServoImplEx hoodLeftServo;
     public ServoImplEx hoodRightServo;
     public ShooterState shooterState;
@@ -33,7 +31,7 @@ public class Shooter implements Component {
         // (the height of the front wall of the goal is 38.75 in)
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
-        public double SHOOTER_POWER = 0.5;
+        public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_VELOCITY = 1;
         public double FAR_SHOOTER_VELOCITY = 1;
@@ -48,37 +46,38 @@ public class Shooter implements Component {
         this.drive = drive;
         this.turret = turret;
 
-        shooterMotorFront = map.get(DcMotorEx.class, "shooterFront");
-        shooterMotorFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooterMotorFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorLow = map.get(DcMotorEx.class, "lowShoot");
+        shooterMotorLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        shooterMotorBack = map.get(DcMotorEx.class, "shooterBack");
-        shooterMotorBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooterMotorBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorHigh = map.get(DcMotorEx.class, "highShoot");
+        shooterMotorHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorHigh.setDirection(DcMotorSimple.Direction.REVERSE);
 
         hoodLeftServo = map.get(ServoImplEx.class, "hoodLeft");
-        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
 
         hoodRightServo = map.get(ServoImplEx.class, "hoodRight");
-        hoodRightServo.setPwmRange(new PwmControl.PwmRange(1500, 2300));
+        hoodRightServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
 
         shooterState = ShooterState.OFF;
     }
 
     public void setShooterPower(double power) {
-        shooterMotorFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotorBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        shooterMotorBack.setPower(power);
-        shooterMotorFront.setPower(power);
+        shooterMotorHigh.setPower(power);
+        shooterMotorLow.setPower(power);
     }
 
     public void setShooterVelocity(double targetVelocityTicksPerSec) {
-        shooterMotorFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooterMotorBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterMotorLow.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooterMotorHigh.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        shooterMotorFront.setVelocity(targetVelocityTicksPerSec);
-        shooterMotorBack.setVelocity(targetVelocityTicksPerSec);
+        shooterMotorLow.setVelocity(targetVelocityTicksPerSec);
+        shooterMotorHigh.setVelocity(targetVelocityTicksPerSec);
     }
 
     public enum ShootingZone {
@@ -109,7 +108,7 @@ public class Shooter implements Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
-        double actualVelocityMps = ticksPerSecToMps((shooterMotorFront.getVelocity() + shooterMotorBack.getVelocity()) / 2.0);
+        double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
 
         double heightToTarget = SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT;
 
@@ -147,6 +146,11 @@ public class Shooter implements Component {
     public double ticksPerSecToMps(double ticksPerSec) {
         double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
         return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference;
+    }
+
+    public void setHoodPosition(double position) {
+        hoodLeftServo.setPosition(position);
+        hoodRightServo.setPosition(position);
     }
 
     public enum ShooterState {

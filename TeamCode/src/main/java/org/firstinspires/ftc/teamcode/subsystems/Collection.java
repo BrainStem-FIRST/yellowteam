@@ -20,10 +20,10 @@ public class Collection implements Component {
     private ServoImplEx clutchRight;
 
     //Swyft Sensors
-    private DigitalChannel frontRightLaser;
-    private DigitalChannel frontLeftLaser;
-    private DigitalChannel backRightLaser;
-    private DigitalChannel backLeftLaser;
+//    private DigitalChannel frontRightLaser;
+//    private DigitalChannel frontLeftLaser;
+    private DigitalChannel backTopLaser;
+    private DigitalChannel backBottomLaser;
 
     public CollectionState collectionState;
     public ClutchState clutchState;
@@ -35,7 +35,7 @@ public class Collection implements Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.9;
         public double DELAY_PERIOD = 0.5;
-        public double INTAKE_SPEED = 0.25;
+        public double INTAKE_SPEED = 1.00;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -54,29 +54,29 @@ public class Collection implements Component {
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 1800));
 
-        frontRightLaser = hardwareMap.get(DigitalChannel.class, "FRLaser");
-        frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
+//        frontRightLaser = hardwareMap.get(DigitalChannel.class, "FRLaser");
+//        frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
+//
+//        frontLeftLaser = hardwareMap.get(DigitalChannel.class, "FLLaser");
+//        frontLeftLaser.setMode(DigitalChannel.Mode.INPUT);
 
-        frontLeftLaser = hardwareMap.get(DigitalChannel.class, "FLLaser");
-        frontLeftLaser.setMode(DigitalChannel.Mode.INPUT);
+        backTopLaser = hardwareMap.get(DigitalChannel.class, "BTLaser");
+        backTopLaser.setMode(DigitalChannel.Mode.INPUT);
 
-        backRightLaser = hardwareMap.get(DigitalChannel.class, "BRLaser");
-        backRightLaser.setMode(DigitalChannel.Mode.INPUT);
-
-        backLeftLaser = hardwareMap.get(DigitalChannel.class, "BLLaser");
-        backLeftLaser.setMode(DigitalChannel.Mode.INPUT);
+        backBottomLaser = hardwareMap.get(DigitalChannel.class, "BBLaser");
+        backBottomLaser.setMode(DigitalChannel.Mode.INPUT);
 
         collectionState = CollectionState.OFF;
         clutchState = ClutchState.UNENGAGED;
     }
 
     private boolean isBackBallDetected() {
-        return !backLeftLaser.getState() || !backRightLaser.getState();
+        return !backBottomLaser.getState() || !backTopLaser.getState();
     }
 
-    private boolean isFrontBallDetected() {
-        return !frontLeftLaser.getState() || !frontRightLaser.getState();
-    }
+//    private boolean isFrontBallDetected() {
+//        return !frontLeftLaser.getState() || !frontRightLaser.getState();
+//    }
 
     public void startIntake() {
         collectionState = CollectionState.INTAKE;
@@ -91,7 +91,7 @@ public class Collection implements Component {
 
     public void updateIntakeSequence(double currentTime) {
         if (collectionState == CollectionState.INTAKE) {
-            if (isBackBallDetected() && isFrontBallDetected()) {
+            if (isBackBallDetected()) { // && isFrontBallDetected()
                 if (!timerRunning) {
                     timerStart = currentTime;
                     timerRunning = true;
@@ -151,7 +151,7 @@ public class Collection implements Component {
         }
 
         telemetry.addData("Back Ball Detected", isBackBallDetected());
-        telemetry.addData("Front Ball Detected", isFrontBallDetected());
+//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
         telemetry.addData("Collection State", collectionState.toString());
         telemetry.addData("Clutch State", clutchState.toString());
     }

@@ -26,7 +26,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     GamepadTracker gp2;
 
     // TESTING //
-    private double hood_position = 0.9;
+    private double hood_position = 0.1;
     private int turret_position = 0;
 
     @Override
@@ -86,13 +86,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             else
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
 
-        if (gp1.isFirstDpadUp()) {
-            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.05)
+        if (gp1.isFirstDpadDown()) {
+            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.0)
                 hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
-        if (gp1.isFirstDpadDown()) {
-            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 0.95)
+        if (gp1.isFirstDpadUp()) {
+            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0)
                 hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
@@ -106,8 +106,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
         }
 
-//        brainSTEMRobot.shooter.hoodServo.setPosition(hood_position);
+        brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
+        brainSTEMRobot.turret.turretMotor.setPower(turret_position * 0.01);
+        telemetry.addData("Turret Power", brainSTEMRobot.turret.turretMotor.getPower());
         telemetry.addData("Turret Increment", turret_position);
         telemetry.addData("Hood Increment", hood_position);
     }

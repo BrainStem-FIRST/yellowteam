@@ -18,8 +18,8 @@ public class Parking implements Component {
     private MecanumDrive drive;
     public ServoImplEx parkLeftServo;
     public ServoImplEx parkRightServo;
-    public ColorSensor leftColorSensor;
-    public ColorSensor rightColorSensor;
+//    public ColorSensor leftColorSensor;
+//    public ColorSensor rightColorSensor;
     public ParkState parkState;
 
     public static class Params{
@@ -42,20 +42,20 @@ public class Parking implements Component {
         parkRightServo = map.get(ServoImplEx.class, "parkRight");
         parkRightServo.setPwmRange(new PwmControl.PwmRange(100, 2500));
 
-        leftColorSensor = hardwareMap.get(ColorSensor.class, "leftColor");
-        rightColorSensor = hardwareMap.get(ColorSensor.class, "rightColor");
+//        leftColorSensor = hardwareMap.get(ColorSensor.class, "leftColor");
+//        rightColorSensor = hardwareMap.get(ColorSensor.class, "rightColor");
 
         parkState = ParkState.RETRACTED;
     }
 
-    public double getColorSensorBrightness() {
-        float[] hsv = new float[3];
-        Color.RGBToHSV((int) (leftColorSensor.red() * PARK_PARAMS.SCALE_FACTOR),
-                (int) (leftColorSensor.green() * PARK_PARAMS.SCALE_FACTOR),
-                (int) (leftColorSensor.blue() * PARK_PARAMS.SCALE_FACTOR),
-                hsv);
-        return hsv[2];
-    }
+//    public double getColorSensorBrightness() {
+//        float[] hsv = new float[3];
+//        Color.RGBToHSV((int) (leftColorSensor.red() * PARK_PARAMS.SCALE_FACTOR),
+//                (int) (leftColorSensor.green() * PARK_PARAMS.SCALE_FACTOR),
+//                (int) (leftColorSensor.blue() * PARK_PARAMS.SCALE_FACTOR),
+//                hsv);
+//        return hsv[2];
+//    }
 
     public void setParkServoPosition(double position) {
         parkLeftServo.setPosition(position);
