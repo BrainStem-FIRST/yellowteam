@@ -96,20 +96,19 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
-        if (gp1.isFirstDpadLeft()) {
+        if (gp1.isFirstDpadRight()) {
             if (turret_position - Turret.TURRET_PARAMS.TURRET_INCREMENT >= Turret.TURRET_PARAMS.TURRET_MIN)
                 turret_position -= Turret.TURRET_PARAMS.TURRET_INCREMENT;
         }
 
-        if (gp1.isFirstDpadRight()) {
+        if (gp1.isFirstDpadLeft()) {
             if (turret_position + Turret.TURRET_PARAMS.TURRET_INCREMENT <= Turret.TURRET_PARAMS.TURRET_MAX)
                 turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
         }
 
         brainSTEMRobot.shooter.setHoodPosition(hood_position);
-//        brainSTEMRobot.turret.setTurretPosition(turret_position);
-        brainSTEMRobot.turret.turretMotor.setPower(turret_position * 0.01);
-        telemetry.addData("Turret Power", brainSTEMRobot.turret.turretMotor.getPower());
+        brainSTEMRobot.turret.setTurretPosition(turret_position);
+//        brainSTEMRobot.turret.turretMotor.setPower(turret_position * 0.01);
         telemetry.addData("Turret Increment", turret_position);
         telemetry.addData("Hood Increment", hood_position);
     }

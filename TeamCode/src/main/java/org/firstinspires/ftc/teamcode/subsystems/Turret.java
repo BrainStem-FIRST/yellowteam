@@ -24,10 +24,10 @@ public final class Turret implements Component {
     Pose2d targetPose = new Pose2d(72, 72, 0);
 
     public static class Params{
-        public double kP = 0.0001;
+        public double kP = 0.01;
         public double kI = 0;
         public double kD = 0;
-        public int TURRET_INCREMENT = 30;
+        public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
         public int TICKS_PER_REV = -1680;
@@ -103,7 +103,7 @@ public final class Turret implements Component {
     public void update(){
         switch (turretState) {
             case OFF: {
-                turretMotor.setPower(0);
+//                turretMotor.setPower(0);
                 break;
             } case TRACKING: {
                 pointTurretAtTarget(drive.localizer.getPose(), targetPose);
