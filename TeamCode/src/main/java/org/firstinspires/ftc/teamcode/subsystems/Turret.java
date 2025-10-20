@@ -21,7 +21,7 @@ public final class Turret implements Component {
     private PIDController pidController;
 
     public TurretState turretState;
-    Pose2d targetPose = new Pose2d(72, 72, 0);
+    Pose2d targetPose = new Pose2d(-72, 72, 0);
 
     public static class Params{
         public double kP = 0.015;
@@ -73,23 +73,17 @@ public final class Turret implements Component {
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
-        // COMMENT OUT IF NOT WORKING //
         if (turretTargetAngle > turretMax)
-            turretTargetAngle = Math.toRadians(180) - turretTargetAngle; // mirror
+            turretTargetAngle = Math.PI - turretTargetAngle; //mirror angle
         else if (turretTargetAngle < turretMin)
-            turretTargetAngle = -Math.toRadians(180) - turretTargetAngle; // mirror
+            turretTargetAngle = -Math.PI - turretTargetAngle;
+
+        double inverseFactor = (isRedAlliance) ? 1 : -1;
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * inverseFactor;
+        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
 
         telemetry.addData("Turret Angle", turretTargetAngle);
-
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI); //*-1 if blue alliance
-        int targetTurretPosition = (int)(-turretTargetAngle * turretTicksPerRadian);
-
         telemetry.addData("Turret Target", targetTurretPosition);
-
-//        if (targetTurretPosition > TURRET_PARAMS.RIGHT_BOUND && targetTurretPosition < TURRET_PARAMS.LEFT_BOUND)
-//            setTurretPosition(targetTurretPosition);
-//        else
-//            setTurretPosition(0);
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
@@ -119,9 +113,9 @@ public final class Turret implements Component {
         }
 
         if (isRedAlliance)
-            targetPose = new Pose2d(72, 72, 0);
+            targetPose = new Pose2d(-72, 72, 0);
         else
-            targetPose = new Pose2d(72, -72, 0);
+            targetPose = new Pose2d(-72, -72, 0);
 
         telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
         telemetry.addData("Turret State", turretState.toString());
