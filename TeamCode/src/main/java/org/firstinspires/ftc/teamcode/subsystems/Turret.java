@@ -24,13 +24,13 @@ public final class Turret implements Component {
     Pose2d targetPose = new Pose2d(72, 72, 0);
 
     public static class Params{
-        public double kP = 0.01;
+        public double kP = 0.015;
         public double kI = 0;
         public double kD = 0;
         public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
-        public int TICKS_PER_REV = -1680;
+        public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
@@ -79,8 +79,12 @@ public final class Turret implements Component {
         else if (turretTargetAngle < turretMin)
             turretTargetAngle = -Math.toRadians(180) - turretTargetAngle; // mirror
 
-        double turretTicksPerRadian = TURRET_PARAMS.TICKS_PER_REV / (2 * Math.PI);
+        telemetry.addData("Turret Angle", turretTargetAngle);
+
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI); //*-1 if blue alliance
         int targetTurretPosition = (int)(-turretTargetAngle * turretTicksPerRadian);
+
+        telemetry.addData("Turret Target", targetTurretPosition);
 
 //        if (targetTurretPosition > TURRET_PARAMS.RIGHT_BOUND && targetTurretPosition < TURRET_PARAMS.LEFT_BOUND)
 //            setTurretPosition(targetTurretPosition);

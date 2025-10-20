@@ -33,7 +33,7 @@ public class Collection implements Component {
 
     public static class Params{
         public double ENGAGED_POS = 0.1;
-        public double DISENGAGED_POS = 0.9;
+        public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.5;
         public double INTAKE_SPEED = 1.00;
     }
@@ -49,10 +49,10 @@ public class Collection implements Component {
         collectorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         clutchRight = map.get(ServoImplEx.class, "clutchRight");
-        clutchRight.setPwmRange(new PwmControl.PwmRange(1450, 1800));
+        clutchRight.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
-        clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 1800));
+        clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
 //        frontRightLaser = hardwareMap.get(DigitalChannel.class, "FRLaser");
 //        frontRightLaser.setMode(DigitalChannel.Mode.INPUT);

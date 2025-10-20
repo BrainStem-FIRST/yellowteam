@@ -33,7 +33,7 @@ public class Shooter implements Component {
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
-        public double CLOSE_SHOOTER_VELOCITY = 1;
+        public double CLOSE_SHOOTER_VELOCITY = 100000;
         public double FAR_SHOOTER_VELOCITY = 1;
         public double ZONE_THRESHOLD = 60;
     }
@@ -89,6 +89,8 @@ public class Shooter implements Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
+        telemetry.addData("Dist to Shooter", distance);
+
         if (distance <= SHOOTER_PARAMS.ZONE_THRESHOLD)
             return ShootingZone.CLOSE;
         else
@@ -136,11 +138,12 @@ public class Shooter implements Component {
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
-        ShootingZone zone = getShootingZone(robotPose, targetPose);
+        ShootingZone zone = ShootingZone.CLOSE; //getShootingZone(robotPose, targetPose);
         setFlywheelSpeedByZone(zone);
 
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-        setHoodFromAngle(hoodAngle);
+        telemetry.addData("HOOD ANGLE", hoodAngle);
+//        setHoodFromAngle(hoodAngle);
     }
 
     public double ticksPerSecToMps(double ticksPerSec) {
@@ -169,11 +172,13 @@ public class Shooter implements Component {
                 break;
 
             case SHOOT:
-                setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
+//                setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
+                updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
                 break;
         }
 
 //        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
+        telemetry.addData("Shooter Vel", ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0));
         telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
     }
     @Override
