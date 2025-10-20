@@ -33,8 +33,8 @@ public class Shooter implements Component {
         public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
-        public double CLOSE_SHOOTER_VELOCITY = 100000;
-        public double FAR_SHOOTER_VELOCITY = 1;
+        public double CLOSE_SHOOTER_POWER = 0.7;
+        public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 60;
     }
 
@@ -84,6 +84,17 @@ public class Shooter implements Component {
         CLOSE, FAR
     }
 
+    /*/
+              +y
+              ↑
+   (-72,72)   |  (72,72)
+              |
+--------------+--------------> +x
+              |
+   (-72,-72)  |  (72,-72)
+              |
+    /*/
+
     public ShootingZone getShootingZone(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
@@ -98,11 +109,11 @@ public class Shooter implements Component {
     }
 
     public void setFlywheelSpeedByZone(ShootingZone zone) {
-        double targetVelocity = (zone == ShootingZone.CLOSE)
-                ? SHOOTER_PARAMS.CLOSE_SHOOTER_VELOCITY
-                : SHOOTER_PARAMS.FAR_SHOOTER_VELOCITY;
+        double targetPower = (zone == ShootingZone.CLOSE)
+                ? SHOOTER_PARAMS.CLOSE_SHOOTER_POWER
+                : SHOOTER_PARAMS.FAR_SHOOTER_POWER;
 
-        setShooterVelocity(targetVelocity);
+        setShooterPower(targetPower);
     }
 
     public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
@@ -133,17 +144,19 @@ public class Shooter implements Component {
         angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
         double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(0-1)
 
-        hoodLeftServo.setPosition(servoPos);
-        hoodRightServo.setPosition(servoPos);
+        telemetry.addData("HOOD ANGLE", angleRadians);
+        telemetry.addData("HOOD SERVO POS", servoPos);
+
+//        hoodLeftServo.setPosition(servoPos);
+//        hoodRightServo.setPosition(servoPos);
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
-        ShootingZone zone = ShootingZone.CLOSE; //getShootingZone(robotPose, targetPose);
+        ShootingZone zone = getShootingZone(robotPose, targetPose);
         setFlywheelSpeedByZone(zone);
 
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-        telemetry.addData("HOOD ANGLE", hoodAngle);
-//        setHoodFromAngle(hoodAngle);
+        setHoodFromAngle(hoodAngle);
     }
 
     public double ticksPerSecToMps(double ticksPerSec) {
