@@ -22,12 +22,8 @@ public final class Turret implements Component {
     public TurretState turretState;
     Pose2d targetPose = new Pose2d(-72, 72, 0);
 
-    private enum TurretMode { COARSE, TAG_LOCK }
-    private TurretMode turretMode = TurretMode.COARSE;
     private ElapsedTime tagVisibleTimer = new ElapsedTime();
     private ElapsedTime tagLostTimer = new ElapsedTime();
-    private final double TAG_LOCK_THRESHOLD = 1.0;
-    private final double TAG_LOST_THRESHOLD = 0.5;
 
     public static class Params{
         public double kP = 0.015;
@@ -39,6 +35,8 @@ public final class Turret implements Component {
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
+        public double TAG_LOCK_THRESHOLD = 1.0;
+        public double TAG_LOST_THRESHOLD = 0.5;
     }
 
     public MecanumDrive drive;
@@ -87,7 +85,7 @@ public final class Turret implements Component {
             turretTargetAngle = -Math.PI - turretTargetAngle;
 
         double inverseFactor = (isRedAlliance) ? 1 : -1;
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * inverseFactor;
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
         int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
 
         telemetry.addData("Turret Angle", turretTargetAngle);
@@ -101,14 +99,27 @@ public final class Turret implements Component {
         if (tag == null) return;
 
         double tagX = tag.ftcPose.x;
+        double tagZ = tag.ftcPose.z;
+
+        double angularOffset = Math.atan2(-tagX, tagZ);
         int currentTicks = getTurretEncoder();
 
-        int adjustment = (int)(tagX * TURRET_PARAMS.TICKS_PER_REV / (2 * Math.PI)); // scale offset to ticks
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        int adjustment = (int)(angularOffset * turretTicksPerRadian);
+
         int targetTicks = currentTicks + adjustment;
 
         telemetry.addData("FINE ADJUST TARGET", targetTicks);
+        telemetry.addData("TAG X (m)", tagX);
+        telemetry.addData("TAG Z (m)", tagZ);
+        telemetry.addData("ANGLE OFFSET (deg)", Math.toDegrees(angularOffset));
 
         targetTicks = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTicks, TURRET_PARAMS.LEFT_BOUND));
+
+        pidController.setTarget(0);
+        double power = pidController.update(tagX);
+        turretMotor.setPower(-power);
+        telemetry.addData("POWWWWWWW", power);
 //        setTurretPosition(targetTicks);
     }
 
@@ -149,8 +160,8 @@ public final class Turret implements Component {
                     tagVisibleTimer.reset();
                 }
 
-                if (tagVisibleTimer.seconds() >= TAG_LOCK_THRESHOLD) {
-                    turretMode = TurretMode.TAG_LOCK;
+                if (tagVisibleTimer.seconds() >= TURRET_PARAMS.TAG_LOCK_THRESHOLD) {
+                    turretState = TurretState.TAG_LOCK;
                     tagVisibleTimer.reset();
                 }
                 break;
@@ -164,8 +175,8 @@ public final class Turret implements Component {
                     tagLostTimer.reset();
                 }
 
-                if (tagLostTimer.seconds() >= TAG_LOST_THRESHOLD) {
-                    turretMode = TurretMode.COARSE;
+                if (tagLostTimer.seconds() >= TURRET_PARAMS.TAG_LOST_THRESHOLD) {
+                    turretState = TurretState.COARSE;
                     tagLostTimer.reset();
                 }
                 break;
@@ -176,11 +187,18 @@ public final class Turret implements Component {
         else
             targetPose = new Pose2d(-72, -72, 0);
 
-        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
-        telemetry.addData("Turret State", turretState.toString());
-        telemetry.addData("Turret Encoder", getTurretEncoder());
-        telemetry.addData("Is Tag Visible", isTagVisible);
+//        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
+//        telemetry.addData("Turret State", turretState.toString());
+//        telemetry.addData("Turret Encoder", getTurretEncoder());
+//        telemetry.addData("Is Tag Visible", isTagVisible);
+//        telemetry.addData("TAG VISIBLE TIMER", tagVisibleTimer.seconds());
+//        telemetry.addData("TAG LOST TIMER", tagLostTimer.seconds());
+
+//        if (!vision.tagProcessor.getDetections().isEmpty()){
+//            telemetry.addData("FTC X", vision.getCurrentTag().ftcPose.x);
+//        }
     }
+
     @Override
     public String test(){
         return null;

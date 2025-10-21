@@ -150,10 +150,10 @@ public class Collection implements Component {
                 break;
         }
 
-        telemetry.addData("Back Ball Detected", isBackBallDetected());
+//        telemetry.addData("Back Ball Detected", isBackBallDetected());
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
-        telemetry.addData("Collection State", collectionState.toString());
-        telemetry.addData("Clutch State", clutchState.toString());
+//        telemetry.addData("Collection State", collectionState.toString());
+//        telemetry.addData("Clutch State", clutchState.toString());
     }
 
     @Override

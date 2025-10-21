@@ -30,7 +30,7 @@ public class Shooter implements Component {
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
         // (the height of the front wall of the goal is 38.75 in)
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
-        public double FLYWHEEL_TICKS_PER_REV = 288; // ticks in 1 rotation of the motor
+        public double FLYWHEEL_TICKS_PER_REV = 28; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
@@ -122,21 +122,25 @@ public class Shooter implements Component {
         double distance = Math.hypot(deltaX, deltaY);
 
         double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-
-        double heightToTarget = SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT;
+        telemetry.addData("MPS", actualVelocityMps);
+        double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yh²))) / (gx)
         double g = 9.81;
-        double term = Math.pow(actualVelocityMps, 4)
-                - g * (g * Math.pow(distance * 0.0254, 2) + 2 * heightToTarget * 0.0254 * Math.pow(actualVelocityMps, 2));
+        double x = distance * 0.0254; // convert inches to meters
+        double y = heightToTarget * 0.0254; // convert inches to meters
 
-        if (term <= 0)
-            return Math.toRadians(40); //safe angle
+        double v = actualVelocityMps;
 
-        double numerator = Math.pow(actualVelocityMps, 2) - Math.sqrt(term);
-        double denominator = g * distance * 0.0254;
+        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
+        if (discriminant <= 0)
+            return Math.toRadians(40);
 
-        return Math.atan(numerator / denominator); //theta
+        double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
+
+        telemetry.addData("HOOD ANGLE", theta);
+
+        return theta;
     }
 
     public void setHoodFromAngle(double angleRadians) {
@@ -144,17 +148,16 @@ public class Shooter implements Component {
         angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
         double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(0-1)
 
-        telemetry.addData("HOOD ANGLE", angleRadians);
         telemetry.addData("HOOD SERVO POS", servoPos);
 
-//        hoodLeftServo.setPosition(servoPos);
-//        hoodRightServo.setPosition(servoPos);
+        setHoodPosition(servoPos);
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
         ShootingZone zone = getShootingZone(robotPose, targetPose);
         setFlywheelSpeedByZone(zone);
 
+        calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
         setHoodFromAngle(hoodAngle);
     }
@@ -191,7 +194,8 @@ public class Shooter implements Component {
         }
 
 //        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
-        telemetry.addData("Shooter Vel", ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0));
+        telemetry.addData("Shooter Ticks", shooterMotorHigh.getCurrentPosition());
+        telemetry.addData("Shooter Vel", (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
         telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
     }
     @Override

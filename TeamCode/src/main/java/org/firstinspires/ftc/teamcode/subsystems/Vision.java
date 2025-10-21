@@ -15,7 +15,7 @@ import java.util.List;
 
 public class Vision implements Component {
     public VisionPortal visionPortal;
-    private AprilTagProcessor tagProcessor;
+    public AprilTagProcessor tagProcessor;
     private AprilTagDetection currentTag;
 
     public Vision(HardwareMap hardwareMap, Telemetry telemetry) {
