@@ -56,6 +56,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             telemetry.update();
 
         }
+        brainSTEMRobot.vision.visionPortal.close();
     }
 
     private void updateDrive() {
@@ -115,7 +116,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
-//        brainSTEMRobot.turret.turretMotor.setPower(turret_position * 0.01);
         telemetry.addData("Turret Increment", turret_position);
         telemetry.addData("Hood Increment", hood_position);
     }

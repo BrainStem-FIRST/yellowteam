@@ -1,16 +1,16 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
 public final class Turret implements Component {
@@ -19,9 +19,15 @@ public final class Turret implements Component {
     private Telemetry telemetry;
     public DcMotorEx turretMotor;
     private PIDController pidController;
-
     public TurretState turretState;
     Pose2d targetPose = new Pose2d(-72, 72, 0);
+
+    private enum TurretMode { COARSE, TAG_LOCK }
+    private TurretMode turretMode = TurretMode.COARSE;
+    private ElapsedTime tagVisibleTimer = new ElapsedTime();
+    private ElapsedTime tagLostTimer = new ElapsedTime();
+    private final double TAG_LOCK_THRESHOLD = 1.0;
+    private final double TAG_LOST_THRESHOLD = 0.5;
 
     public static class Params{
         public double kP = 0.015;
@@ -34,13 +40,16 @@ public final class Turret implements Component {
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
+
     public MecanumDrive drive;
+    public Vision vision;
     public static Params TURRET_PARAMS = new Turret.Params();
 
-    public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive){
+    public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Vision vision){
         this.map = hardwareMap;
         this.telemetry = telemetry;
         this.drive = drive;
+        this.vision = vision;
 
         turretMotor = map.get(DcMotorEx.class, "turret");
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -49,7 +58,6 @@ public final class Turret implements Component {
         pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
         turretState = TurretState.OFF;
     }
-
 
     public int getTurretEncoder() {
         return turretMotor.getCurrentPosition();
@@ -63,7 +71,7 @@ public final class Turret implements Component {
         turretMotor.setPower(-power);
     }
 
-    public void pointTurretAtTarget(Pose2d robotPose, Pose2d targetPose) {
+    public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
         double turretMax = Math.toRadians(90);
@@ -89,8 +97,23 @@ public final class Turret implements Component {
         setTurretPosition(targetTurretPosition);
     }
 
+    private void fineAdjustTurretWithTag(AprilTagDetection tag) {
+        if (tag == null) return;
+
+        double tagX = tag.ftcPose.x;
+        int currentTicks = getTurretEncoder();
+
+        int adjustment = (int)(tagX * TURRET_PARAMS.TICKS_PER_REV / (2 * Math.PI)); // scale offset to ticks
+        int targetTicks = currentTicks + adjustment;
+
+        telemetry.addData("FINE ADJUST TARGET", targetTicks);
+
+        targetTicks = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTicks, TURRET_PARAMS.LEFT_BOUND));
+//        setTurretPosition(targetTicks);
+    }
+
     public enum TurretState {
-        OFF, TRACKING, CENTER
+        OFF, TRACKING, CENTER, COARSE, TAG_LOCK
     }
 
     @Override
@@ -99,17 +122,53 @@ public final class Turret implements Component {
 
     @Override
     public void update(){
+        int correctTagId = (isRedAlliance) ? 24 : 20;
+        boolean isTagVisible = vision.isTagVisible() && vision.isCorrectTag(correctTagId);
+
         switch (turretState) {
-            case OFF: {
+            case OFF:
 //                turretMotor.setPower(0);
                 break;
-            } case TRACKING: {
-                pointTurretAtTarget(drive.localizer.getPose(), targetPose);
+
+            case TRACKING:
+                poseTargetToTurretTicks(drive.localizer.getPose(), targetPose);
                 break;
-            } case CENTER: {
+
+            case CENTER:
                 setTurretPosition(0);
                 break;
-            }
+
+            case COARSE:
+                poseTargetToTurretTicks(drive.localizer.getPose(), targetPose);
+
+                if (isTagVisible) {
+                    if (tagVisibleTimer.seconds() == 0)
+                        tagVisibleTimer.reset();
+                    tagLostTimer.reset();
+                } else {
+                    tagVisibleTimer.reset();
+                }
+
+                if (tagVisibleTimer.seconds() >= TAG_LOCK_THRESHOLD) {
+                    turretMode = TurretMode.TAG_LOCK;
+                    tagVisibleTimer.reset();
+                }
+                break;
+
+            case TAG_LOCK:
+                fineAdjustTurretWithTag(vision.getCurrentTag());
+
+                if (!isTagVisible) {
+                    if (tagLostTimer.seconds() == 0) tagLostTimer.reset();
+                } else {
+                    tagLostTimer.reset();
+                }
+
+                if (tagLostTimer.seconds() >= TAG_LOST_THRESHOLD) {
+                    turretMode = TurretMode.COARSE;
+                    tagLostTimer.reset();
+                }
+                break;
         }
 
         if (isRedAlliance)
@@ -120,6 +179,7 @@ public final class Turret implements Component {
         telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
         telemetry.addData("Turret State", turretState.toString());
         telemetry.addData("Turret Encoder", getTurretEncoder());
+        telemetry.addData("Is Tag Visible", isTagVisible);
     }
     @Override
     public String test(){

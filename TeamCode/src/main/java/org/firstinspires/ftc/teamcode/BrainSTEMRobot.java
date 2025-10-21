@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.subsystems.Vision;
 
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class BrainSTEMRobot implements Component {
     public Collection collection;
     public Parking parking;
     public MecanumDrive drive;
+    public Vision vision;
     private ArrayList<Component> subsystems;
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
@@ -36,7 +38,8 @@ public class BrainSTEMRobot implements Component {
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
-        turret = new Turret(hardwareMap, telemetry, drive);
+        vision = new Vision(hardwareMap, telemetry);
+        turret = new Turret(hardwareMap, telemetry, drive, vision);
         shooter = new Shooter(hardwareMap, telemetry, drive, turret);
         collection = new Collection(hardwareMap, telemetry);
         parking = new Parking(hardwareMap, telemetry, drive);
@@ -45,6 +48,7 @@ public class BrainSTEMRobot implements Component {
         subsystems.add(shooter);
         subsystems.add(collection);
         subsystems.add(parking);
+        subsystems.add(vision);
     }
 
     public void getTelemetry(){}
