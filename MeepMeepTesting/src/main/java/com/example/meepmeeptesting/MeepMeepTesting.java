@@ -101,8 +101,8 @@ public class MeepMeepTesting {
                 .setBackgroundAlpha(0.95f)
 //                .addEntity(redFarSolo)
 //                .addEntity(redCloseSolo)
-//                .addEntity(redFarPartner)
-                .addEntity(redClosePartner)
+                .addEntity(redFarPartner)
+//                .addEntity(redClosePartner)
 //
                 .start();
     }
