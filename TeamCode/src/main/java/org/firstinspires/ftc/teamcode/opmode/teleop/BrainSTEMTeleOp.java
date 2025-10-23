@@ -83,25 +83,32 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
         if (gp1.isFirstY())
-            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.SHOOT)
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.UPDATE)
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.UPDATE;
 
         if (gp1.isFirstX())
-            if (brainSTEMRobot.turret.turretState == Turret.TurretState.COARSE)
+            if (brainSTEMRobot.turret.turretState == Turret.TurretState.TRACKING)
                 brainSTEMRobot.turret.turretState = Turret.TurretState.OFF;
             else
-                brainSTEMRobot.turret.turretState = Turret.TurretState.COARSE;
+                brainSTEMRobot.turret.turretState = Turret.TurretState.TRACKING;
 
         if (gp1.isFirstDpadDown()) {
             if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.0)
                 hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
+//        if (gp1.isFirstDpadUp()) {
+//            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0)
+//                hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
+//        }
+
         if (gp1.isFirstDpadUp()) {
-            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0)
-                hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.SHOOT)
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
+            else
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
         }
 
         if (gp1.isFirstDpadRight()) {
