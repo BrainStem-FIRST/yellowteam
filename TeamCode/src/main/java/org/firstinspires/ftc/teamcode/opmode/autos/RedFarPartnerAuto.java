@@ -14,9 +14,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
-import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 @Autonomous(name="Red Far Partner Auto", group="Robot")
 public class RedFarPartnerAuto extends LinearOpMode {
@@ -32,50 +30,80 @@ public class RedFarPartnerAuto extends LinearOpMode {
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
 
+        // DRIVE POSITIONS
         Pose2d approachHP = new Pose2d(50,56, Math.toRadians(45));
         Pose2d atHP = new Pose2d(60, 56, Math.toRadians(45));
-        Pose2d shootingPosition = new Pose2d(60, 20, Math.toRadians(180));
+        Pose2d shootingPosition = new Pose2d(48, 0, Math.toRadians(180));
         Pose2d firstLine = new Pose2d(35, 35, Math.toRadians(90));
 
-        TrajectoryActionBuilder hpShot = drive.actionBuilder(startPose)
-//                .setTangent(Math.toRadians(90))
+        // BUILDING FULL ACTIONS
+        TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
+                .splineToConstantHeading(shootingPosition.position, shootingPosition.heading);
+
+        TrajectoryActionBuilder hpShot = drive.actionBuilder(shootingPosition)
                 .splineTo(approachHP.position, approachHP.heading)
-//                .setTangent(Math.toRadians(90))
-                .splineTo(approachHP.position, approachHP.heading)
+                .splineTo(atHP.position, atHP.heading)
+                .waitSeconds(2)
                 .splineTo(shootingPosition.position, shootingPosition.heading);
 
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(shootingPosition)
-                .splineTo(approachSecondLine.position, approachSecondLine.heading)
+                .splineTo(firstLine.position, firstLine.heading)
                 .lineToY(50)
+                .waitSeconds(2)
                 .setReversed(true)
                 .splineToLinearHeading(shootingPosition, Math.toRadians(0));
 
-        Action firstMove = firstCycle.build();
-        Action secondMove = secondCycle.build();
+        Action driveToShootingPose = moveOffWall.build();
+        Action humanPlayerShots = hpShot.build();
+        Action firstLineShots = firstLineShot.build();
 
-//        telemetry.addLine("Ready");
+        telemetry.addLine("Ready");
         telemetry.update();
 
         waitForStart();
 
         Actions.runBlocking(
-                new ParallelAction(
-                        telemetryPacket -> {
-                            robot.update();
-                            return true;
-                        },
-                        new SequentialAction(
-                            telemetryPacket -> {
-                                robot.turret.turretState = Turret.TurretState.TRACKING;
-                                return false;
-                            },
-                            firstMove,
-                            telemetryPacket -> {
-                                PoseStorage.currentPose = robot.drive.localizer.getPose();
-                                return false;
-                            }
-                        )
+
+            new ParallelAction(
+                autoCommands.updateRobot,
+                autoCommands.savePoseContinuously,
+
+                new SequentialAction(
+                    autoCommands.setRedAlliance(),
+
+                    new ParallelAction(
+                        autoCommands.enableTurretTracking(),
+                        autoCommands.engageClutch(),
+                        autoCommands.spinUpShooter(),
+                        driveToShootingPose
+                    ),
+
+                    // SHOOT 3 PRELOADS
+                    autoCommands.runIntake(),
+                    autoCommands.waitForSeconds(3),
+                    autoCommands.disengageClutch(),
+
+                    // COLLECT AND SHOOT FIRST LINE
+                    humanPlayerShots,
+                    autoCommands.waitForSeconds(0.5),
+                    autoCommands.spinUpShooter(),
+                    autoCommands.engageClutch(),
+                    autoCommands.waitForSeconds(3),
+                    autoCommands.disengageClutch(),
+
+                    // COLLECT AND SHOOT SECOND LINE
+                    firstLineShots,
+                    autoCommands.waitForSeconds(0.5),
+                    autoCommands.spinUpShooter(),
+                    autoCommands.engageClutch(),
+                    autoCommands.waitForSeconds(3),
+
+                    // POWER DOWN SUBSYSTEMS
+                    autoCommands.stopIntake(),
+                    autoCommands.disengageClutch(),
+                    autoCommands.stopShooter()
                 )
+            )
         );
     }
 }

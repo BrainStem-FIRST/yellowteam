@@ -54,8 +54,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             brainSTEMRobot.update();
             brainSTEMRobot.drive.updatePoseEstimate();
             telemetry.update();
-
         }
+
         brainSTEMRobot.vision.visionPortal.close();
     }
 

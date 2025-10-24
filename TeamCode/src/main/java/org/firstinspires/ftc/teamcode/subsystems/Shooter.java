@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
@@ -207,6 +208,7 @@ public class Shooter implements Component {
         }
 
 //        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
+        telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
         telemetry.addData("Shooter Ticks", shooterMotorHigh.getCurrentPosition());
         telemetry.addData("Shooter Vel", (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
         telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
