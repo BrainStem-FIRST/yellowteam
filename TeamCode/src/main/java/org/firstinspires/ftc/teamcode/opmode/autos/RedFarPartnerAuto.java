@@ -24,34 +24,38 @@ public class RedFarPartnerAuto extends LinearOpMode {
         ElapsedTime autoTime = new ElapsedTime();
         autoTime.startTime();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        Pose2d startPose = new Pose2d(60, 20, Math.toRadians(180));
+        Pose2d startPose = new Pose2d(63.5, 18.5, Math.toRadians(180));
 
         BrainSTEMRobot robot = new BrainSTEMRobot(telemetry, hardwareMap, startPose);
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
 
         // DRIVE POSITIONS
-        Pose2d approachHP = new Pose2d(50,56, Math.toRadians(45));
-        Pose2d atHP = new Pose2d(60, 56, Math.toRadians(45));
-        Pose2d shootingPosition = new Pose2d(48, 0, Math.toRadians(180));
-        Pose2d firstLine = new Pose2d(35, 35, Math.toRadians(90));
+        Pose2d approachHP = new Pose2d(45,57, Math.toRadians(45));
+        Pose2d atHP = new Pose2d(58, 64, Math.toRadians(45));
+        Pose2d shootingPosition = new Pose2d(50, 10, Math.toRadians(180));
+        Pose2d firstLine = new Pose2d(31, 36, Math.toRadians(90));
 
         // BUILDING FULL ACTIONS
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
                 .splineToConstantHeading(shootingPosition.position, shootingPosition.heading);
 
-        TrajectoryActionBuilder hpShot = drive.actionBuilder(shootingPosition)
-                .splineTo(approachHP.position, approachHP.heading)
-                .splineTo(atHP.position, atHP.heading)
-                .waitSeconds(2)
-                .splineTo(shootingPosition.position, shootingPosition.heading);
+
 
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(shootingPosition)
                 .splineTo(firstLine.position, firstLine.heading)
-                .lineToY(50)
+                .lineToY(66)
                 .waitSeconds(2)
                 .setReversed(true)
                 .splineToLinearHeading(shootingPosition, Math.toRadians(0));
+
+        TrajectoryActionBuilder hpShot = drive.actionBuilder(shootingPosition)
+                .splineTo(approachHP.position, approachHP.heading)
+                .waitSeconds(2)
+                .splineToLinearHeading(atHP, Math.toRadians(0));
+//                .waitSeconds(2)
+//                .setTangent(0)
+//                .splineTo(shootingPosition.position, shootingPosition.heading);
 
         Action driveToShootingPose = moveOffWall.build();
         Action humanPlayerShots = hpShot.build();
@@ -72,9 +76,9 @@ public class RedFarPartnerAuto extends LinearOpMode {
                     autoCommands.setRedAlliance(),
 
                     new ParallelAction(
-                        autoCommands.enableTurretTracking(),
-                        autoCommands.engageClutch(),
-                        autoCommands.spinUpShooter(),
+//                        autoCommands.enableTurretTracking(),
+//                        autoCommands.engageClutch(),
+//                        autoCommands.spinUpShooter(),
                         driveToShootingPose
                     ),
 
@@ -84,24 +88,24 @@ public class RedFarPartnerAuto extends LinearOpMode {
                     autoCommands.disengageClutch(),
 
                     // COLLECT AND SHOOT FIRST LINE
-                    humanPlayerShots,
-                    autoCommands.waitForSeconds(0.5),
-                    autoCommands.spinUpShooter(),
-                    autoCommands.engageClutch(),
-                    autoCommands.waitForSeconds(3),
-                    autoCommands.disengageClutch(),
-
-                    // COLLECT AND SHOOT SECOND LINE
-                    firstLineShots,
-                    autoCommands.waitForSeconds(0.5),
-                    autoCommands.spinUpShooter(),
-                    autoCommands.engageClutch(),
-                    autoCommands.waitForSeconds(3),
-
-                    // POWER DOWN SUBSYSTEMS
-                    autoCommands.stopIntake(),
-                    autoCommands.disengageClutch(),
-                    autoCommands.stopShooter()
+                        firstLineShots
+//                    autoCommands.waitForSeconds(0.5),
+////                    autoCommands.spinUpShooter(),
+//                    autoCommands.engageClutch(),
+//                    autoCommands.waitForSeconds(3),
+//                    autoCommands.disengageClutch(),
+//
+//                    // COLLECT AND SHOOT SECOND LINE
+                    ,humanPlayerShots
+//                    autoCommands.waitForSeconds(0.5),
+//                    autoCommands.spinUpShooter(),
+//                    autoCommands.engageClutch(),
+//                    autoCommands.waitForSeconds(3),
+//
+//                    // POWER DOWN SUBSYSTEMS
+//                    autoCommands.stopIntake(),
+//                    autoCommands.disengageClutch(),
+//                    autoCommands.stopShooter()
                 )
             )
         );
