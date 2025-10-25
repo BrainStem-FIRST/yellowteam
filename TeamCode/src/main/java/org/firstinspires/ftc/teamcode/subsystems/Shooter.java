@@ -7,11 +7,13 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.PIDController;
 
 @Config
 public class Shooter implements Component {
@@ -36,11 +38,18 @@ public class Shooter implements Component {
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
-        public double ZONE_THRESHOLD = 60;
+        public double ZONE_THRESHOLD = 100;
         public double B_VALUE = 64.61487;
+        public double TARGET_VELOCITY = 1400;
+
+        public double kP = 0.0005;
+        public double kI = 0.0;
+        public double kD = 0.00005;
+        public double kF = 0.00047;
     }
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
+    private PIDController shooterPID;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
         this.map = hardwareMap;
@@ -63,6 +72,8 @@ public class Shooter implements Component {
         hoodRightServo = map.get(ServoImplEx.class, "hoodRight");
         hoodRightServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
 
+        shooterPID = new PIDController(SHOOTER_PARAMS.kP, SHOOTER_PARAMS.kI, SHOOTER_PARAMS.kD);
+
         shooterState = ShooterState.OFF;
     }
 
@@ -80,6 +91,26 @@ public class Shooter implements Component {
 
         shooterMotorLow.setVelocity(targetVelocityTicksPerSec);
         shooterMotorHigh.setVelocity(targetVelocityTicksPerSec);
+    }
+
+    public void setShooterVelocityPID(double targetVelocityTicksPerSec) {
+        shooterPID.setTarget(targetVelocityTicksPerSec);
+
+        double currentVelocity = (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0;
+        double pidOutput = shooterPID.update(currentVelocity);
+
+        double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
+        double totalPower = pidOutput + feedForward;
+
+        totalPower = Range.clip(totalPower, -1.0, 1.0);
+
+        setShooterPower(totalPower);
+
+        telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
+        telemetry.addData("Shooter Current Vel", currentVelocity);
+        telemetry.addData("Shooter PID Output", pidOutput);
+        telemetry.addData("Shooter FeedForward", feedForward);
+        telemetry.addData("Shooter Total Power", totalPower);
     }
 
     public enum ShootingZone {
@@ -124,7 +155,7 @@ public class Shooter implements Component {
         double distance = Math.hypot(deltaX, deltaY);
 
         double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-        telemetry.addData("MPS", actualVelocityMps);
+//        telemetry.addData("MPS", actualVelocityMps);
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yh²))) / (gx)
@@ -140,7 +171,7 @@ public class Shooter implements Component {
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
 
-        telemetry.addData("HOOD ANGLE", theta);
+        telemetry.addData("HOOD ANGLE", Math.toDegrees(theta));
 
         return theta;
     }
@@ -148,7 +179,7 @@ public class Shooter implements Component {
     public void setHoodFromAngle(double angleRadians) {
         double angleDeg = Math.toDegrees(angleRadians);
         angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
-        double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(0-1)
+        double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
 
         telemetry.addData("HOOD SERVO POS", servoPos);
 
@@ -183,7 +214,7 @@ public class Shooter implements Component {
     }
 
     public enum ShooterState {
-        OFF, SHOOT, UPDATE
+        OFF, SHOOT, UPDATE, VELOCITY_CONTROL
     }
 
     @Override
@@ -205,13 +236,17 @@ public class Shooter implements Component {
             case SHOOT:
                 setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
                 break;
+
+            case VELOCITY_CONTROL:
+                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+                break;
         }
 
 //        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
         telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
-        telemetry.addData("Shooter Ticks", shooterMotorHigh.getCurrentPosition());
-        telemetry.addData("Shooter Vel", (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-        telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
+//        telemetry.addData("Shooter Ticks", shooterMotorHigh.getCurrentPosition());
+//        telemetry.addData("Shooter Vel", (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
+//        telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
     }
     @Override
     public String test(){

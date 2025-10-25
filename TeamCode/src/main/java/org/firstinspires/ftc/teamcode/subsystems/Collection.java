@@ -153,7 +153,7 @@ public class Collection implements Component {
 //        telemetry.addData("Back Ball Detected", isBackBallDetected());
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
 //        telemetry.addData("Collection State", collectionState.toString());
-//        telemetry.addData("Clutch State", clutchState.toString());
+        telemetry.addData("CLUTCH STATE", clutchState.toString());
     }
 
     @Override

@@ -105,10 +105,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if (gp1.isFirstDpadRight()) {
-            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.SHOOT)
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.VELOCITY_CONTROL)
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.VELOCITY_CONTROL;
         }
 
 //        if (gp1.isFirstDpadRight()) {
@@ -116,10 +116,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //                turret_position -= Turret.TURRET_PARAMS.TURRET_INCREMENT;
 //        }
 
-        if (gp1.isFirstDpadLeft()) {
-            if (turret_position + Turret.TURRET_PARAMS.TURRET_INCREMENT <= Turret.TURRET_PARAMS.TURRET_MAX)
-                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
-        }
+//        if (gp1.isFirstDpadLeft()) {
+//            if (turret_position + Turret.TURRET_PARAMS.TURRET_INCREMENT <= Turret.TURRET_PARAMS.TURRET_MAX)
+//                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
+//        }
 
 //        brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
