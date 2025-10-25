@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -34,17 +36,17 @@ public class Shooter implements Component {
         // (the height of the front wall of the goal is 38.75 in)
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 28; // ticks in 1 rotation of the motor
-        public double SHOOTER_POWER = 1.0;
+        public double SHOOTER_POWER = 0.5;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
         public double B_VALUE = 64.61487;
-        public double TARGET_VELOCITY = 1400;
+        public double TARGET_VELOCITY = 1300;
 
-        public double kP = 0.0005;
+        public double kP = 0.05;
         public double kI = 0.0;
-        public double kD = 0.00005;
+        public double kD = 0.0;
         public double kF = 0.00047;
     }
 
@@ -97,7 +99,7 @@ public class Shooter implements Component {
         shooterPID.setTarget(targetVelocityTicksPerSec);
 
         double currentVelocity = (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0;
-        double pidOutput = shooterPID.update(currentVelocity);
+        double pidOutput = -shooterPID.update(currentVelocity);
 
         double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
@@ -108,6 +110,7 @@ public class Shooter implements Component {
 
         telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
         telemetry.addData("Shooter Current Vel", currentVelocity);
+        telemetry.addData("Time", System.currentTimeMillis());
         telemetry.addData("Shooter PID Output", pidOutput);
         telemetry.addData("Shooter FeedForward", feedForward);
         telemetry.addData("Shooter Total Power", totalPower);
@@ -187,17 +190,18 @@ public class Shooter implements Component {
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
-        ShootingZone zone = getShootingZone(robotPose, targetPose);
+//        ShootingZone zone = getShootingZone(robotPose, targetPose);
 //        setFlywheelSpeedByZone(zone);
 
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY);
+//        double deltaX = targetPose.position.x - robotPose.position.x;
+//        double deltaY = targetPose.position.y - robotPose.position.y;
+//        double distance = Math.hypot(deltaX, deltaY);
 
 //        setShooterPower((0.112398 * distance + SHOOTER_PARAMS.B_VALUE)/100); //linear distance to power correlation
-        setShooterPower((SHOOTER_PARAMS.B_VALUE * Math.pow(1.0016, distance))/100 + 0.1); //exponential distance to power correlation
-        telemetry.addData("CALC POW", 63.61487 * Math.pow(1.0016, distance));
+//        setShooterPower((SHOOTER_PARAMS.B_VALUE * Math.pow(1.0016, distance))/100 + 0.1); //exponential distance to power correlation
+//        telemetry2.addData("CALC POW", 63.61487 * Math.pow(1.0016, distance));
 
+        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
         setHoodFromAngle(hoodAngle);

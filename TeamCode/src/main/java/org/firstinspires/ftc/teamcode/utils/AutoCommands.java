@@ -1,7 +1,11 @@
 package org.firstinspires.ftc.teamcode.utils;
 
+import androidx.annotation.NonNull;
+
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.arcrobotics.ftclib.command.WaitCommand;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
@@ -44,12 +48,6 @@ public class AutoCommands {
         };
     }
 
-    public Action waitForSeconds(double seconds) {
-        final long startTime = System.currentTimeMillis();
-        return packet -> {
-            return System.currentTimeMillis() - startTime < seconds * 1000;
-        };
-    }
 
     // TURRET
     public Action enableTurretTracking() {
@@ -92,6 +90,13 @@ public class AutoCommands {
     public Action runIntake() {
         return packet -> {
             robot.collection.collectionState = Collection.CollectionState.INTAKE;
+            return false;
+        };
+    }
+
+    public Action reverseIntake() {
+        return packet -> {
+            robot.collection.collectionState = Collection.CollectionState.EXTAKE;
             return false;
         };
     }

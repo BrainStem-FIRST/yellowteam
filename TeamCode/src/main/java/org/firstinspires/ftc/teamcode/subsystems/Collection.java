@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 
 @Config
@@ -152,7 +153,8 @@ public class Collection implements Component {
 
 //        telemetry.addData("Back Ball Detected", isBackBallDetected());
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
-//        telemetry.addData("Collection State", collectionState.toString());
+        telemetry.addData("Collection State", collectionState.toString());
+        telemetry.addData("COLLECTOR CURRENT", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
         telemetry.addData("CLUTCH STATE", clutchState.toString());
     }
 

@@ -9,39 +9,70 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 public class AutoPositions {
     private final MecanumDrive drive;
 
-    public final Pose2d shootingPosition = new Pose2d(50, 10, Math.toRadians(180));
-    public final Pose2d firstLine = new Pose2d(31, 36, Math.toRadians(90));
-    public final Pose2d approachHP = new Pose2d(45, 57, Math.toRadians(45));
-    public final Pose2d atHP = new Pose2d(58, 64, Math.toRadians(45));
+    public final Pose2d farShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
+    public final Pose2d closeShootingPosition = new Pose2d(-24, 24, Math.toRadians(135));
+    public final Pose2d firstLine = new Pose2d(-12, 28, Math.toRadians(90));
+    public final Pose2d secondLine = new Pose2d(12, 28, Math.toRadians(90));
+    public final Pose2d thirdLine = new Pose2d(27, 28, Math.toRadians(90));
+    public final Pose2d approachHP = new Pose2d(35, 68, Math.toRadians(45));
 
     public AutoPositions(MecanumDrive drive) {
         this.drive = drive;
     }
 
-    public Action driveToShootingPose(Pose2d startPose) {
+    public Action driveToFarShootingPose(Pose2d startPose) {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
-                .splineToConstantHeading(shootingPosition.position, shootingPosition.heading);
+                .splineToConstantHeading(farShootingPosition.position, farShootingPosition.heading);
         return moveOffWall.build();
     }
 
-    public Action firstLineShots() {
-        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(shootingPosition)
+    public Action driveCloseShootingPose(Pose2d startPose) {
+        TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
+                .splineToConstantHeading(closeShootingPosition.position, closeShootingPosition.heading);
+        return moveOffWall.build();
+    }
+
+    public Action firstLineShots(boolean isClose) {
+        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
                 .splineTo(firstLine.position, firstLine.heading)
-                .lineToY(66)
-                .waitSeconds(2)
+                .waitSeconds(0.25)
+                .lineToY(55)
+                .waitSeconds(0.5)
                 .setReversed(true)
-                .splineToLinearHeading(shootingPosition, Math.toRadians(0));
+                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return firstLineShot.build();
     }
 
-    public Action humanPlayerShots() {
-        TrajectoryActionBuilder hpShot = drive.actionBuilder(shootingPosition)
+    public Action secondLineShots(boolean isClose) {
+        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
+                .splineTo(secondLine.position, secondLine.heading)
+                .waitSeconds(0.25)
+                .lineToY(63)
+                .waitSeconds(0.5)
+                .setReversed(true)
+                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
+        return firstLineShot.build();
+    }
+
+    public Action thirdLineShots(boolean isClose) {
+        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(farShootingPosition)
+                .splineTo(thirdLine.position, thirdLine.heading)
+                .waitSeconds(0.25)
+                .lineToY(63)
+                .waitSeconds(0.5)
+                .setReversed(true)
+                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
+        return firstLineShot.build();
+    }
+
+    public Action humanPlayerShots(boolean isClose) {
+        TrajectoryActionBuilder hpShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
                 .splineTo(approachHP.position, approachHP.heading)
-                .waitSeconds(2)
-                .splineToLinearHeading(atHP, Math.toRadians(0));
-//                .waitSeconds(2)
-//                .setTangent(0)
-//                .splineTo(shootingPosition.position, shootingPosition.heading);
+                .waitSeconds(0.5)
+                .lineToX(65)
+                .waitSeconds(0.5)
+                .setTangent(0)
+                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return hpShot.build();
     }
 }

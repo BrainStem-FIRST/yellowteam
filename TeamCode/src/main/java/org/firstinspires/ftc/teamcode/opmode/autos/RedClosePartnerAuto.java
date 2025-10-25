@@ -7,7 +7,6 @@ import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
-import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -18,24 +17,24 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.AutoPositions;
 
-@Autonomous(name="Red Far Partner Auto", group="Robot")
-public class RedFarPartnerAuto extends LinearOpMode {
+@Autonomous(name="Red Close Partner Auto", group="Robot")
+public class RedClosePartnerAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
         ElapsedTime autoTime = new ElapsedTime();
         autoTime.startTime();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        Pose2d startPose = new Pose2d(63.5, 18.5, Math.toRadians(180));
+        Pose2d startPose = new Pose2d(-63.5, 39.5, Math.toRadians(0));
 
         BrainSTEMRobot robot = new BrainSTEMRobot(telemetry, hardwareMap, startPose);
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         AutoPositions autoPositions = new AutoPositions(drive);
 
-        Action driveToShootingPose = autoPositions.driveToFarShootingPose(startPose);
-        Action thirdLineShots = autoPositions.thirdLineShots(false);
-        Action humanPlayerShots = autoPositions.humanPlayerShots(false);
+        Action driveToShootingPose = autoPositions.driveCloseShootingPose(startPose);
+        Action firstLineShots = autoPositions.firstLineShots(false);
+        Action secondLineShots = autoPositions.secondLineShots(false);
 
         telemetry.addLine("Ready");
         telemetry.update();
@@ -63,8 +62,8 @@ public class RedFarPartnerAuto extends LinearOpMode {
                     new SleepAction(3),
 //                    autoCommands.disengageClutch(),
 
-                    // COLLECT AND SHOOT THIRD LINE
-                    thirdLineShots,
+                    // COLLECT AND SHOOT FIRST LINE
+                    firstLineShots,
                     autoCommands.engageClutch(),
                     autoCommands.reverseIntake(),
                     new SleepAction(3),
@@ -77,7 +76,7 @@ public class RedFarPartnerAuto extends LinearOpMode {
 //                    autoCommands.disengageClutch(),
 //
 //                    // COLLECT AND SHOOT HP LINE
-                    ,humanPlayerShots
+                    ,secondLineShots
                     ,autoCommands.engageClutch(),
                     autoCommands.reverseIntake(),
                     new SleepAction(3)
