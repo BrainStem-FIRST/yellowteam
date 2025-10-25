@@ -37,7 +37,7 @@ public class Shooter implements Component {
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 60;
-        public double B_VALUE = 57.6148;
+        public double B_VALUE = 64.61487;
     }
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
@@ -164,7 +164,7 @@ public class Shooter implements Component {
         double distance = Math.hypot(deltaX, deltaY);
 
 //        setShooterPower((0.112398 * distance + SHOOTER_PARAMS.B_VALUE)/100); //linear distance to power correlation
-        setShooterPower((63.61487 * Math.pow(1.0016, distance))/100); //exponential distance to power correlation
+        setShooterPower((SHOOTER_PARAMS.B_VALUE * Math.pow(1.0016, distance))/100 + 0.1); //exponential distance to power correlation
         telemetry.addData("CALC POW", 63.61487 * Math.pow(1.0016, distance));
 
         calculateHoodAngle(robotPose, targetPose);
