@@ -53,19 +53,23 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     new ParallelAction(
                         autoCommands.enableTurretTracking(),
                         autoCommands.engageClutch(),
-                        autoCommands.spinUpShooter(),
+                        new SequentialAction(
+                            autoCommands.maxShooterSpeed(),
+                            new SleepAction(2),
+                            autoCommands.spinUpShooter(true)
+                        ),
                         driveToShootingPose
                     ),
 
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
-                    new SleepAction(3),
+                    new SleepAction(2),
                     autoCommands.disengageClutch(),
 
                     // COLLECT AND SHOOT FIRST LINE
                     firstLineShots,
                     autoCommands.engageClutch(),
-                    new SleepAction(3),
+                    new SleepAction(2),
                     autoCommands.disengageClutch()
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),
@@ -76,7 +80,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
 //                    // COLLECT AND SHOOT HP LINE
                     ,secondLineShots
                     ,autoCommands.engageClutch(),
-                    new SleepAction(3)
+                    new SleepAction(2)
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),
 //                    autoCommands.engageClutch(),

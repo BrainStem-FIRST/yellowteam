@@ -42,7 +42,7 @@ public class Shooter implements Component {
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
         public double B_CLOSE_VALUE = 845;
-        public double B_FAR_VALUE = 800;
+        public double B_FAR_VALUE = 700;
         public double SLOPE_CLOSE_VALUE = 5.60833;
         public double SLOPE_FAR_VALUE = 6.33188;
         public double TARGET_VELOCITY = 1625;

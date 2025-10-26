@@ -36,9 +36,9 @@ public class AutoPositions {
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(firstLine, Math.toRadians(90))
-                .waitSeconds(0.25)
-                .lineToY(55)
-                .waitSeconds(0.5)
+//                .waitSeconds(0.1)
+                .lineToY(42)
+//                .waitSeconds(0.1)
                 .setReversed(true)
                 .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return firstLineShot.build();
@@ -48,12 +48,12 @@ public class AutoPositions {
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(secondLine, Math.toRadians(90))
-                .waitSeconds(0.25)
-                .lineToY(63)
-                .waitSeconds(0.5)
-                .setReversed(true)
-                .setTangent(Math.toRadians(-90))
-                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
+//                .waitSeconds(0.1)
+                .lineToY(47)
+//                .waitSeconds(0.1)
+//                .setReversed(true)
+                .setTangent(Math.toRadians(-45))
+                .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(135) : Math.toRadians(0));
         return firstLineShot.build();
     }
 

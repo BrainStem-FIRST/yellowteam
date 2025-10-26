@@ -20,7 +20,7 @@ public final class Turret implements Component {
     public DcMotorEx turretMotor;
     private PIDController pidController;
     public TurretState turretState;
-    Pose2d targetPose = new Pose2d(-72, 68, 0);
+    Pose2d targetPose = new Pose2d(-72, 67, 0);
 
     private ElapsedTime tagVisibleTimer = new ElapsedTime();
     private ElapsedTime tagLostTimer = new ElapsedTime();

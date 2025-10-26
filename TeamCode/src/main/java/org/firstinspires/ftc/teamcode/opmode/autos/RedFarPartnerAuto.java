@@ -51,25 +51,27 @@ public class RedFarPartnerAuto extends LinearOpMode {
                 new SequentialAction(
                     autoCommands.setRedAlliance(),
 
-                    new ParallelAction(
-//                        autoCommands.enableTurretTracking(),
-//                        autoCommands.engageClutch(),
-//                        autoCommands.spinUpShooter(),
-                        driveToShootingPose
-                    ),
+                        new ParallelAction(
+                            autoCommands.enableTurretTracking(),
+                            autoCommands.engageClutch(),
+//                            new SequentialAction(
+//                                autoCommands.maxShooterSpeed(),
+//                                new SleepAction(2),
+                                autoCommands.spinUpShooter(false),
+//                            ),
+                            driveToShootingPose
+                        ),
 
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
                     new SleepAction(3),
-//                    autoCommands.disengageClutch(),
+                    autoCommands.disengageClutch(),
 
                     // COLLECT AND SHOOT THIRD LINE
                     thirdLineShots,
                     autoCommands.engageClutch(),
-                    autoCommands.reverseIntake(),
                     new SleepAction(3),
-                    autoCommands.disengageClutch(),
-                    autoCommands.runIntake()
+                    autoCommands.disengageClutch()
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),
 //                    autoCommands.engageClutch(),
@@ -79,7 +81,6 @@ public class RedFarPartnerAuto extends LinearOpMode {
 //                    // COLLECT AND SHOOT HP LINE
                     ,humanPlayerShots
                     ,autoCommands.engageClutch(),
-                    autoCommands.reverseIntake(),
                     new SleepAction(3)
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),
