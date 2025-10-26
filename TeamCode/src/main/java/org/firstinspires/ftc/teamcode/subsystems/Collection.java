@@ -36,7 +36,7 @@ public class Collection implements Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.5;
-        public double INTAKE_SPEED = 0.75;
+        public double INTAKE_SPEED = 1;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();

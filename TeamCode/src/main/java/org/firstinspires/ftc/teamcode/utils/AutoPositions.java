@@ -10,10 +10,10 @@ public class AutoPositions {
     private final MecanumDrive drive;
 
     public final Pose2d farShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
-    public final Pose2d closeShootingPosition = new Pose2d(-24, 24, Math.toRadians(135));
-    public final Pose2d firstLine = new Pose2d(-12, 28, Math.toRadians(90));
-    public final Pose2d secondLine = new Pose2d(12, 28, Math.toRadians(90));
-    public final Pose2d thirdLine = new Pose2d(27, 28, Math.toRadians(90));
+    public final Pose2d closeShootingPosition = new Pose2d(-35, 24, Math.toRadians(135));
+    public final Pose2d firstLine = new Pose2d(-12, 17.5, Math.toRadians(90));
+    public final Pose2d secondLine = new Pose2d(12, 17.5, Math.toRadians(90));
+    public final Pose2d thirdLine = new Pose2d(27, 20, Math.toRadians(90));
     public final Pose2d approachHP = new Pose2d(35, 68, Math.toRadians(45));
 
     public AutoPositions(MecanumDrive drive) {
@@ -28,13 +28,14 @@ public class AutoPositions {
 
     public Action driveCloseShootingPose(Pose2d startPose) {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
-                .splineToConstantHeading(closeShootingPosition.position, closeShootingPosition.heading);
+                .splineToLinearHeading(closeShootingPosition, Math.toRadians(180));
         return moveOffWall.build();
     }
 
     public Action firstLineShots(boolean isClose) {
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
-                .splineTo(firstLine.position, firstLine.heading)
+                .setTangent(Math.toRadians(0))
+                .splineToLinearHeading(firstLine, Math.toRadians(90))
                 .waitSeconds(0.25)
                 .lineToY(55)
                 .waitSeconds(0.5)
@@ -45,11 +46,13 @@ public class AutoPositions {
 
     public Action secondLineShots(boolean isClose) {
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? closeShootingPosition : farShootingPosition)
-                .splineTo(secondLine.position, secondLine.heading)
+                .setTangent(Math.toRadians(0))
+                .splineToLinearHeading(secondLine, Math.toRadians(90))
                 .waitSeconds(0.25)
                 .lineToY(63)
                 .waitSeconds(0.5)
                 .setReversed(true)
+                .setTangent(Math.toRadians(-90))
                 .splineToLinearHeading(isClose ? closeShootingPosition : farShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return firstLineShot.build();
     }

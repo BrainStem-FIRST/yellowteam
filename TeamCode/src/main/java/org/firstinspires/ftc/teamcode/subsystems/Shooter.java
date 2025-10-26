@@ -41,10 +41,13 @@ public class Shooter implements Component {
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
-        public double B_VALUE = 64.61487;
-        public double TARGET_VELOCITY = 1300;
+        public double B_CLOSE_VALUE = 845;
+        public double B_FAR_VALUE = 800;
+        public double SLOPE_CLOSE_VALUE = 5.60833;
+        public double SLOPE_FAR_VALUE = 6.33188;
+        public double TARGET_VELOCITY = 1625;
 
-        public double kP = 0.05;
+        public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.00047;
@@ -157,6 +160,8 @@ public class Shooter implements Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
+        telemetry.addData("Dist to Shooter", distance);
+
         double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
 //        telemetry.addData("MPS", actualVelocityMps);
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
@@ -190,18 +195,22 @@ public class Shooter implements Component {
     }
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
-//        ShootingZone zone = getShootingZone(robotPose, targetPose);
-//        setFlywheelSpeedByZone(zone);
 
-//        double deltaX = targetPose.position.x - robotPose.position.x;
-//        double deltaY = targetPose.position.y - robotPose.position.y;
-//        double distance = Math.hypot(deltaX, deltaY);
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY);
 
-//        setShooterPower((0.112398 * distance + SHOOTER_PARAMS.B_VALUE)/100); //linear distance to power correlation
-//        setShooterPower((SHOOTER_PARAMS.B_VALUE * Math.pow(1.0016, distance))/100 + 0.1); //exponential distance to power correlation
-//        telemetry2.addData("CALC POW", 63.61487 * Math.pow(1.0016, distance));
+        double power = 0;
 
-        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+//        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+        if (robotPose.position.x < 20)
+            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+        else
+            power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
+
+        setShooterVelocityPID(power);
+        telemetry.addData("CALC POW", power);
+
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
         setHoodFromAngle(hoodAngle);
@@ -233,7 +242,6 @@ public class Shooter implements Component {
                 break;
 
             case UPDATE:
-//                setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
                 updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
                 break;
 
@@ -246,11 +254,7 @@ public class Shooter implements Component {
                 break;
         }
 
-//        updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
         telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
-//        telemetry.addData("Shooter Ticks", shooterMotorHigh.getCurrentPosition());
-//        telemetry.addData("Shooter Vel", (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-//        telemetry.addData("Shooting Zone", getShootingZone(drive.localizer.getPose(), turret.targetPose).toString());
     }
     @Override
     public String test(){

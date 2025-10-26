@@ -20,13 +20,13 @@ public final class Turret implements Component {
     public DcMotorEx turretMotor;
     private PIDController pidController;
     public TurretState turretState;
-    Pose2d targetPose = new Pose2d(-72, 72, 0);
+    Pose2d targetPose = new Pose2d(-72, 68, 0);
 
     private ElapsedTime tagVisibleTimer = new ElapsedTime();
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.015;
+        public double kP = 0.0075;
         public double kI = 0;
         public double kD = 0;
         public int TURRET_INCREMENT = 60;
@@ -183,7 +183,7 @@ public final class Turret implements Component {
         }
 
         if (isRedAlliance)
-            targetPose = new Pose2d(-72, 72, 0);
+            targetPose = new Pose2d(-72, 67, 0);
         else
             targetPose = new Pose2d(-72, -72, 0);
 

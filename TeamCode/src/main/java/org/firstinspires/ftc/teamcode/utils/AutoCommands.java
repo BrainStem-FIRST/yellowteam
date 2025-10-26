@@ -61,7 +61,7 @@ public class AutoCommands {
     public Action spinUpShooter() {
         return packet -> {
             robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
-            return robot.shooter.shooterMotorHigh.getVelocity() < 1300;
+            return robot.shooter.shooterMotorHigh.getVelocity() < 1375;
         };
     }
 
