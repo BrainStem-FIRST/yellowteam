@@ -90,6 +90,8 @@ public final class Turret implements Component {
 
         telemetry.addData("Turret Angle", turretTargetAngle);
         telemetry.addData("Turret Target", targetTurretPosition);
+        telemetry.addData("Turret Pose X", robotPose.position.x);
+        telemetry.addData("Turret Pose Y", robotPose.position.y);
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
