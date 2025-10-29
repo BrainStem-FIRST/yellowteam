@@ -42,7 +42,7 @@ public class Shooter implements Component {
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
         public double B_CLOSE_VALUE = 845;
-        public double B_FAR_VALUE = 700;
+        public double B_FAR_VALUE = 725;
         public double SLOPE_CLOSE_VALUE = 5.60833;
         public double SLOPE_FAR_VALUE = 6.33188;
         public double TARGET_VELOCITY = 1625;
@@ -55,6 +55,9 @@ public class Shooter implements Component {
 
     public static Params SHOOTER_PARAMS = new Shooter.Params();
     private PIDController shooterPID;
+    private double lastVelocity = 0;
+    private boolean wasAboveThreshold = true;
+    private double servoPos = 0;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
         this.map = hardwareMap;
@@ -187,9 +190,7 @@ public class Shooter implements Component {
     public void setHoodFromAngle(double angleRadians) {
         double angleDeg = Math.toDegrees(angleRadians);
         angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
-        double servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
-
-        telemetry.addData("HOOD SERVO POS", servoPos);
+        servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
 
         setHoodPosition(servoPos);
     }
@@ -216,6 +217,33 @@ public class Shooter implements Component {
         setHoodFromAngle(hoodAngle);
     }
 
+    public void farShotHoodUpdates(Pose2d robotPose, Pose2d targetPose) {
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY);
+
+        double power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
+        setShooterVelocityPID(power);
+
+        double currentVelocity = shooterMotorHigh.getVelocity();
+
+        if (wasAboveThreshold && (lastVelocity - currentVelocity) >= 250) {
+            if (servoPos + SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0) {
+                servoPos += SHOOTER_PARAMS.HOOD_INCREMENT;
+            }
+            wasAboveThreshold = false;
+        }
+
+        if (currentVelocity > 1400) {
+            wasAboveThreshold = true;
+        }
+
+        setHoodPosition(servoPos);
+
+        lastVelocity = currentVelocity;
+    }
+
+
     public double ticksPerSecToMps(double ticksPerSec) {
         double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
         return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference;
@@ -227,7 +255,7 @@ public class Shooter implements Component {
     }
 
     public enum ShooterState {
-        OFF, SHOOT, UPDATE, VELOCITY_CONTROL
+        OFF, SHOOT, UPDATE, FAR_SHOT_HOOD_UPDATES
     }
 
     @Override
@@ -249,12 +277,13 @@ public class Shooter implements Component {
                 setShooterPower(SHOOTER_PARAMS.SHOOTER_POWER);
                 break;
 
-            case VELOCITY_CONTROL:
-                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+            case FAR_SHOT_HOOD_UPDATES:
+                farShotHoodUpdates(drive.localizer.getPose(), turret.targetPose);
                 break;
         }
 
         telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
+        telemetry.addData("hood servo position", servoPos);
     }
     @Override
     public String test(){

@@ -105,10 +105,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if (gp1.isFirstDpadRight()) {
-            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.VELOCITY_CONTROL)
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES)
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.VELOCITY_CONTROL;
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES;
         }
 
 //        if (gp1.isFirstDpadRight()) {
@@ -121,10 +121,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
 //        }
 
-//        brainSTEMRobot.shooter.setHoodPosition(hood_position);
+        brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
 //        telemetry.addData("Turret Increment", turret_position);
-//        telemetry.addData("Hood Increment", hood_position);
+        telemetry.addData("Hood Increment", hood_position);
+
+        telemetry.addData("Pose X", brainSTEMRobot.drive.localizer.getPose().position.x);
+        telemetry.addData("Pose Y", brainSTEMRobot.drive.localizer.getPose().position.y);
     }
 
     private void updateDriver1() {
