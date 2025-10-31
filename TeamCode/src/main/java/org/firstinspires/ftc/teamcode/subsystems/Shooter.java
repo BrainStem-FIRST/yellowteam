@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -22,6 +23,7 @@ public class Shooter implements Component {
 
     private HardwareMap map;
     private Telemetry telemetry;
+    private FtcDashboard dashboard;
     private MecanumDrive drive;
     private Turret turret;
     public DcMotorEx shooterMotorLow;
@@ -34,6 +36,8 @@ public class Shooter implements Component {
         public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
         // (the height of the front wall of the goal is 38.75 in)
+
+        public double WALL_OFFSET = 30;
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 28; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 0.5;
@@ -61,9 +65,12 @@ public class Shooter implements Component {
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
         this.map = hardwareMap;
-        this.telemetry = telemetry;
+//        this.telemetry = telemetry;
         this.drive = drive;
         this.turret = turret;
+
+        this.dashboard = FtcDashboard.getInstance();
+        this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
         shooterMotorLow = map.get(DcMotorEx.class, "lowShoot");
         shooterMotorLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -110,16 +117,23 @@ public class Shooter implements Component {
         double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
-        totalPower = Range.clip(totalPower, -1.0, 1.0);
+        totalPower = Math.abs(Range.clip(totalPower, -1.0, 1.0));
 
         setShooterPower(totalPower);
 
         telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
         telemetry.addData("Shooter Current Vel", currentVelocity);
-        telemetry.addData("Time", System.currentTimeMillis());
+        telemetry.addData("Time (ms)", System.currentTimeMillis());
         telemetry.addData("Shooter PID Output", pidOutput);
         telemetry.addData("Shooter FeedForward", feedForward);
         telemetry.addData("Shooter Total Power", totalPower);
+
+        TelemetryPacket packet = new TelemetryPacket();
+        packet.put("Time (ms)", System.currentTimeMillis());
+        packet.put("Target Velocity", targetVelocityTicksPerSec);
+        packet.put("Current Velocity", currentVelocity);
+
+        dashboard.sendTelemetryPacket(packet);
     }
 
     public enum ShootingZone {
@@ -161,7 +175,7 @@ public class Shooter implements Component {
     public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY);
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
         telemetry.addData("Dist to Shooter", distance);
 
@@ -199,7 +213,7 @@ public class Shooter implements Component {
 
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY);
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
         double power = 0;
 
@@ -220,7 +234,7 @@ public class Shooter implements Component {
     public void farShotHoodUpdates(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY);
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
         double power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
         setShooterVelocityPID(power);

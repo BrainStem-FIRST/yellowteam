@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.subsystems;
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -17,16 +20,17 @@ public final class Turret implements Component {
     public boolean isRedAlliance = true;
     private HardwareMap map;
     private Telemetry telemetry;
+    private FtcDashboard dashboard;
     public DcMotorEx turretMotor;
     private PIDController pidController;
     public TurretState turretState;
-    Pose2d targetPose = new Pose2d(-72, 67, 0);
+    Pose2d targetPose = new Pose2d(-62, 62, 0);
 
     private ElapsedTime tagVisibleTimer = new ElapsedTime();
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.0075;
+        public double kP = 0.01;
         public double kI = 0;
         public double kD = 0;
         public int TURRET_INCREMENT = 60;
@@ -45,9 +49,12 @@ public final class Turret implements Component {
 
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Vision vision){
         this.map = hardwareMap;
-        this.telemetry = telemetry;
+//        this.telemetry = telemetry;
         this.drive = drive;
         this.vision = vision;
+
+        this.dashboard = FtcDashboard.getInstance();
+        this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
         turretMotor = map.get(DcMotorEx.class, "turret");
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -92,6 +99,13 @@ public final class Turret implements Component {
         telemetry.addData("Turret Target", targetTurretPosition);
         telemetry.addData("Turret Pose X", robotPose.position.x);
         telemetry.addData("Turret Pose Y", robotPose.position.y);
+
+        TelemetryPacket packet = new TelemetryPacket();
+        packet.put("Turret Angle", turretTargetAngle);
+        packet.put("Turret Target", targetTurretPosition);
+        packet.put("Turret Encoder", getTurretEncoder());
+
+        dashboard.sendTelemetryPacket(packet);
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
@@ -185,9 +199,9 @@ public final class Turret implements Component {
         }
 
         if (isRedAlliance)
-            targetPose = new Pose2d(-72, 67, 0);
+            targetPose = new Pose2d(-62, 62, 0);
         else
-            targetPose = new Pose2d(-72, -72, 0);
+            targetPose = new Pose2d(-62, -62, 0);
 
 //        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
 //        telemetry.addData("Turret State", turretState.toString());
@@ -199,6 +213,8 @@ public final class Turret implements Component {
 //        if (!vision.tagProcessor.getDetections().isEmpty()){
 //            telemetry.addData("FTC X", vision.getCurrentTag().ftcPose.x);
 //        }
+
+        pidController.setPIDValues(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
     }
 
     @Override

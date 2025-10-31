@@ -128,6 +128,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         telemetry.addData("Pose X", brainSTEMRobot.drive.localizer.getPose().position.x);
         telemetry.addData("Pose Y", brainSTEMRobot.drive.localizer.getPose().position.y);
+        telemetry.addData("Pose Heading", Math.toDegrees(brainSTEMRobot.drive.localizer.getPose().heading.toDouble()));
     }
 
     private void updateDriver1() {

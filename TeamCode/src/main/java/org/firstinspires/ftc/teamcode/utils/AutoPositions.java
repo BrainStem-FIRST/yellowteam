@@ -19,7 +19,7 @@ public class AutoPositions {
 
    //blue positions
     public final Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
-    public final Pose2d blueCloseShootingPosition = new Pose2d(-35, -24, Math.toRadians(45));
+    public final Pose2d blueCloseShootingPosition = new Pose2d(-35, -24, Math.toRadians(-135));
     public final Pose2d blueFirstLine = new Pose2d(-12, -17.5, Math.toRadians(-90));
     public final Pose2d blueSecondLine = new Pose2d(12, -17.5, Math.toRadians(-90));
     public final Pose2d blueThirdLine = new Pose2d(27, -20, Math.toRadians(-90));

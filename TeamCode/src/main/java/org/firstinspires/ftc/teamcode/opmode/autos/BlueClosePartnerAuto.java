@@ -54,9 +54,9 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                         autoCommands.enableTurretTracking(),
                         autoCommands.engageClutch(),
                         new SequentialAction(
-                            autoCommands.maxShooterSpeed(),
-                            new SleepAction(2),
-                            autoCommands.spinUpShooter(true)
+//                            autoCommands.maxShooterSpeed(),
+//                            new SleepAction(2),
+//                            autoCommands.spinUpShooter(true)
                         ),
                         blueDriveToShootingPose
                     ),
