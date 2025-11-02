@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.commandGroups.FullCollectionSequence;
 import org.firstinspires.ftc.teamcode.commands.turretCommands.TurretTrackingCommand;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
@@ -28,6 +29,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     // TESTING //
     private double hood_position = 0.1;
     private int turret_position = 0;
+    private double parking_position = 0.1;
 
     @Override
     public void runOpMode() {
@@ -104,12 +106,22 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
         }
 
-        if (gp1.isFirstDpadRight()) {
-            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES)
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
-            else
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES;
+        if (gp1.isFirstDpadLeft()) {
+            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
+                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
         }
+
+        if (gp1.isFirstDpadRight()) {
+            if (parking_position + Parking.PARK_PARAMS.SERVO_INCREMENT <= 1.0)
+                parking_position += Parking.PARK_PARAMS.SERVO_INCREMENT;
+        }
+
+//        if (gp1.isFirstDpadRight()) {
+//            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES)
+//                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
+//            else
+//                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES;
+//        }
 
 //        if (gp1.isFirstDpadRight()) {
 //            if (turret_position - Turret.TURRET_PARAMS.TURRET_INCREMENT >= Turret.TURRET_PARAMS.TURRET_MIN)
@@ -121,10 +133,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
 //        }
 
-        brainSTEMRobot.shooter.setHoodPosition(hood_position);
+        brainSTEMRobot.parking.setParkServoPosition(parking_position);
+        telemetry.addData("** PARKING SERVO POS **", parking_position);
+
+//        brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
 //        telemetry.addData("Turret Increment", turret_position);
-        telemetry.addData("Hood Increment", hood_position);
+//        telemetry.addData("Hood Increment", hood_position);
 
         telemetry.addData("Pose X", brainSTEMRobot.drive.localizer.getPose().position.x);
         telemetry.addData("Pose Y", brainSTEMRobot.drive.localizer.getPose().position.y);

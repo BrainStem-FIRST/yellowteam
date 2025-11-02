@@ -123,9 +123,8 @@ public class Shooter implements Component {
 
         telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
         telemetry.addData("Shooter Current Vel", currentVelocity);
-        telemetry.addData("Time (ms)", System.currentTimeMillis());
-        telemetry.addData("Shooter PID Output", pidOutput);
-        telemetry.addData("Shooter FeedForward", feedForward);
+//        telemetry.addData("Shooter PID Output", pidOutput);
+//        telemetry.addData("Shooter FeedForward", feedForward);
         telemetry.addData("Shooter Total Power", totalPower);
 
         TelemetryPacket packet = new TelemetryPacket();
@@ -196,7 +195,7 @@ public class Shooter implements Component {
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
 
-        telemetry.addData("HOOD ANGLE", Math.toDegrees(theta));
+        telemetry.addData("Hood Angle", Math.toDegrees(theta));
 
         return theta;
     }
@@ -224,7 +223,6 @@ public class Shooter implements Component {
             power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
 
         setShooterVelocityPID(power);
-        telemetry.addData("CALC POW", power);
 
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
@@ -297,7 +295,6 @@ public class Shooter implements Component {
         }
 
         telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
-        telemetry.addData("hood servo position", servoPos);
     }
     @Override
     public String test(){

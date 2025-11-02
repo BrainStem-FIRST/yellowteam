@@ -24,9 +24,10 @@ public class Parking implements Component {
 
     public static class Params{
         public double RETRACTED_POS = 0.01;
-        public double EXTENDED_POS = 0.95;
+        public double EXTENDED_POS = 0.99;
         public double MIDDLE_POS = 0.5;
-        public double SCALE_FACTOR = 255;
+        public double SERVO_INCREMENT = 0.1;
+//        public double SCALE_FACTOR = 255;
     }
 
     public static Params PARK_PARAMS = new Parking.Params();
@@ -37,15 +38,15 @@ public class Parking implements Component {
         this.drive = drive;
 
         parkLeftServo = map.get(ServoImplEx.class, "parkLeft");
-        parkLeftServo.setPwmRange(new PwmControl.PwmRange(100, 2500));
+        parkLeftServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
         parkRightServo = map.get(ServoImplEx.class, "parkRight");
-        parkRightServo.setPwmRange(new PwmControl.PwmRange(100, 2500));
+        parkRightServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
 //        leftColorSensor = hardwareMap.get(ColorSensor.class, "leftColor");
 //        rightColorSensor = hardwareMap.get(ColorSensor.class, "rightColor");
 
-        parkState = ParkState.RETRACTED;
+        parkState = ParkState.OFF;
     }
 
 //    public double getColorSensorBrightness() {
@@ -63,7 +64,7 @@ public class Parking implements Component {
     }
 
     public enum ParkState {
-        RETRACTED, EXTENDED, MIDDLE
+        RETRACTED, EXTENDED, MIDDLE, OFF
     }
 
     @Override
@@ -82,6 +83,9 @@ public class Parking implements Component {
 
             case MIDDLE:
                 setParkServoPosition(PARK_PARAMS.MIDDLE_POS);
+                break;
+
+            case OFF:
                 break;
         }
     }

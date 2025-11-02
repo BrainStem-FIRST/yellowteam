@@ -72,7 +72,7 @@ public final class Turret implements Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double error = getTurretEncoder() - ticks;
         double power = pidController.updateWithError(error);
-        telemetry.addData("Turret Power", power);
+//        telemetry.addData("Turret Power", power);
         turretMotor.setPower(-power);
     }
 
@@ -95,10 +95,10 @@ public final class Turret implements Component {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
         int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
 
-        telemetry.addData("Turret Angle", turretTargetAngle);
-        telemetry.addData("Turret Target", targetTurretPosition);
-        telemetry.addData("Turret Pose X", robotPose.position.x);
-        telemetry.addData("Turret Pose Y", robotPose.position.y);
+//        telemetry.addData("Turret Angle", turretTargetAngle);
+//        telemetry.addData("Turret Target", targetTurretPosition);
+//        telemetry.addData("Turret Pose X", robotPose.position.x);
+//        telemetry.addData("Turret Pose Y", robotPose.position.y);
 
         TelemetryPacket packet = new TelemetryPacket();
         packet.put("Turret Angle", turretTargetAngle);
