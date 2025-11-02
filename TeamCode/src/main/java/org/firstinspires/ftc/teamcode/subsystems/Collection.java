@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -20,11 +21,12 @@ public class Collection implements Component {
     private ServoImplEx clutchLeft;
     private ServoImplEx clutchRight;
 
-    //Swyft Sensors
-//    private DigitalChannel frontRightLaser;
-//    private DigitalChannel frontLeftLaser;
-    private DigitalChannel backTopLaser;
-    private DigitalChannel backBottomLaser;
+    //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
+
+//    private AnalogInput frontRightLaser;
+//    private AnalogInput frontLeftLaser;
+    private AnalogInput backTopLaser;
+    private AnalogInput backBottomLaser;
 
     public CollectionState collectionState;
     public ClutchState clutchState;
@@ -37,6 +39,7 @@ public class Collection implements Component {
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.5;
         public double INTAKE_SPEED = 0.9;
+        public double LASER_BALL_THRESHOLD = 20;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -55,28 +58,27 @@ public class Collection implements Component {
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
-//        frontRightLaser = hardwareMap.get(DigitalChannel.class, "FRLaser");
-//        frontRightLaser.setMode(DigitalChannel.Mode.INPUT);
-//
-//        frontLeftLaser = hardwareMap.get(DigitalChannel.class, "FLLaser");
-//        frontLeftLaser.setMode(DigitalChannel.Mode.INPUT);
-
-        backTopLaser = hardwareMap.get(DigitalChannel.class, "BTLaser");
-        backTopLaser.setMode(DigitalChannel.Mode.INPUT);
-
-        backBottomLaser = hardwareMap.get(DigitalChannel.class, "BBLaser");
-        backBottomLaser.setMode(DigitalChannel.Mode.INPUT);
+//        frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
+//        frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
+        backTopLaser = hardwareMap.get(AnalogInput.class, "BTLaser");
+        backBottomLaser = hardwareMap.get(AnalogInput.class, "BBLaser");
 
         collectionState = CollectionState.OFF;
         clutchState = ClutchState.UNENGAGED;
     }
 
+    private double voltageToDistance(double voltage) {
+        return (voltage * 48.78136376) - 4.985354503; //tune if not accurate
+    }
+
     private boolean isBackBallDetected() {
-        return !backBottomLaser.getState() || !backTopLaser.getState();
+        return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
+                (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
     }
 
 //    private boolean isFrontBallDetected() {
-//        return !frontLeftLaser.getState() || !frontRightLaser.getState();
+//        return (voltageToDistance(frontRightLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
+//                (voltageToDistance(frontLeftLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
 //    }
 
     public void startIntake() {
@@ -151,6 +153,7 @@ public class Collection implements Component {
                 break;
         }
 
+//        telemetry.addData("Laser Distance", (backBottomLaser.getVoltage()*48.78136376)-4.985354503);
 //        telemetry.addData("Back Ball Detected", isBackBallDetected());
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
         telemetry.addData("Collection State", collectionState.toString());

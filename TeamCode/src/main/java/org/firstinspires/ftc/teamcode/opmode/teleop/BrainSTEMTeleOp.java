@@ -148,7 +148,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     private void updateDriver1() {
         if (gp1.isFirstA())
-            collectionCommandGroup.schedule();
+            if (!collectionCommandGroup.isScheduled())
+                collectionCommandGroup.schedule();
 
         if (gamepad1.b)
             brainSTEMRobot.collection.collectionState = Collection.CollectionState.EXTAKE;

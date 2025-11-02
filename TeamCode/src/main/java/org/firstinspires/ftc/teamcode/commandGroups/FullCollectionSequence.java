@@ -12,7 +12,7 @@ public class FullCollectionSequence extends SequentialCommandGroup {
     public FullCollectionSequence(BrainSTEMRobot robot, Telemetry telemetry) {
         super(
                 new CollectionCommand(robot, telemetry),
-                new WaitCommand(300),
+                new WaitCommand(100),
                 new EngageClutchCommand(robot, telemetry)
         );
     }
