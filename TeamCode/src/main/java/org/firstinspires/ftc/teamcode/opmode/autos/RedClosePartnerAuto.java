@@ -35,6 +35,8 @@ public class RedClosePartnerAuto extends LinearOpMode {
         Action driveToShootingPose = autoPositions.driveCloseShootingPose(startPose);
         Action firstLineShots = autoPositions.firstLineShots(true);
         Action secondLineShots = autoPositions.secondLineShots(true);
+        Action thirdLineShots = autoPositions.thirdLineShots(true);
+        Action moveOffLine = autoPositions.moveOffLine(true);
 
         telemetry.addLine("Ready");
         telemetry.setMsTransmissionInterval(20);
@@ -60,7 +62,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
-                    new SleepAction(3.5),
+                    new SleepAction(2.5),
                     new ParallelAction(
                         firstLineShots,
                         new SequentialAction(
@@ -74,7 +76,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     // COLLECT AND SHOOT FIRST LINE
                     autoCommands.spinUpShooter(true),
                     autoCommands.engageClutch(),
-                    new SleepAction(3.5),
+                    new SleepAction(2.5),
 
                     new ParallelAction(
                         secondLineShots,
@@ -87,16 +89,21 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     ),
                     autoCommands.spinUpShooter(true),
                     autoCommands.engageClutch(),
-                    new SleepAction(2)
-//                    autoCommands.waitForSeconds(0.5),
-//                    autoCommands.spinUpShooter(),
-//                    autoCommands.engageClutch(),
-//                    autoCommands.waitForSeconds(3),
-//
-//                    // POWER DOWN SUBSYSTEMS
-//                    autoCommands.stopIntake(),
-//                    autoCommands.disengageClutch(),
-//                    autoCommands.stopShooter()
+                    new SleepAction(2.5),
+
+                    new ParallelAction(
+                        thirdLineShots,
+                        new SequentialAction(
+                            autoCommands.reverseIntake(),
+                            new SleepAction(2),
+                            autoCommands.runIntake(),
+                            autoCommands.disengageClutch()
+                        )
+                    ),
+                    autoCommands.spinUpShooter(true),
+                    autoCommands.engageClutch(),
+                    new SleepAction(2.5),
+                    moveOffLine
                 )
             )
         );

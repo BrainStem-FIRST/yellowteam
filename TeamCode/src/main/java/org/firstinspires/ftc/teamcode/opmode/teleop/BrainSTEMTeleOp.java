@@ -78,11 +78,11 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             else
                 brainSTEMRobot.collection.collectionState = Collection.CollectionState.INTAKE;
 
-        if (gp1.isFirstB())
-            if (brainSTEMRobot.collection.clutchState == Collection.ClutchState.ENGAGED)
-                brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
-            else
-                brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
+//        if (gp1.isFirstB())
+//            if (brainSTEMRobot.collection.clutchState == Collection.ClutchState.ENGAGED)
+//                brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+//            else
+//                brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
         if (gp1.isFirstY())
             if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.UPDATE)
@@ -96,25 +96,27 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             else
                 brainSTEMRobot.turret.turretState = Turret.TurretState.TRACKING;
 
-        if (gp1.isFirstDpadDown()) {
-            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.0)
-                hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
-        }
-
+//        if (gp1.isFirstDpadDown()) {
+//            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.0)
+//                hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
+//        }
+//
         if (gp1.isFirstDpadUp()) {
-            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0)
-                hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
+            if (brainSTEMRobot.collection.collectionState == Collection.CollectionState.EXTAKE)
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.OFF;
+            else
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.EXTAKE;
         }
-
-        if (gp1.isFirstDpadLeft()) {
-            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
-                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
-        }
-
-        if (gp1.isFirstDpadRight()) {
-            if (parking_position + Parking.PARK_PARAMS.SERVO_INCREMENT <= 1.0)
-                parking_position += Parking.PARK_PARAMS.SERVO_INCREMENT;
-        }
+//
+//        if (gp1.isFirstDpadLeft()) {
+//            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
+//                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
+//        }
+//
+//        if (gp1.isFirstDpadRight()) {
+//            if (parking_position + Parking.PARK_PARAMS.SERVO_INCREMENT <= 1.0)
+//                parking_position += Parking.PARK_PARAMS.SERVO_INCREMENT;
+//        }
 
 //        if (gp1.isFirstDpadRight()) {
 //            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.FAR_SHOT_HOOD_UPDATES)
@@ -173,8 +175,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     private void updateDriver2() {
         if (gp2.isFirstB())
-            brainSTEMRobot.turret.isRedAlliance = true;
+            if (brainSTEMRobot.collection.clutchState == Collection.ClutchState.ENGAGED)
+                brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            else
+                brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
         if (gp2.isFirstX())
             brainSTEMRobot.turret.isRedAlliance = false;
+        if (gp2.isFirstA())
+            brainSTEMRobot.turret.isRedAlliance = true;
     }
 }
