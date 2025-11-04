@@ -43,44 +43,50 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 
         Actions.runBlocking(
 
-            new ParallelAction(
-                autoCommands.updateRobot,
-                autoCommands.savePoseContinuously,
+                new ParallelAction(
+                        autoCommands.updateRobot,
+                        autoCommands.savePoseContinuously,
 
-                new SequentialAction(
-                    autoCommands.setBlueAlliance(),
-
-                    new ParallelAction(
-                        autoCommands.enableTurretTracking(),
-                        autoCommands.engageClutch(),
                         new SequentialAction(
-//                            autoCommands.maxShooterSpeed(),
-//                            new SleepAction(2),
-//                            autoCommands.spinUpShooter(true)
-                        ),
-                        blueDriveToShootingPose
-                    ),
+                                autoCommands.setRedAlliance(),
 
-                    // SHOOT 3 PRELOADS
-                    autoCommands.runIntake(),
-                    new SleepAction(2),
-                    autoCommands.disengageClutch(),
+                                new ParallelAction(
+                                        autoCommands.enableTurretTracking(),
+                                        autoCommands.engageClutch(),
+                                        autoCommands.spinUpShooter(true),
+                                        blueDriveToShootingPose
+                                ),
 
-                    // COLLECT AND SHOOT FIRST LINE
-                    blueFirstLineShots,
-                    autoCommands.engageClutch(),
-                    new SleepAction(2),
-                    autoCommands.disengageClutch()
-//                    autoCommands.waitForSeconds(0.5),
-//                    autoCommands.spinUpShooter(),
-//                    autoCommands.engageClutch(),
-//                    autoCommands.waitForSeconds(3),
-//                    autoCommands.disengageClutch(),
-//
-//                    // COLLECT AND SHOOT HP LINE
-                    ,blueSecondLineShots
-                    ,autoCommands.engageClutch(),
-                    new SleepAction(2)
+                                // SHOOT 3 PRELOADS
+                                autoCommands.runIntake(),
+                                new SleepAction(3.5),
+                                new ParallelAction(
+                                        blueFirstLineShots,
+                                        new SequentialAction(
+                                                autoCommands.reverseIntake(),
+                                                new SleepAction(2),
+                                                autoCommands.runIntake(),
+                                                autoCommands.disengageClutch()
+                                        )
+                                ),
+
+                                // COLLECT AND SHOOT FIRST LINE
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(3.5),
+
+                                new ParallelAction(
+                                        blueSecondLineShots,
+                                        new SequentialAction(
+                                                autoCommands.reverseIntake(),
+                                                new SleepAction(2),
+                                                autoCommands.runIntake(),
+                                                autoCommands.disengageClutch()
+                                        )
+                                ),
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(2)
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),
 //                    autoCommands.engageClutch(),
@@ -90,8 +96,8 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 //                    autoCommands.stopIntake(),
 //                    autoCommands.disengageClutch(),
 //                    autoCommands.stopShooter()
+                        )
                 )
-            )
         );
     }
 }
