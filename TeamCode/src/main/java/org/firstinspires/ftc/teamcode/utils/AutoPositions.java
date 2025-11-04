@@ -19,8 +19,8 @@ public class AutoPositions {
 
    //blue positions
     public final Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
-    public final Pose2d blueCloseShootingPosition = new Pose2d(-35, -24, Math.toRadians(-135));
-    public final Pose2d blueFirstLine = new Pose2d(-12, -17.5, Math.toRadians(-90));
+    public final Pose2d blueCloseShootingPosition = new Pose2d(-35, -39.5, Math.toRadians(-135));
+    public final Pose2d blueFirstLine = new Pose2d(-13, -17.5, Math.toRadians(-90));
     public final Pose2d blueSecondLine = new Pose2d(12, -17.5, Math.toRadians(-90));
     public final Pose2d blueThirdLine = new Pose2d(27, -20, Math.toRadians(-90));
     public final Pose2d blueApproachHP = new Pose2d(35, -68, Math.toRadians(-135));
@@ -107,7 +107,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(blueFirstLine, Math.toRadians(-90))
 //                .waitSeconds(0.1)
-                .lineToY(-42)
+                .lineToY(-60)
 //                .waitSeconds(0.1)
                 .setReversed(true)
                 .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
@@ -119,7 +119,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(blueSecondLine, Math.toRadians(-90))
 //                .waitSeconds(0.1)
-                .lineToY(-47)
+                .lineToY(-63)
 //                .waitSeconds(0.1)
 //                .setReversed(true)
                 .setTangent(Math.toRadians(135))
