@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.LED;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
@@ -30,6 +31,7 @@ public class BrainSTEMRobot implements Component {
     public Parking parking;
     public MecanumDrive drive;
     public Vision vision;
+    public LED led;
     private ArrayList<Component> subsystems;
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
@@ -43,12 +45,14 @@ public class BrainSTEMRobot implements Component {
         shooter = new Shooter(hardwareMap, telemetry, drive, turret);
         collection = new Collection(hardwareMap, telemetry);
         parking = new Parking(hardwareMap, telemetry, drive);
+        led = new LED(hardwareMap, telemetry, shooter, turret, parking, collection);
 
         subsystems.add(turret);
         subsystems.add(shooter);
         subsystems.add(collection);
         subsystems.add(parking);
         subsystems.add(vision);
+        subsystems.add(led);
     }
 
     public void getTelemetry(){}

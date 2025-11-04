@@ -23,8 +23,8 @@ public class Collection implements Component {
 
     //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
 
-//    private AnalogInput frontRightLaser;
-//    private AnalogInput frontLeftLaser;
+    private AnalogInput frontRightLaser;
+    private AnalogInput frontLeftLaser;
     private AnalogInput backTopLaser;
     private AnalogInput backBottomLaser;
 
@@ -58,10 +58,10 @@ public class Collection implements Component {
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
-//        frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
-//        frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
-        backTopLaser = hardwareMap.get(AnalogInput.class, "BTLaser");
-        backBottomLaser = hardwareMap.get(AnalogInput.class, "BBLaser");
+        frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
+        frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
+        backTopLaser = hardwareMap.get(AnalogInput.class, "BRLaser");
+        backBottomLaser = hardwareMap.get(AnalogInput.class, "BLLaser");
 
         collectionState = CollectionState.OFF;
         clutchState = ClutchState.UNENGAGED;
@@ -72,8 +72,9 @@ public class Collection implements Component {
     }
 
     private boolean isBackBallDetected() {
-        return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
-                (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
+//        return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
+//                (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
+    return true;
     }
 
 //    private boolean isFrontBallDetected() {

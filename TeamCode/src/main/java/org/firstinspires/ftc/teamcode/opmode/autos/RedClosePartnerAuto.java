@@ -37,6 +37,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
         Action secondLineShots = autoPositions.secondLineShots(true);
 
         telemetry.addLine("Ready");
+        telemetry.setMsTransmissionInterval(20);
         telemetry.update();
 
         waitForStart();
@@ -53,33 +54,39 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     new ParallelAction(
                         autoCommands.enableTurretTracking(),
                         autoCommands.engageClutch(),
-                        new SequentialAction(
-                            autoCommands.maxShooterSpeed(),
-                            new SleepAction(2),
-                            autoCommands.spinUpShooter(true)
-                        ),
+                        autoCommands.spinUpShooter(true),
                         driveToShootingPose
                     ),
 
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
-                    new SleepAction(2),
-                    autoCommands.disengageClutch(),
+                    new SleepAction(3.5),
+                    new ParallelAction(
+                        firstLineShots,
+                        new SequentialAction(
+                            autoCommands.reverseIntake(),
+                            new SleepAction(2),
+                            autoCommands.runIntake(),
+                            autoCommands.disengageClutch()
+                        )
+                    ),
 
                     // COLLECT AND SHOOT FIRST LINE
-                    firstLineShots,
+                    autoCommands.spinUpShooter(true),
                     autoCommands.engageClutch(),
-                    new SleepAction(2),
-                    autoCommands.disengageClutch()
-//                    autoCommands.waitForSeconds(0.5),
-//                    autoCommands.spinUpShooter(),
-//                    autoCommands.engageClutch(),
-//                    autoCommands.waitForSeconds(3),
-//                    autoCommands.disengageClutch(),
-//
-//                    // COLLECT AND SHOOT HP LINE
-                    ,secondLineShots
-                    ,autoCommands.engageClutch(),
+                    new SleepAction(3.5),
+
+                    new ParallelAction(
+                        secondLineShots,
+                        new SequentialAction(
+                            autoCommands.reverseIntake(),
+                            new SleepAction(2),
+                            autoCommands.runIntake(),
+                            autoCommands.disengageClutch()
+                        )
+                    ),
+                    autoCommands.spinUpShooter(true),
+                    autoCommands.engageClutch(),
                     new SleepAction(2)
 //                    autoCommands.waitForSeconds(0.5),
 //                    autoCommands.spinUpShooter(),

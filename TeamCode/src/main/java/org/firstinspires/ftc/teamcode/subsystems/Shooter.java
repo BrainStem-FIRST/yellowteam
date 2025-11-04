@@ -40,15 +40,15 @@ public class Shooter implements Component {
         public double WALL_OFFSET = 30;
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double FLYWHEEL_TICKS_PER_REV = 28; // ticks in 1 rotation of the motor
-        public double SHOOTER_POWER = 0.5;
+        public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
-        public double B_CLOSE_VALUE = 845;
+        public double B_CLOSE_VALUE = 932.09522;
         public double B_FAR_VALUE = 725;
-        public double SLOPE_CLOSE_VALUE = 5.60833;
-        public double SLOPE_FAR_VALUE = 6.33188;
+        public double SLOPE_CLOSE_VALUE = 2.61135;
+        public double SLOPE_FAR_VALUE = 4.03631;
         public double TARGET_VELOCITY = 1625;
 
         public double kP = 0.005;

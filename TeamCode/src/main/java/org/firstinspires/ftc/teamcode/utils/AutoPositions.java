@@ -11,8 +11,8 @@ public class AutoPositions {
 
     //Red positions
     public final Pose2d redFarShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
-    public final Pose2d redCloseShootingPosition = new Pose2d(-35, 24, Math.toRadians(135));
-    public final Pose2d redFirstLine = new Pose2d(-12, 17.5, Math.toRadians(90));
+    public final Pose2d redCloseShootingPosition = new Pose2d(-35, 39.5, Math.toRadians(55));
+    public final Pose2d redFirstLine = new Pose2d(-13, 17.5, Math.toRadians(90));
     public final Pose2d redSecondLine = new Pose2d(12, 17.5, Math.toRadians(90));
     public final Pose2d redThirdLine = new Pose2d(27, 20, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
@@ -37,7 +37,7 @@ public class AutoPositions {
 
     public Action driveCloseShootingPose(Pose2d startPose) {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
-                .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180));
+                .lineToXLinearHeading(-35, Math.toRadians(55));
         return moveOffWall.build();
     }
 
@@ -46,7 +46,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(redFirstLine, Math.toRadians(90))
 //                .waitSeconds(0.1)
-                .lineToY(42)
+                .lineToY(60)
 //                .waitSeconds(0.1)
                 .setReversed(true)
                 .splineToLinearHeading(isClose ? redCloseShootingPosition : redFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
@@ -58,7 +58,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(redSecondLine, Math.toRadians(90))
 //                .waitSeconds(0.1)
-                .lineToY(47)
+                .lineToY(63)
 //                .waitSeconds(0.1)
 //                .setReversed(true)
                 .setTangent(Math.toRadians(-45))
