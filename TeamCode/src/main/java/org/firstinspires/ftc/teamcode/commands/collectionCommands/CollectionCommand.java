@@ -24,7 +24,7 @@ public class CollectionCommand extends CommandBase {
 
     @Override
     public void execute() {
-        robot.collection.updateIntakeSequence(timer.seconds());
+        robot.collection.checkForIntakeBalls(timer.seconds());
     }
 
     @Override

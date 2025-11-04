@@ -40,14 +40,19 @@ public class LED implements Component {
     public void update(){
 
         if (collection.clutchState == Collection.ClutchState.ENGAGED) {
-            left_led.setPosition(0.279);
-            right_led.setPosition(0.279);
+            left_led.setPosition(0.37); //green
+            right_led.setPosition(0.37);
         } else if (collection.clutchState == Collection.ClutchState.UNENGAGED) {
-            left_led.setPosition(0.666);
-            right_led.setPosition(0.666);
+            if (collection.intakeHas3Balls()) {
+                left_led.setPosition(0.666); //blue
+                right_led.setPosition(0.666);
+            } else {
+                left_led.setPosition(0.279); //red
+                right_led.setPosition(0.279);
+            }
         }
-
     }
+
     @Override
     public String test(){
         return null;

@@ -3,13 +3,12 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 
 @Config
@@ -33,11 +32,13 @@ public class Collection implements Component {
 
     private double timerStart = 0;
     private boolean timerRunning = false;
+    private boolean has3Balls = false;
+    private final ElapsedTime timer = new ElapsedTime();
 
     public static class Params{
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
-        public double DELAY_PERIOD = 0.5;
+        public double DELAY_PERIOD = 2;
         public double INTAKE_SPEED = 1.0;
         public double LASER_BALL_THRESHOLD = 20;
     }
@@ -65,6 +66,8 @@ public class Collection implements Component {
 
         collectionState = CollectionState.OFF;
         clutchState = ClutchState.UNENGAGED;
+
+        timer.reset();
     }
 
     private double voltageToDistance(double voltage) {
@@ -72,15 +75,14 @@ public class Collection implements Component {
     }
 
     private boolean isBackBallDetected() {
-//        return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
-//                (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
-    return true;
+        return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
+                (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
     }
 
-//    private boolean isFrontBallDetected() {
-//        return (voltageToDistance(frontRightLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
-//                (voltageToDistance(frontLeftLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
-//    }
+    private boolean isFrontBallDetected() {
+        return (voltageToDistance(frontRightLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
+                (voltageToDistance(frontLeftLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
+    }
 
     public void startIntake() {
         collectionState = CollectionState.INTAKE;
@@ -93,19 +95,22 @@ public class Collection implements Component {
         timerRunning = false;
     }
 
-    public void updateIntakeSequence(double currentTime) {
-        if (collectionState == CollectionState.INTAKE) {
-            if (isBackBallDetected()) { // && isFrontBallDetected()
-                if (!timerRunning) {
-                    timerStart = currentTime;
-                    timerRunning = true;
-                } else if (currentTime - timerStart > COLLECTOR_PARAMS.DELAY_PERIOD) {
-                    stopIntake();
-                }
-            } else {
-                timerRunning = false;
-                timerStart = 0;
+    public boolean intakeHas3Balls() {
+        return has3Balls;
+    }
+
+    public void checkForIntakeBalls(double currentTime) {
+        if (isBackBallDetected() && isFrontBallDetected()) {
+            if (!timerRunning) {
+                timerStart = currentTime;
+                timerRunning = true;
+            } else if (currentTime - timerStart > COLLECTOR_PARAMS.DELAY_PERIOD) {
+                has3Balls = true;
             }
+        } else {
+            timerRunning = false;
+            timerStart = 0;
+            has3Balls = false;
         }
     }
 
@@ -154,11 +159,12 @@ public class Collection implements Component {
                 break;
         }
 
-//        telemetry.addData("Laser Distance", (backBottomLaser.getVoltage()*48.78136376)-4.985354503);
-//        telemetry.addData("Back Ball Detected", isBackBallDetected());
-//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
+        checkForIntakeBalls(timer.seconds());
+
+        telemetry.addData("Laser Distance", voltageToDistance(backBottomLaser.getVoltage()));
+        telemetry.addData("Back Ball Detected", isBackBallDetected());
+        telemetry.addData("Front Ball Detected", isFrontBallDetected());
         telemetry.addData("Collection State", collectionState.toString());
-//        telemetry.addData("COLLECTOR CURRENT", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
         telemetry.addData("Clutch State", clutchState.toString());
     }
 
