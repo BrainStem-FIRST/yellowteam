@@ -95,6 +95,20 @@ public class AutoCommands {
         };
     }
 
+    public Action flickerUp() {
+        return packet -> {
+            robot.collection.flickerState = Collection.FlickerState.UP;
+            return false;
+        };
+    }
+
+    public Action flickerDown() {
+        return packet -> {
+            robot.collection.flickerState = Collection.FlickerState.DOWN;
+            return false;
+        };
+    }
+
     public Action runIntake() {
         return packet -> {
             robot.collection.collectionState = Collection.CollectionState.INTAKE;

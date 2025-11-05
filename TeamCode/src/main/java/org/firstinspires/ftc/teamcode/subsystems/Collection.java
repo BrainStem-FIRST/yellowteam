@@ -19,6 +19,8 @@ public class Collection implements Component {
     private DcMotorEx collectorMotor;
     private ServoImplEx clutchLeft;
     private ServoImplEx clutchRight;
+    public ServoImplEx flickerRight;
+//    private ServoImplEx flickerLeft;
 
     //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
 
@@ -29,7 +31,7 @@ public class Collection implements Component {
 
     public CollectionState collectionState;
     public ClutchState clutchState;
-
+    public FlickerState flickerState;
     private double timerStart = 0;
     private boolean timerRunning = false;
     private boolean has3Balls = false;
@@ -38,9 +40,9 @@ public class Collection implements Component {
     public static class Params{
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
-        public double DELAY_PERIOD = 2;
+        public double DELAY_PERIOD = 0.2;
         public double INTAKE_SPEED = 1.0;
-        public double LASER_BALL_THRESHOLD = 20;
+        public double LASER_BALL_THRESHOLD = 1;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -59,6 +61,12 @@ public class Collection implements Component {
         clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
+        flickerRight = map.get(ServoImplEx.class, "flickerRight");
+        flickerRight.setPwmRange(new PwmControl.PwmRange(1490, 1640));
+
+//        flickerLeft = map.get(ServoImplEx.class, "flickerLeft");
+//        flickerLeft.setPwmRange(new PwmControl.PwmRange(1490, 1640));
+
         frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
         frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
         backTopLaser = hardwareMap.get(AnalogInput.class, "BRLaser");
@@ -66,12 +74,13 @@ public class Collection implements Component {
 
         collectionState = CollectionState.OFF;
         clutchState = ClutchState.UNENGAGED;
+        flickerState = FlickerState.DOWN;
 
         timer.reset();
     }
 
     private double voltageToDistance(double voltage) {
-        return (voltage * 48.78136376) - 4.985354503; //tune if not accurate
+        return (voltage * 43.92898) - 6.01454; //tune if not accurate
     }
 
     private boolean isBackBallDetected() {
@@ -122,6 +131,10 @@ public class Collection implements Component {
         ENGAGED, UNENGAGED
     }
 
+    public enum FlickerState {
+        UP, DOWN
+    }
+
     @Override
     public void reset() {
     }
@@ -159,12 +172,26 @@ public class Collection implements Component {
                 break;
         }
 
+        switch (flickerState) {
+            case UP:
+                flickerRight.setPosition(0.8);
+                break;
+            case DOWN:
+                flickerRight.setPosition(0.1);
+                break;
+        }
+
         checkForIntakeBalls(timer.seconds());
 
-        telemetry.addData("Laser Distance", voltageToDistance(backBottomLaser.getVoltage()));
+        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
+        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));
+        telemetry.addData("Front Right Laser", voltageToDistance(frontRightLaser.getVoltage()));
+        telemetry.addData("Front left Laser", voltageToDistance(frontLeftLaser.getVoltage()));
+        // front 6.087 in
+
         telemetry.addData("Back Ball Detected", isBackBallDetected());
         telemetry.addData("Front Ball Detected", isFrontBallDetected());
-        telemetry.addData("Collection State", collectionState.toString());
+        telemetry.addData("FLICKER State", flickerState.toString());
         telemetry.addData("Clutch State", clutchState.toString());
     }
 

@@ -40,8 +40,8 @@ public class LED implements Component {
     public void update(){
 
         if (collection.clutchState == Collection.ClutchState.ENGAGED) {
-            left_led.setPosition(0.37); //green
-            right_led.setPosition(0.37);
+            left_led.setPosition(0.45); //green
+            right_led.setPosition(0.45);
         } else if (collection.clutchState == Collection.ClutchState.UNENGAGED) {
             if (collection.intakeHas3Balls()) {
                 left_led.setPosition(0.666); //blue

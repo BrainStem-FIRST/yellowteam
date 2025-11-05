@@ -78,11 +78,11 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             else
                 brainSTEMRobot.collection.collectionState = Collection.CollectionState.INTAKE;
 
-//        if (gp1.isFirstB())
-//            if (brainSTEMRobot.collection.clutchState == Collection.ClutchState.ENGAGED)
-//                brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
-//            else
-//                brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
+        if (gp1.isFirstB())
+            if (brainSTEMRobot.collection.clutchState == Collection.ClutchState.ENGAGED)
+                brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            else
+                brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
         if (gp1.isFirstY())
             if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.UPDATE)
@@ -95,11 +95,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.turret.turretState = Turret.TurretState.OFF;
             else
                 brainSTEMRobot.turret.turretState = Turret.TurretState.TRACKING;
-
-//        if (gp1.isFirstDpadDown()) {
-//            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0.0)
-//                hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
-//        }
 //
         if (gp1.isFirstDpadUp()) {
             if (brainSTEMRobot.collection.collectionState == Collection.CollectionState.EXTAKE)
@@ -108,10 +103,12 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.collection.collectionState = Collection.CollectionState.EXTAKE;
         }
 //
-//        if (gp1.isFirstDpadLeft()) {
-//            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
-//                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
-//        }
+        if (gp1.isFirstRightBumper()) {
+            if (brainSTEMRobot.collection.flickerState == Collection.FlickerState.UP)
+                brainSTEMRobot.collection.flickerState = Collection.FlickerState.DOWN;
+            else
+                brainSTEMRobot.collection.flickerState = Collection.FlickerState.UP;
+        }
 //
 //        if (gp1.isFirstDpadRight()) {
 //            if (parking_position + Parking.PARK_PARAMS.SERVO_INCREMENT <= 1.0)
@@ -135,13 +132,15 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
 //        }
 
-        brainSTEMRobot.parking.setParkServoPosition(parking_position);
-        telemetry.addData("** PARKING SERVO POS **", parking_position);
+//        brainSTEMRobot.parking.setParkServoPosition(parking_position);
+//        telemetry.addData("** PARKING SERVO POS **", parking_position);
 
 //        brainSTEMRobot.shooter.setHoodPosition(hood_position);
 //        brainSTEMRobot.turret.setTurretPosition(turret_position);
 //        telemetry.addData("Turret Increment", turret_position);
 //        telemetry.addData("Hood Increment", hood_position);
+
+        telemetry.addData("FLICKER POS", brainSTEMRobot.collection.flickerRight.getPosition());
 
         telemetry.addData("Pose X", brainSTEMRobot.drive.localizer.getPose().position.x);
         telemetry.addData("Pose Y", brainSTEMRobot.drive.localizer.getPose().position.y);
@@ -150,27 +149,36 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     private void updateDriver1() {
         if (gp1.isFirstA())
-            if (!collectionCommandGroup.isScheduled())
-                collectionCommandGroup.schedule();
+            if (brainSTEMRobot.collection.collectionState == Collection.CollectionState.INTAKE)
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.OFF;
+            else
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.INTAKE;
 
-        if (gamepad1.b)
-            brainSTEMRobot.collection.collectionState = Collection.CollectionState.EXTAKE;
-        else
-            brainSTEMRobot.collection.collectionState = Collection.CollectionState.OFF;
+        if (gp1.isFirstB())
+            if (brainSTEMRobot.collection.flickerState == Collection.FlickerState.UP)
+                brainSTEMRobot.collection.flickerState = Collection.FlickerState.DOWN;
+            else
+                brainSTEMRobot.collection.flickerState = Collection.FlickerState.UP;
 
-        if (gp1.isFirstY()) {
-            brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
-            brainSTEMRobot.collection.collectionState = Collection.CollectionState.TRANSFER;
-        }
-
-        if (gp1.isFirstX())
-            turretTrackingCommand.schedule();
-
-        if (gp1.isFirstRightBumper())
-            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.SHOOT)
+        if (gp1.isFirstY())
+            if (brainSTEMRobot.shooter.shooterState == Shooter.ShooterState.UPDATE)
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
-                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.SHOOT;
+                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.UPDATE;
+
+        if (gp1.isFirstX())
+            if (brainSTEMRobot.turret.turretState == Turret.TurretState.TRACKING)
+                brainSTEMRobot.turret.turretState = Turret.TurretState.OFF;
+            else
+                brainSTEMRobot.turret.turretState = Turret.TurretState.TRACKING;
+
+//
+        if (gp1.isFirstDpadUp()) {
+            if (brainSTEMRobot.collection.collectionState == Collection.CollectionState.EXTAKE)
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.OFF;
+            else
+                brainSTEMRobot.collection.collectionState = Collection.CollectionState.EXTAKE;
+        }
     }
 
     private void updateDriver2() {

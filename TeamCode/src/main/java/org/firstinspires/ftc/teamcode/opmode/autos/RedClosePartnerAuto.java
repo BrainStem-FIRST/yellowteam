@@ -62,10 +62,12 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
-                    new SleepAction(2.5),
+                    new SleepAction(2),
+                    autoCommands.flickerUp(),
                     new ParallelAction(
                         firstLineShots,
                         new SequentialAction(
+                            autoCommands.flickerDown(),
                             autoCommands.reverseIntake(),
                             new SleepAction(2),
                             autoCommands.runIntake(),
@@ -76,11 +78,13 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     // COLLECT AND SHOOT FIRST LINE
                     autoCommands.spinUpShooter(true),
                     autoCommands.engageClutch(),
-                    new SleepAction(2.5),
+                    new SleepAction(2),
+                    autoCommands.flickerUp(),
 
                     new ParallelAction(
                         secondLineShots,
                         new SequentialAction(
+                            autoCommands.flickerDown(),
                             autoCommands.reverseIntake(),
                             new SleepAction(2),
                             autoCommands.runIntake(),
@@ -89,11 +93,13 @@ public class RedClosePartnerAuto extends LinearOpMode {
                     ),
                     autoCommands.spinUpShooter(true),
                     autoCommands.engageClutch(),
-                    new SleepAction(2.5),
+                    new SleepAction(2),
+                    autoCommands.flickerUp(),
 
                     new ParallelAction(
                         thirdLineShots,
                         new SequentialAction(
+                            autoCommands.flickerDown(),
                             autoCommands.reverseIntake(),
                             new SleepAction(2),
                             autoCommands.runIntake(),
