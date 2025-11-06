@@ -22,6 +22,9 @@ public class Collection implements Component {
     public ServoImplEx flickerRight;
 //    private ServoImplEx flickerLeft;
 
+    private ElapsedTime flickerTimer = new ElapsedTime();
+    private boolean flickerStarted = false;
+
     //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
 
     private AnalogInput frontRightLaser;
@@ -132,7 +135,7 @@ public class Collection implements Component {
     }
 
     public enum FlickerState {
-        UP, DOWN
+        UP, DOWN, UP_DOWN
     }
 
     @Override
@@ -178,6 +181,17 @@ public class Collection implements Component {
                 break;
             case DOWN:
                 flickerRight.setPosition(0.1);
+                break;
+            case UP_DOWN:
+                if (!flickerStarted) {
+                    flickerRight.setPosition(0.8);
+                    flickerTimer.reset();
+                    flickerStarted = true;
+                } else if (flickerTimer.seconds() > 1.0) {
+                    flickerRight.setPosition(0.1);
+                    flickerStarted = false;
+                    flickerState = FlickerState.DOWN;
+                }
                 break;
         }
 
