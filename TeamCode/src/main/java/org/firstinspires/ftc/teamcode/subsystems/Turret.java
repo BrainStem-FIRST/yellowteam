@@ -24,15 +24,16 @@ public final class Turret implements Component {
     public DcMotorEx turretMotor;
     private PIDController pidController;
     public TurretState turretState;
+    public int adjustment = 0;
     Pose2d targetPose = new Pose2d(-62, 62, 0);
 
     private ElapsedTime tagVisibleTimer = new ElapsedTime();
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.005;
+        public double kP = 0.0075;
         public double kI = 0;
-        public double kD = 0;
+        public double kD = 0.0005;
         public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
@@ -61,7 +62,7 @@ public final class Turret implements Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
-        turretState = TurretState.OFF;
+        turretState = TurretState.CENTER;
     }
 
     public int getTurretEncoder() {
@@ -106,6 +107,8 @@ public final class Turret implements Component {
         packet.put("Turret Encoder", getTurretEncoder());
 
         dashboard.sendTelemetryPacket(packet);
+
+        targetTurretPosition += adjustment;
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
@@ -163,6 +166,7 @@ public final class Turret implements Component {
 
             case CENTER:
                 setTurretPosition(0);
+                adjustment = 0;
                 break;
 
             case COARSE:
@@ -213,6 +217,8 @@ public final class Turret implements Component {
 //        if (!vision.tagProcessor.getDetections().isEmpty()){
 //            telemetry.addData("FTC X", vision.getCurrentTag().ftcPose.x);
 //        }
+
+        telemetry.addData("Turret Adjustment Factor", adjustment);
 
         pidController.setPIDValues(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
     }

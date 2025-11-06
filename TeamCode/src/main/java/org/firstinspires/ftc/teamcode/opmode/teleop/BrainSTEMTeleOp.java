@@ -200,5 +200,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             brainSTEMRobot.turret.isRedAlliance = false;
         if (gp2.isFirstA())
             brainSTEMRobot.turret.isRedAlliance = true;
+        if (gp2.isFirstDpadLeft())
+            brainSTEMRobot.turret.adjustment += 10;
+        if (gp2.isFirstDpadRight())
+            brainSTEMRobot.turret.adjustment -= 10;
     }
 }
