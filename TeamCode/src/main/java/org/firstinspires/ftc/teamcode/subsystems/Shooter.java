@@ -234,7 +234,7 @@ public class Shooter implements Component {
 
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-//        setHoodFromAngle(hoodAngle);
+        setHoodFromAngle(hoodAngle);
     }
 
     public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {

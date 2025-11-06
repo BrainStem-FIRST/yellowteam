@@ -30,7 +30,7 @@ public final class Turret implements Component {
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.01;
+        public double kP = 0.005;
         public double kI = 0;
         public double kD = 0;
         public int TURRET_INCREMENT = 60;
