@@ -1,4 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
+import static com.sun.tools.doclint.Entity.theta;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -13,6 +15,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
@@ -39,7 +42,7 @@ public class Shooter implements Component {
 
         public double WALL_OFFSET = 30;
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
-        public double FLYWHEEL_TICKS_PER_REV = 28; // ticks in 1 rotation of the motor
+        public double FLYWHEEL_TICKS_PER_REV = 32; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
@@ -49,7 +52,9 @@ public class Shooter implements Component {
         public double B_FAR_VALUE = 725;
         public double SLOPE_CLOSE_VALUE = 5.42688;
         public double SLOPE_FAR_VALUE = 4.03631;
-        public double TARGET_VELOCITY = 1625;
+        public double TARGET_VELOCITY = 1400;
+
+        public double VELOCITY_OFFSET = 1;
 
         public double kP = 0.005;
         public double kI = 0.0;
@@ -172,6 +177,8 @@ public class Shooter implements Component {
     }
 
     public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
+//        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+//                new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
@@ -179,7 +186,7 @@ public class Shooter implements Component {
         telemetry.addData("Dist to Shooter", distance);
 
         double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-//        telemetry.addData("MPS", actualVelocityMps);
+        telemetry.addData("MPS", actualVelocityMps);
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yh²))) / (gx)
@@ -194,8 +201,7 @@ public class Shooter implements Component {
             return Math.toRadians(40);
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
-
-        telemetry.addData("Hood Angle", Math.toDegrees(theta));
+        telemetry.addData("OLD Hood Angle", Math.toDegrees(theta));
 
         return theta;
     }
@@ -210,6 +216,8 @@ public class Shooter implements Component {
 
     public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
 
+//        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+//                new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
@@ -226,7 +234,60 @@ public class Shooter implements Component {
 
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-        setHoodFromAngle(hoodAngle);
+//        setHoodFromAngle(hoodAngle);
+    }
+
+    public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
+
+        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+                new Pose2d(-62, -58, Math.toRadians(0));
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY);
+
+        double power = 0;
+
+        if (robotPose.position.x < 20)
+            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+        else
+            power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
+
+        setShooterVelocityPID(power);
+
+        calculateHoodAnglePART2(robotPose, targetPose);
+        double hoodAngle = calculateHoodAnglePART2(robotPose, targetPose);
+//        setHoodFromAngle(hoodAngle);
+    }
+
+    public double calculateHoodAnglePART2(Pose2d robotPose, Pose2d targetPose) {
+
+        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+                new Pose2d(-62, -58, Math.toRadians(0));
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY);
+
+        telemetry.addData("Dist to Shooter", distance);
+
+        double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
+        telemetry.addData("MPS", actualVelocityMps / SHOOTER_PARAMS.VELOCITY_OFFSET);
+        double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
+
+        double g = 9.81;
+        double r = (distance * 0.0254) * 2; // convert inches to meters
+        double y = heightToTarget * 0.0254; // convert inches to meters
+
+        double v = actualVelocityMps / SHOOTER_PARAMS.VELOCITY_OFFSET;
+
+        double part1 = ((r*g)/(v*v)) * ((r*g)/(v*v));
+        double part2 = Math.sqrt(1 - part1);
+        double thetaHigh = 90 - Math.sinh((Math.sqrt((1 + part2)/2)));
+        double thetaLow = 90 - Math.sinh((Math.sqrt((1 - part2)/2)));
+
+        telemetry.addData("THETA HIGH", thetaHigh);
+        telemetry.addData("THETA LOW", thetaLow);
+
+        return 0;
     }
 
     public void farShotHoodUpdates(Pose2d robotPose, Pose2d targetPose) {
@@ -255,6 +316,22 @@ public class Shooter implements Component {
         lastVelocity = currentVelocity;
     }
 
+    private void incrementHood(Pose2d robotPose, Pose2d targetPose) {
+        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+                new Pose2d(-62, -58, Math.toRadians(0));
+
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
+
+        telemetry.addData("Dist to Shooter", distance);
+        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+        double hood = 0.025 * ((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0) + 36.16667;
+        hood = 90 - hood;
+        double servoPos1 = (-0.03497 * hood) + 1.578;
+        setHoodPosition(servoPos1);
+    }
+
 
     public double ticksPerSecToMps(double ticksPerSec) {
         double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
@@ -267,7 +344,7 @@ public class Shooter implements Component {
     }
 
     public enum ShooterState {
-        OFF, SHOOT, UPDATE, FAR_SHOT_HOOD_UPDATES
+        OFF, SHOOT, UPDATE, FAR_SHOT_HOOD_UPDATES, UPDATE_2
     }
 
     @Override
@@ -286,15 +363,22 @@ public class Shooter implements Component {
                 break;
 
             case SHOOT:
-                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+//                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+//                calculateHoodAngle(drive.localizer.getPose(), turret.targetPose);
+                incrementHood(drive.localizer.getPose(), turret.targetPose);
                 break;
 
             case FAR_SHOT_HOOD_UPDATES:
                 farShotHoodUpdates(drive.localizer.getPose(), turret.targetPose);
                 break;
+
+            case UPDATE_2:
+                updateShooterSystemPART2(drive.localizer.getPose(), turret.targetPose);
+                break;
         }
 
-        telemetry.addData("SHOOTER CURRENT", shooterMotorHigh.getCurrent(CurrentUnit.MILLIAMPS));
+        telemetry.addData("SHOOTER HIGH ENCODER", shooterMotorHigh.getCurrentPosition());
+        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
     }
     @Override
     public String test(){
