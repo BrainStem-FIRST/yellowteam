@@ -32,7 +32,7 @@ public class BlueFarPartnerAuto extends LinearOpMode {
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         AutoPositions autoPositions = new AutoPositions(drive);
 
-        Action blueDriveToShootingPose = autoPositions.blueDriveToFarShootingPose(startPose);
+        Action blueDriveToShootingPose = autoPositions.blueDriveCloseShootingPose(startPose);
         Action blueThirdLineShots = autoPositions.blueThirdLineShots(false);
         Action blueHumanPlayerShots = autoPositions.blueHumanPlayerShots(false);
 

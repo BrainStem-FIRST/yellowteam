@@ -35,6 +35,8 @@ public class BlueClosePartnerAuto extends LinearOpMode {
         Action blueDriveToShootingPose = autoPositions.blueDriveCloseShootingPose(startPose);
         Action blueFirstLineShots = autoPositions.blueFirstLineShots(true);
         Action blueSecondLineShots = autoPositions.blueSecondLineShots(true);
+        Action blueThirdLineShots = autoPositions.blueThirdLineShots(true);
+        Action blueMoveOffLine = autoPositions.blueMoveOffLine(true);
 
         telemetry.addLine("Ready");
         telemetry.update();
@@ -48,7 +50,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                         autoCommands.savePoseContinuously,
 
                         new SequentialAction(
-                                autoCommands.setRedAlliance(),
+                                autoCommands.setBlueAlliance(),
 
                                 new ParallelAction(
                                         autoCommands.enableTurretTracking(),
@@ -59,10 +61,12 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 
                                 // SHOOT 3 PRELOADS
                                 autoCommands.runIntake(),
-                                new SleepAction(3.5),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
                                 new ParallelAction(
                                         blueFirstLineShots,
                                         new SequentialAction(
+                                                autoCommands.flickerDown(),
                                                 autoCommands.reverseIntake(),
                                                 new SleepAction(2),
                                                 autoCommands.runIntake(),
@@ -73,11 +77,13 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                                 // COLLECT AND SHOOT FIRST LINE
                                 autoCommands.spinUpShooter(true),
                                 autoCommands.engageClutch(),
-                                new SleepAction(3.5),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
 
                                 new ParallelAction(
                                         blueSecondLineShots,
                                         new SequentialAction(
+                                                autoCommands.flickerDown(),
                                                 autoCommands.reverseIntake(),
                                                 new SleepAction(2),
                                                 autoCommands.runIntake(),
@@ -86,16 +92,23 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                                 ),
                                 autoCommands.spinUpShooter(true),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2)
-//                    autoCommands.waitForSeconds(0.5),
-//                    autoCommands.spinUpShooter(),
-//                    autoCommands.engageClutch(),
-//                    autoCommands.waitForSeconds(3),
-//
-//                    // POWER DOWN SUBSYSTEMS
-//                    autoCommands.stopIntake(),
-//                    autoCommands.disengageClutch(),
-//                    autoCommands.stopShooter()
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
+
+                                new ParallelAction(
+                                        blueThirdLineShots,
+                                        new SequentialAction(
+                                                autoCommands.flickerDown(),
+                                                autoCommands.reverseIntake(),
+                                                new SleepAction(2),
+                                                autoCommands.runIntake(),
+                                                autoCommands.disengageClutch()
+                                        )
+                                ),
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(2),
+                                blueMoveOffLine
                         )
                 )
         );

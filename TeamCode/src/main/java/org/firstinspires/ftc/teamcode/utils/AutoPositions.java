@@ -25,11 +25,12 @@ public class AutoPositions {
 
     //blue positions
     public final Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
-    public final Pose2d blueCloseShootingPosition = new Pose2d(-35, -39.5, Math.toRadians(-135));
-    public final Pose2d blueFirstLine = new Pose2d(-13, -17.5, Math.toRadians(-90));
-    public final Pose2d blueSecondLine = new Pose2d(12, -17.5, Math.toRadians(-90));
-    public final Pose2d blueThirdLine = new Pose2d(27, -20, Math.toRadians(-90));
+    public final Pose2d blueCloseShootingPosition = new Pose2d(-40, -40, Math.toRadians(-135));
+    public final Pose2d blueFirstLine = new Pose2d(-13, -26, Math.toRadians(-90));
+    public final Pose2d blueSecondLine = new Pose2d(12, -26, Math.toRadians(-90));
+    public final Pose2d blueThirdLine = new Pose2d(32.75, -26, Math.toRadians(-90));
     public final Pose2d blueApproachHP = new Pose2d(35, -68, Math.toRadians(-135));
+    public final Pose2d blueEnd = new Pose2d(0, -45, Math.toRadians(-90));
 
     public AutoPositions(MecanumDrive drive) {
         this.drive = drive;
@@ -103,50 +104,51 @@ public class AutoPositions {
 
 
     //blue actions
-    public Action blueDriveToFarShootingPose(Pose2d startPose) {
-        TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
-                .splineToConstantHeading(blueFarShootingPosition.position, blueFarShootingPosition.heading);
-        return moveOffWall.build();
+    public Action blueMoveOffLine(boolean isClose) {
+        TrajectoryActionBuilder moveOffLine = drive.actionBuilder(blueCloseShootingPosition)
+                .splineToLinearHeading(blueEnd, Math.toRadians(-90));
+        return moveOffLine.build();
     }
 
     public Action blueDriveCloseShootingPose(Pose2d startPose) {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
-                .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180));
+                .lineToXLinearHeading(-35, Math.toRadians(-125));
         return moveOffWall.build();
     }
 
     public Action blueFirstLineShots(boolean isClose) {
-        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? blueCloseShootingPosition : blueFarShootingPosition)
-                .setTangent(Math.toRadians(0))
-                .splineToLinearHeading(blueFirstLine, Math.toRadians(-90))
-//                .waitSeconds(0.1)
+        Action firstLineShot = drive.actionBuilder(isClose ? blueCloseShootingPosition : blueFarShootingPosition)
+                .setTangent(Math.toRadians(90))
+                .splineToLinearHeading(blueFirstLine, Math.toRadians(90)).build();
+        TrajectoryActionBuilder secondPath = drive.actionBuilder(blueFirstLine)
                 .lineToY(-60)
-//                .waitSeconds(0.1)
-                .setReversed(true)
+                .setTangent(Math.toRadians(45))
                 .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
-        return firstLineShot.build();
+
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 5);
+
+        return new SequentialAction(
+                maxTimeFirstPath,
+                secondPath.build()
+        );
     }
 
     public Action blueSecondLineShots(boolean isClose) {
         TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? blueCloseShootingPosition : blueFarShootingPosition)
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(blueSecondLine, Math.toRadians(-90))
-//                .waitSeconds(0.1)
                 .lineToY(-63)
-//                .waitSeconds(0.1)
-//                .setReversed(true)
-                .setTangent(Math.toRadians(135))
-                .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(45) : Math.toRadians(0));
+                .setTangent(Math.toRadians(45))
+                .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(-45) : Math.toRadians(0));
         return firstLineShot.build();
     }
 
     public Action blueThirdLineShots(boolean isClose) {
-        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(blueFarShootingPosition)
-                .splineTo(blueThirdLine.position, blueThirdLine.heading)
-                .waitSeconds(0.25)
+        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(blueCloseShootingPosition)
+                .setTangent(Math.toRadians(0))
+                .splineToLinearHeading(blueThirdLine, Math.toRadians(-90))
                 .lineToY(-63)
-                .waitSeconds(0.5)
-                .setReversed(true)
+                .setTangent(Math.toRadians(135))
                 .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return firstLineShot.build();
     }
@@ -154,9 +156,9 @@ public class AutoPositions {
     public Action blueHumanPlayerShots(boolean isClose) {
         TrajectoryActionBuilder hpShot = drive.actionBuilder(isClose ? blueCloseShootingPosition : blueFarShootingPosition)
                 .splineTo(blueApproachHP.position, blueApproachHP.heading)
-                .waitSeconds(0.5)
+                .waitSeconds(0.25)
                 .lineToX(-65)
-                .waitSeconds(0.5)
+                .waitSeconds(0.25)
                 .setTangent(0)
                 .splineToLinearHeading(isClose ? blueCloseShootingPosition : blueFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return hpShot.build();
