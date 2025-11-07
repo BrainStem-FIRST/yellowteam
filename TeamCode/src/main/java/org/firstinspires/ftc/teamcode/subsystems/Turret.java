@@ -31,7 +31,7 @@ public final class Turret implements Component {
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.0075;
+        public double kP = 0.006;
         public double kI = 0;
         public double kD = 0.0005;
         public int TURRET_INCREMENT = 60;
@@ -143,7 +143,7 @@ public final class Turret implements Component {
     }
 
     public enum TurretState {
-        OFF, TRACKING, CENTER, COARSE, TAG_LOCK
+        OFF, TRACKING, CENTER, COARSE, TAG_LOCK, PARK
     }
 
     @Override
@@ -199,6 +199,10 @@ public final class Turret implements Component {
                     turretState = TurretState.COARSE;
                     tagLostTimer.reset();
                 }
+                break;
+
+            case PARK:
+                setTurretPosition(300);
                 break;
         }
 

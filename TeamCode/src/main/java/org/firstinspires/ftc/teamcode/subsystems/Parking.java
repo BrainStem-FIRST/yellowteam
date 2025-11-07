@@ -23,8 +23,8 @@ public class Parking implements Component {
     public ParkState parkState;
 
     public static class Params{
-        public double RETRACTED_POS = 0.01;
-        public double EXTENDED_POS = 0.99;
+        public double RETRACTED_POS = 0.075;
+        public double EXTENDED_POS = 0.9;
         public double MIDDLE_POS = 0.5;
         public double SERVO_INCREMENT = 0.1;
 //        public double SCALE_FACTOR = 255;
@@ -46,7 +46,7 @@ public class Parking implements Component {
 //        leftColorSensor = hardwareMap.get(ColorSensor.class, "leftColor");
 //        rightColorSensor = hardwareMap.get(ColorSensor.class, "rightColor");
 
-        parkState = ParkState.OFF;
+        parkState = ParkState.RETRACTED;
     }
 
 //    public double getColorSensorBrightness() {
@@ -83,9 +83,6 @@ public class Parking implements Component {
 
             case MIDDLE:
                 setParkServoPosition(PARK_PARAMS.MIDDLE_POS);
-                break;
-
-            case OFF:
                 break;
         }
     }

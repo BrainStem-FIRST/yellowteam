@@ -57,6 +57,13 @@ public class AutoCommands {
         };
     }
 
+    public Action turretCenter() {
+        return packet -> {
+            robot.turret.turretState = Turret.TurretState.CENTER;
+            return false;
+        };
+    }
+
     // SHOOTER
     public Action spinUpShooter(boolean isClose) {
         return packet -> {
@@ -97,7 +104,7 @@ public class AutoCommands {
 
     public Action flickerUp() {
         return packet -> {
-            robot.collection.flickerState = Collection.FlickerState.UP;
+            robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
             return false;
         };
     }

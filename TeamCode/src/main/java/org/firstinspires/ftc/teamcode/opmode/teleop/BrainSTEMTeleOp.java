@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
@@ -105,9 +106,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //
         if (gp1.isFirstRightBumper()) {
             brainSTEMRobot.collection.flickerState = Collection.FlickerState.UP_DOWN;
-//                brainSTEMRobot.collection.flickerState = Collection.FlickerState.DOWN;
-//            else
-//                brainSTEMRobot.collection.flickerState = Collection.FlickerState.UP_DOWN;
         }
 
 //        if (gp1.isFirstDpadDown())
@@ -116,9 +114,14 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //            else
 //                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.UPDATE_2;
 //
-//        if (gp1.isFirstDpadRight()) {
-//            if (parking_position + Parking.PARK_PARAMS.SERVO_INCREMENT <= 1.0)
-//                parking_position += Parking.PARK_PARAMS.SERVO_INCREMENT;
+        if (gp1.isFirstDpadRight()) {
+            brainSTEMRobot.parking.parkState = Parking.ParkState.EXTENDED;
+            brainSTEMRobot.turret.turretState = Turret.TurretState.PARK;
+        }
+
+//        if (gp1.isFirstDpadLeft()) {
+//            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
+//                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
 //        }
 
 //        if (gp1.isFirstDpadUp()) {
@@ -196,13 +199,30 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.collection.clutchState = Collection.ClutchState.UNENGAGED;
             else
                 brainSTEMRobot.collection.clutchState = Collection.ClutchState.ENGAGED;
+
         if (gp2.isFirstX())
             brainSTEMRobot.turret.isRedAlliance = false;
         if (gp2.isFirstA())
             brainSTEMRobot.turret.isRedAlliance = true;
+
         if (gp2.isFirstDpadLeft())
             brainSTEMRobot.turret.adjustment += 10;
         if (gp2.isFirstDpadRight())
             brainSTEMRobot.turret.adjustment -= 10;
+
+        if (gp2.isFirstDpadUp())
+            brainSTEMRobot.shooter.adjustment += 10;
+        if (gp2.isFirstDpadDown())
+            brainSTEMRobot.shooter.adjustment -= 10;
+
+        if (gp2.isFirstRightBumper()) {
+            if (brainSTEMRobot.turret.isRedAlliance) {
+                PoseStorage.currentPose = new Pose2d(64, -65.5, Math.toRadians(180));
+                brainSTEMRobot.drive.localizer.setPose(new Pose2d(64, -65.5, Math.toRadians(180)));
+            } else {
+                PoseStorage.currentPose = new Pose2d(64, 65.5, Math.toRadians(180));
+                brainSTEMRobot.drive.localizer.setPose(new Pose2d(64, 65.5, Math.toRadians(180)));
+            }
+        }
     }
 }

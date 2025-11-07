@@ -46,72 +46,51 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
         Actions.runBlocking(
 
-            new ParallelAction(
-                autoCommands.updateRobot,
-                autoCommands.savePoseContinuously,
+                new ParallelAction(
+                        autoCommands.updateRobot,
+                        autoCommands.savePoseContinuously,
 
-                new SequentialAction(
-                    autoCommands.setRedAlliance(),
-
-                    new ParallelAction(
-                        autoCommands.enableTurretTracking(),
-                        autoCommands.engageClutch(),
-                        autoCommands.spinUpShooter(true),
-                        driveToShootingPose
-                    ),
-
-                    // SHOOT 3 PRELOADS
-                    autoCommands.runIntake(),
-                    new SleepAction(2),
-                    autoCommands.flickerUp(),
-                    new ParallelAction(
-                        firstLineShots,
                         new SequentialAction(
-                            autoCommands.flickerDown(),
-                            autoCommands.reverseIntake(),
-                            new SleepAction(2),
-                            autoCommands.runIntake(),
-                            autoCommands.disengageClutch()
-                        )
-                    ),
+                                autoCommands.setRedAlliance(),
+                                new ParallelAction(
+                                        autoCommands.enableTurretTracking(),
+                                        autoCommands.engageClutch(),
+                                        autoCommands.spinUpShooter(true),
+                                        driveToShootingPose
+                                ),
 
-                    // COLLECT AND SHOOT FIRST LINE
-                    autoCommands.spinUpShooter(true),
-                    autoCommands.engageClutch(),
-                    new SleepAction(2),
-                    autoCommands.flickerUp(),
+                                // SHOOT 3 PRELOADS
+                                autoCommands.runIntake(),
+                                new SleepAction(1.75),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                firstLineShots,
 
-                    new ParallelAction(
-                        secondLineShots,
-                        new SequentialAction(
-                            autoCommands.flickerDown(),
-                            autoCommands.reverseIntake(),
-                            new SleepAction(2),
-                            autoCommands.runIntake(),
-                            autoCommands.disengageClutch()
-                        )
-                    ),
-                    autoCommands.spinUpShooter(true),
-                    autoCommands.engageClutch(),
-                    new SleepAction(2),
-                    autoCommands.flickerUp(),
+                                // COLLECT AND SHOOT FIRST LINE
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(2),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                secondLineShots,
 
-                    new ParallelAction(
-                        thirdLineShots,
-                        new SequentialAction(
-                            autoCommands.flickerDown(),
-                            autoCommands.reverseIntake(),
-                            new SleepAction(2),
-                            autoCommands.runIntake(),
-                            autoCommands.disengageClutch()
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(2),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                thirdLineShots,
+
+                                autoCommands.spinUpShooter(true),
+                                autoCommands.engageClutch(),
+                                new SleepAction(2),
+                                autoCommands.turretCenter(),
+                                moveOffLine
                         )
-                    ),
-                    autoCommands.spinUpShooter(true),
-                    autoCommands.engageClutch(),
-                    new SleepAction(2.5),
-                    moveOffLine
                 )
-            )
         );
     }
 }

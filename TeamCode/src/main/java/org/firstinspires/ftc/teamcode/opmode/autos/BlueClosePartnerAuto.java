@@ -51,7 +51,6 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 
                         new SequentialAction(
                                 autoCommands.setBlueAlliance(),
-
                                 new ParallelAction(
                                         autoCommands.enableTurretTracking(),
                                         autoCommands.engageClutch(),
@@ -61,53 +60,33 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 
                                 // SHOOT 3 PRELOADS
                                 autoCommands.runIntake(),
-                                new SleepAction(2),
-                                autoCommands.flickerUp(),
-                                new ParallelAction(
-                                        blueFirstLineShots,
-                                        new SequentialAction(
-                                                autoCommands.flickerDown(),
-                                                autoCommands.reverseIntake(),
-                                                new SleepAction(2),
-                                                autoCommands.runIntake(),
-                                                autoCommands.disengageClutch()
-                                        )
-                                ),
+                                new SleepAction(1.75),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                blueFirstLineShots,
 
                                 // COLLECT AND SHOOT FIRST LINE
                                 autoCommands.spinUpShooter(true),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2),
-                                autoCommands.flickerUp(),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                blueSecondLineShots,
 
-                                new ParallelAction(
-                                        blueSecondLineShots,
-                                        new SequentialAction(
-                                                autoCommands.flickerDown(),
-                                                autoCommands.reverseIntake(),
-                                                new SleepAction(2),
-                                                autoCommands.runIntake(),
-                                                autoCommands.disengageClutch()
-                                        )
-                                ),
                                 autoCommands.spinUpShooter(true),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2),
-                                autoCommands.flickerUp(),
+//                                autoCommands.flickerUp(),
+                                autoCommands.disengageClutch(),
+//                                autoCommands.runIntake(),
+                                blueThirdLineShots,
 
-                                new ParallelAction(
-                                        blueThirdLineShots,
-                                        new SequentialAction(
-                                                autoCommands.flickerDown(),
-                                                autoCommands.reverseIntake(),
-                                                new SleepAction(2),
-                                                autoCommands.runIntake(),
-                                                autoCommands.disengageClutch()
-                                        )
-                                ),
                                 autoCommands.spinUpShooter(true),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2),
+                                autoCommands.turretCenter(),
                                 blueMoveOffLine
                         )
                 )

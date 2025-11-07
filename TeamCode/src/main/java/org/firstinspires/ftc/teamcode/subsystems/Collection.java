@@ -191,6 +191,7 @@ public class Collection implements Component {
                 } else if (flickerTimer.seconds() > 0.5) {
                     flickerRight.setPosition(0.1);
                     flickerStarted = false;
+                    collectionState = CollectionState.INTAKE;
                     flickerState = FlickerState.DOWN;
                 }
                 break;

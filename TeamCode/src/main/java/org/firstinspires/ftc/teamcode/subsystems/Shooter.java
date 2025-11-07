@@ -53,7 +53,6 @@ public class Shooter implements Component {
         public double SLOPE_CLOSE_VALUE = 5.42688;
         public double SLOPE_FAR_VALUE = 4.03631;
         public double TARGET_VELOCITY = 1400;
-
         public double VELOCITY_OFFSET = 1;
 
         public double kP = 0.005;
@@ -67,6 +66,7 @@ public class Shooter implements Component {
     private double lastVelocity = 0;
     private boolean wasAboveThreshold = true;
     private double servoPos = 0;
+    public double adjustment = 0;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
         this.map = hardwareMap;
@@ -114,7 +114,7 @@ public class Shooter implements Component {
     }
 
     public void setShooterVelocityPID(double targetVelocityTicksPerSec) {
-        shooterPID.setTarget(targetVelocityTicksPerSec);
+        shooterPID.setTarget(targetVelocityTicksPerSec + adjustment);
 
         double currentVelocity = (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0;
         double pidOutput = -shooterPID.update(currentVelocity);
@@ -356,6 +356,7 @@ public class Shooter implements Component {
         switch (shooterState) {
             case OFF:
                 setShooterPower(0);
+                adjustment = 0;
                 break;
 
             case UPDATE:
@@ -379,6 +380,7 @@ public class Shooter implements Component {
 
         telemetry.addData("SHOOTER HIGH ENCODER", shooterMotorHigh.getCurrentPosition());
         telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
+        telemetry.addData("Shooter Adjustment Factor", adjustment);
     }
     @Override
     public String test(){
