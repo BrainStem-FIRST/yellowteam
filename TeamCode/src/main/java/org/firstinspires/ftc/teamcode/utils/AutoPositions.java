@@ -18,7 +18,7 @@ public class AutoPositions {
     public final Pose2d redFarShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
     public final Pose2d redCloseShootingPosition = new Pose2d(-40, 40, Math.toRadians(55));
     public final Pose2d redFirstLine = new Pose2d(-14, 26, Math.toRadians(90));
-    public final Pose2d redSecondLine = new Pose2d(12, 26, Math.toRadians(90));
+    public final Pose2d redSecondLine = new Pose2d(11.5, 26, Math.toRadians(90));
     public final Pose2d redThirdLine = new Pose2d(32, 26, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
     public final Pose2d redEnd = new Pose2d(0, 45, Math.toRadians(90));
@@ -59,13 +59,13 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(-90))
                 .splineToLinearHeading(redFirstLine, Math.toRadians(90)).build();
         Action secondPath = drive.actionBuilder(redFirstLine)
-                .lineToY(60).build();
+                .lineToY(55).build();
         Action thirdPath = drive.actionBuilder(redFirstLine)
                 .setTangent(Math.toRadians(-135))
                 .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 1.5);
-        Action maxTimeSecondPath = new TimedAction(secondPath, 1.5);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1);
         Action maxTimeThirdPath = new TimedAction(thirdPath, 2);
 
         return new SequentialAction(
@@ -85,9 +85,9 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(-110))
                 .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
 
-        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
-        Action maxTimeSecondPath = new TimedAction(secondPath, 1.75);
-        Action maxTimeThirdPath = new TimedAction(thirdPath, 2.25);
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1.5);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 2.75);
 
         return new SequentialAction(
                 maxTimeFirstPath,
@@ -103,12 +103,12 @@ public class AutoPositions {
         Action secondPath = drive.actionBuilder(redThirdLine)
                 .lineToY(60).build();
         Action thirdPath = drive.actionBuilder(redThirdLine)
-                .setTangent(Math.toRadians(-90))
+                .setTangent(Math.toRadians(-135))
                 .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 3.5);
         Action maxTimeSecondPath = new TimedAction(secondPath, 2);
-        Action maxTimeThirdPath = new TimedAction(thirdPath, 4);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 3.25);
 
         return new SequentialAction(
                 maxTimeFirstPath,

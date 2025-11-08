@@ -61,7 +61,8 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
                                 // SHOOT 3 PRELOADS
                                 autoCommands.runIntake(),
-                                new SleepAction(2.25),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
@@ -70,7 +71,8 @@ public class RedClosePartnerAuto extends LinearOpMode {
                                 // COLLECT AND SHOOT FIRST LINE
                                 autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2.25),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
@@ -78,7 +80,8 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
                                 autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2.25),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
@@ -86,7 +89,8 @@ public class RedClosePartnerAuto extends LinearOpMode {
 
                                 autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2.5),
+                                new SleepAction(2),
+                                autoCommands.flickerUp(),
                                 autoCommands.turretCenter(),
                                 moveOffLine
                         )

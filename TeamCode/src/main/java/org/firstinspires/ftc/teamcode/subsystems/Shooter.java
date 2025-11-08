@@ -48,11 +48,11 @@ public class Shooter implements Component {
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
-        public double B_CLOSE_VALUE = 750.78259;
+        public double B_CLOSE_VALUE = 863.29968;
         public double B_FAR_VALUE = 725;
-        public double SLOPE_CLOSE_VALUE = 4.72688;
+        public double SLOPE_CLOSE_VALUE = 4.53882;
         public double SLOPE_FAR_VALUE = 4.03631;
-        public double TARGET_VELOCITY = 1200;
+        public double TARGET_VELOCITY = 1525;
         public double VELOCITY_OFFSET = 1;
 
         public double kP = 0.005;
@@ -80,11 +80,12 @@ public class Shooter implements Component {
         shooterMotorLow = map.get(DcMotorEx.class, "lowShoot");
         shooterMotorLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterMotorLow.setDirection(DcMotorSimple.Direction.REVERSE);
 
         shooterMotorHigh = map.get(DcMotorEx.class, "highShoot");
         shooterMotorHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotorHigh.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooterMotorHigh.setDirection(DcMotorSimple.Direction.FORWARD);
 
         hoodLeftServo = map.get(ServoImplEx.class, "hoodLeft");
         hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
@@ -116,7 +117,7 @@ public class Shooter implements Component {
     public void setShooterVelocityPID(double targetVelocityTicksPerSec) {
         shooterPID.setTarget(targetVelocityTicksPerSec + adjustment);
 
-        double currentVelocity = (shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0;
+        double currentVelocity = -shooterMotorHigh.getVelocity();
         double pidOutput = -shooterPID.update(currentVelocity);
 
         double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
@@ -185,7 +186,7 @@ public class Shooter implements Component {
 
         telemetry.addData("Dist to Shooter", distance);
 
-        double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
+        double actualVelocityMps = ticksPerSecToMps(-shooterMotorHigh.getVelocity());
         telemetry.addData("MPS", actualVelocityMps);
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
@@ -225,16 +226,17 @@ public class Shooter implements Component {
         double power = 0;
 
 //        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
-        if (robotPose.position.x < 20)
+        if (robotPose.position.x < 50)
             power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
         else
             power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
 
-        setShooterVelocityPID(power);
-
+        setShooterVelocityPID(power); //comment out for far
+//        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY); //comment in for far
+//
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-        setHoodFromAngle(hoodAngle);
+        setHoodFromAngle(hoodAngle); //comment out for far
     }
 
     public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
@@ -370,8 +372,8 @@ public class Shooter implements Component {
                 break;
 
             case AUTO_VELOCITY:
-                setShooterVelocityPID(1150);
-                setHoodPosition(0.45);
+                setShooterVelocityPID(1130);
+                setHoodPosition(0.34);
                 break;
 
             case FAR_SHOT_HOOD_UPDATES:
@@ -383,10 +385,10 @@ public class Shooter implements Component {
                 break;
         }
 
-        telemetry.addData("SHOOTER HIGH ENCODER", shooterMotorHigh.getCurrentPosition());
-        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
+        telemetry.addData("SHOOTER HIGH ENCODER", -shooterMotorHigh.getCurrentPosition());
+//        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
         telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
-        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
+//        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
     }
     @Override
