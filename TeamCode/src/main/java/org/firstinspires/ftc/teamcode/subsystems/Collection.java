@@ -44,7 +44,7 @@ public class Collection implements Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.2;
-        public double INTAKE_SPEED = 1.0;
+        public double INTAKE_SPEED = 0.9;
         public double LASER_BALL_THRESHOLD = 1;
     }
 
@@ -199,16 +199,16 @@ public class Collection implements Component {
 
         checkForIntakeBalls(timer.seconds());
 
-        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
-        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));
-        telemetry.addData("Front Right Laser", voltageToDistance(frontRightLaser.getVoltage()));
-        telemetry.addData("Front left Laser", voltageToDistance(frontLeftLaser.getVoltage()));
-        // front 6.087 in
-
-        telemetry.addData("Back Ball Detected", isBackBallDetected());
-        telemetry.addData("Front Ball Detected", isFrontBallDetected());
-        telemetry.addData("FLICKER State", flickerState.toString());
-        telemetry.addData("Clutch State", clutchState.toString());
+//        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
+//        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));
+//        telemetry.addData("Front Right Laser", voltageToDistance(frontRightLaser.getVoltage()));
+//        telemetry.addData("Front left Laser", voltageToDistance(frontLeftLaser.getVoltage()));
+//        // front 6.087 in
+//
+//        telemetry.addData("Back Ball Detected", isBackBallDetected());
+//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
+//        telemetry.addData("FLICKER State", flickerState.toString());
+//        telemetry.addData("Clutch State", clutchState.toString());
     }
 
     @Override

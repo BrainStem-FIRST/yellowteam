@@ -17,7 +17,7 @@ public class AutoPositions {
     //Red positions
     public final Pose2d redFarShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
     public final Pose2d redCloseShootingPosition = new Pose2d(-40, 40, Math.toRadians(55));
-    public final Pose2d redFirstLine = new Pose2d(-13, 26, Math.toRadians(90));
+    public final Pose2d redFirstLine = new Pose2d(-14, 26, Math.toRadians(90));
     public final Pose2d redSecondLine = new Pose2d(12, 26, Math.toRadians(90));
     public final Pose2d redThirdLine = new Pose2d(32, 26, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
@@ -58,37 +58,63 @@ public class AutoPositions {
         Action firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
                 .setTangent(Math.toRadians(-90))
                 .splineToLinearHeading(redFirstLine, Math.toRadians(90)).build();
-        TrajectoryActionBuilder secondPath = drive.actionBuilder(redFirstLine)
-                .lineToY(60)
+        Action secondPath = drive.actionBuilder(redFirstLine)
+                .lineToY(60).build();
+        Action thirdPath = drive.actionBuilder(redFirstLine)
                 .setTangent(Math.toRadians(-135))
-                .splineToLinearHeading(isClose ? redCloseShootingPosition : redFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
+                .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
 
-        Action maxTimeFirstPath = new TimedAction(firstLineShot, 5);
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 1.5);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1.5);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 2);
 
         return new SequentialAction(
                 maxTimeFirstPath,
-                secondPath.build()
+                maxTimeSecondPath,
+                maxTimeThirdPath
         );
     }
 
     public Action secondLineShots(boolean isClose) {
-        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
-                .setTangent(Math.toRadians(0))
-                .splineToLinearHeading(redSecondLine, Math.toRadians(90))
-                .lineToY(63)
-                .setTangent(Math.toRadians(-135))
-                .splineToLinearHeading(isClose ? redCloseShootingPosition : redFarShootingPosition, isClose ? Math.toRadians(135) : Math.toRadians(0));
-        return firstLineShot.build();
+        Action firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
+                .setTangent(Math.toRadians(-45))
+                .splineToLinearHeading(redSecondLine, Math.toRadians(90)).build();
+        Action secondPath = drive.actionBuilder(redSecondLine)
+                .lineToY(60).build();
+        Action thirdPath = drive.actionBuilder(redSecondLine)
+                .setTangent(Math.toRadians(-110))
+                .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
+
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1.75);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 2.25);
+
+        return new SequentialAction(
+                maxTimeFirstPath,
+                maxTimeSecondPath,
+                maxTimeThirdPath
+        );
     }
 
     public Action thirdLineShots(boolean isClose) {
-        TrajectoryActionBuilder firstLineShot = drive.actionBuilder(redFarShootingPosition)
+        Action firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
                 .setTangent(Math.toRadians(0))
-                .splineToLinearHeading(redThirdLine, Math.toRadians(90))
-                .lineToY(63)
-                .setTangent(Math.toRadians(-135))
-                .splineToLinearHeading(isClose ? redCloseShootingPosition : redFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
-        return firstLineShot.build();
+                .splineToLinearHeading(redThirdLine, Math.toRadians(90)).build();
+        Action secondPath = drive.actionBuilder(redThirdLine)
+                .lineToY(60).build();
+        Action thirdPath = drive.actionBuilder(redThirdLine)
+                .setTangent(Math.toRadians(-90))
+                .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
+
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 3.5);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 2);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 4);
+
+        return new SequentialAction(
+                maxTimeFirstPath,
+                maxTimeSecondPath,
+                maxTimeThirdPath
+        );
     }
 
     public Action humanPlayerShots(boolean isClose) {
@@ -148,7 +174,7 @@ public class AutoPositions {
                 .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180)).build();
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 1.5);
-        Action maxTimeSecondPath = new TimedAction(secondPath, 1.25);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1.75);
         Action maxTimeThirdPath = new TimedAction(thirdPath, 2);
 
         return new SequentialAction(
@@ -160,16 +186,16 @@ public class AutoPositions {
 
     public Action blueThirdLineShots(boolean isClose) {
         Action firstLineShot = drive.actionBuilder(isClose ? blueCloseShootingPosition : blueFarShootingPosition)
-                .setTangent(Math.toRadians(90))
+                .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(blueThirdLine, Math.toRadians(-90)).build();
         Action secondPath = drive.actionBuilder(blueThirdLine)
                 .lineToY(-60).build();
         Action thirdPath = drive.actionBuilder(blueThirdLine)
-                .setTangent(Math.toRadians(45))
+                .setTangent(Math.toRadians(20))
                 .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180)).build();
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
-        Action maxTimeSecondPath = new TimedAction(secondPath, 1.75);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 2.25);
         Action maxTimeThirdPath = new TimedAction(thirdPath, 3.5);
 
         return new SequentialAction(

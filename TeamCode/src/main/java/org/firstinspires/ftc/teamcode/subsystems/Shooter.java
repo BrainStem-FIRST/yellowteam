@@ -48,11 +48,11 @@ public class Shooter implements Component {
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
-        public double B_CLOSE_VALUE = 800.78259;
+        public double B_CLOSE_VALUE = 750.78259;
         public double B_FAR_VALUE = 725;
-        public double SLOPE_CLOSE_VALUE = 5.42688;
+        public double SLOPE_CLOSE_VALUE = 4.72688;
         public double SLOPE_FAR_VALUE = 4.03631;
-        public double TARGET_VELOCITY = 1400;
+        public double TARGET_VELOCITY = 1200;
         public double VELOCITY_OFFSET = 1;
 
         public double kP = 0.005;
@@ -130,7 +130,7 @@ public class Shooter implements Component {
         telemetry.addData("Shooter Current Vel", currentVelocity);
 //        telemetry.addData("Shooter PID Output", pidOutput);
 //        telemetry.addData("Shooter FeedForward", feedForward);
-        telemetry.addData("Shooter Total Power", totalPower);
+//        telemetry.addData("Shooter Total Power", totalPower);
 
         TelemetryPacket packet = new TelemetryPacket();
         packet.put("Time (ms)", System.currentTimeMillis());
@@ -201,7 +201,7 @@ public class Shooter implements Component {
             return Math.toRadians(40);
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
-        telemetry.addData("OLD Hood Angle", Math.toDegrees(theta));
+        telemetry.addData("OLD HORZ Angle", 90 - Math.toDegrees(theta));
 
         return theta;
     }
@@ -344,7 +344,7 @@ public class Shooter implements Component {
     }
 
     public enum ShooterState {
-        OFF, SHOOT, UPDATE, FAR_SHOT_HOOD_UPDATES, UPDATE_2
+        OFF, SHOOT, UPDATE, FAR_SHOT_HOOD_UPDATES, UPDATE_2, AUTO_VELOCITY
     }
 
     @Override
@@ -364,9 +364,14 @@ public class Shooter implements Component {
                 break;
 
             case SHOOT:
-//                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
 //                calculateHoodAngle(drive.localizer.getPose(), turret.targetPose);
-                incrementHood(drive.localizer.getPose(), turret.targetPose);
+//                incrementHood(drive.localizer.getPose(), turret.targetPose);
+                break;
+
+            case AUTO_VELOCITY:
+                setShooterVelocityPID(1150);
+                setHoodPosition(0.45);
                 break;
 
             case FAR_SHOT_HOOD_UPDATES:
@@ -380,7 +385,9 @@ public class Shooter implements Component {
 
         telemetry.addData("SHOOTER HIGH ENCODER", shooterMotorHigh.getCurrentPosition());
         telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
-        telemetry.addData("Shooter Adjustment Factor", adjustment);
+        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
+        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
+//        telemetry.addData("Shooter Adjustment Factor", adjustment);
     }
     @Override
     public String test(){

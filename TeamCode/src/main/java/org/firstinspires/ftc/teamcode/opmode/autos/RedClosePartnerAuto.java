@@ -55,38 +55,38 @@ public class RedClosePartnerAuto extends LinearOpMode {
                                 new ParallelAction(
                                         autoCommands.enableTurretTracking(),
                                         autoCommands.engageClutch(),
-                                        autoCommands.spinUpShooter(true),
+                                        autoCommands.setShooterVelocity(),
                                         driveToShootingPose
                                 ),
 
                                 // SHOOT 3 PRELOADS
                                 autoCommands.runIntake(),
-                                new SleepAction(1.75),
+                                new SleepAction(2.25),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
                                 firstLineShots,
 
                                 // COLLECT AND SHOOT FIRST LINE
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2),
+                                new SleepAction(2.25),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
                                 secondLineShots,
 
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2),
+                                new SleepAction(2.25),
 //                                autoCommands.flickerUp(),
                                 autoCommands.disengageClutch(),
 //                                autoCommands.runIntake(),
                                 thirdLineShots,
 
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
-                                new SleepAction(2),
+                                new SleepAction(2.5),
                                 autoCommands.turretCenter(),
                                 moveOffLine
                         )
