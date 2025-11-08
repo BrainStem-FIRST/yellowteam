@@ -54,7 +54,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                                 new ParallelAction(
                                         autoCommands.enableTurretTracking(),
                                         autoCommands.engageClutch(),
-                                        autoCommands.spinUpShooter(true),
+                                        autoCommands.setShooterVelocity(),
                                         blueDriveToShootingPose
                                 ),
 
@@ -67,7 +67,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
                                 blueFirstLineShots,
 
                                 // COLLECT AND SHOOT FIRST LINE
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2),
 //                                autoCommands.flickerUp(),
@@ -75,7 +75,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 //                                autoCommands.runIntake(),
                                 blueSecondLineShots,
 
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2.5),
 //                                autoCommands.flickerUp(),
@@ -83,7 +83,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 //                                autoCommands.runIntake(),
                                 blueThirdLineShots,
 
-                                autoCommands.spinUpShooter(true),
+                                autoCommands.setShooterVelocity(),
                                 autoCommands.engageClutch(),
                                 new SleepAction(2),
                                 autoCommands.turretCenter(),

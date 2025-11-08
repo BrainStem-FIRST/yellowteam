@@ -372,7 +372,7 @@ public class Shooter implements Component {
                 break;
 
             case AUTO_VELOCITY:
-                setShooterVelocityPID(1130);
+                setShooterVelocityPID(1115);
                 setHoodPosition(0.34);
                 break;
 

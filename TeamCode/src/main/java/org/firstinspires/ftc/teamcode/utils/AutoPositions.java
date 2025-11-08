@@ -28,7 +28,7 @@ public class AutoPositions {
     public final Pose2d blueCloseShootingPosition = new Pose2d(-34, -34, Math.toRadians(-135));
     public final Pose2d blueFirstLine = new Pose2d(-13, -24, Math.toRadians(-90));
     public final Pose2d blueSecondLine = new Pose2d(12, -24, Math.toRadians(-90));
-    public final Pose2d blueThirdLine = new Pose2d(32.75, -24, Math.toRadians(-90));
+    public final Pose2d blueThirdLine = new Pose2d(34.5, -24, Math.toRadians(-90));
     public final Pose2d blueApproachHP = new Pose2d(35, -68, Math.toRadians(-135));
     public final Pose2d blueEnd = new Pose2d(0, -45, Math.toRadians(-90));
 
@@ -132,6 +132,7 @@ public class AutoPositions {
     //blue actions
     public Action blueMoveOffLine(boolean isClose) {
         TrajectoryActionBuilder moveOffLine = drive.actionBuilder(blueCloseShootingPosition)
+                .setTangent(0)
                 .splineToLinearHeading(blueEnd, Math.toRadians(-90));
         return moveOffLine.build();
     }
