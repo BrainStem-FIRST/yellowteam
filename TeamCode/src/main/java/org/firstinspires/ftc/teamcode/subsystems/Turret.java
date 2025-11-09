@@ -13,6 +13,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
+import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
@@ -111,7 +112,7 @@ public final class Turret implements Component {
         targetTurretPosition += adjustment;
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
-        setTurretPosition(targetTurretPosition);
+        setTurretPosition(targetTurretPosition - PoseStorage.currentTurretEncoder);
     }
 
     private void fineAdjustTurretWithTag(AprilTagDetection tag) {
@@ -143,7 +144,7 @@ public final class Turret implements Component {
     }
 
     public enum TurretState {
-        OFF, TRACKING, CENTER, COARSE, TAG_LOCK, PARK
+        OFF, TRACKING, CENTER, COARSE, TAG_LOCK, PARK, RESET
     }
 
     @Override
@@ -156,6 +157,15 @@ public final class Turret implements Component {
         boolean isTagVisible = vision.isTagVisible() && vision.isCorrectTag(correctTagId);
 
         switch (turretState) {
+            case RESET:
+                setTurretPosition(-PoseStorage.currentTurretEncoder);
+                if (Math.abs((getTurretEncoder() - PoseStorage.currentTurretEncoder)) < 5) {
+                    turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    turretState = TurretState.CENTER;
+                }
+                break;
+
             case OFF:
 //                turretMotor.setPower(0);
                 break;
@@ -165,7 +175,7 @@ public final class Turret implements Component {
                 break;
 
             case CENTER:
-                setTurretPosition(0);
+                setTurretPosition(-PoseStorage.currentTurretEncoder);
                 adjustment = 0;
                 break;
 
@@ -212,7 +222,7 @@ public final class Turret implements Component {
             targetPose = new Pose2d(-62, -62, 0);
 
 //        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
-//        telemetry.addData("Turret State", turretState.toString());
+        telemetry.addData("Turret State", turretState.toString());
 //        telemetry.addData("Turret Encoder", getTurretEncoder());
 //        telemetry.addData("Is Tag Visible", isTagVisible);
 //        telemetry.addData("TAG VISIBLE TIMER", tagVisibleTimer.seconds());

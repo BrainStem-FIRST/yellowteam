@@ -48,7 +48,7 @@ public class Shooter implements Component {
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
-        public double B_CLOSE_VALUE = 863.29968;
+        public double B_CLOSE_VALUE = 840.29968;
         public double B_FAR_VALUE = 725;
         public double SLOPE_CLOSE_VALUE = 4.53882;
         public double SLOPE_FAR_VALUE = 4.03631;
@@ -229,14 +229,19 @@ public class Shooter implements Component {
         if (robotPose.position.x < 50)
             power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
         else
-            power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
+            power = SHOOTER_PARAMS.TARGET_VELOCITY;
 
         setShooterVelocityPID(power); //comment out for far
-//        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY); //comment in for far
 //
         calculateHoodAngle(robotPose, targetPose);
         double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-        setHoodFromAngle(hoodAngle); //comment out for far
+
+        if (robotPose.position.x < 50)
+            setHoodFromAngle(hoodAngle);
+        else
+            setHoodPosition(1);
+
+//        setHoodFromAngle(hoodAngle); //comment out for far
     }
 
     public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {

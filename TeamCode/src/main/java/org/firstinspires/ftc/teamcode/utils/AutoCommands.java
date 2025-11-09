@@ -33,6 +33,12 @@ public class AutoCommands {
         return true;
     };
 
+    public Action saveTurretContinuously = packet -> {
+        PoseStorage.currentTurretEncoder = robot.turret.getTurretEncoder();
+        return true;
+    };
+
+
     // OTHER
     public Action setBlueAlliance() {
         return packet -> {

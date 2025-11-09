@@ -49,6 +49,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
                 new ParallelAction(
                         autoCommands.updateRobot,
                         autoCommands.savePoseContinuously,
+                        autoCommands.saveTurretContinuously,
 
                         new SequentialAction(
                                 autoCommands.setRedAlliance(),

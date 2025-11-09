@@ -21,7 +21,7 @@ public class AutoPositions {
     public final Pose2d redSecondLine = new Pose2d(11.5, 26, Math.toRadians(90));
     public final Pose2d redThirdLine = new Pose2d(32, 26, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
-    public final Pose2d redEnd = new Pose2d(0, 45, Math.toRadians(90));
+    public final Pose2d redEnd = new Pose2d(0, 45, Math.toRadians(0));
 
     //blue positions
     public final Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
@@ -30,7 +30,7 @@ public class AutoPositions {
     public final Pose2d blueSecondLine = new Pose2d(12, -24, Math.toRadians(-90));
     public final Pose2d blueThirdLine = new Pose2d(34.5, -24, Math.toRadians(-90));
     public final Pose2d blueApproachHP = new Pose2d(35, -68, Math.toRadians(-135));
-    public final Pose2d blueEnd = new Pose2d(0, -45, Math.toRadians(-90));
+    public final Pose2d blueEnd = new Pose2d(0, -45, Math.toRadians(0));
 
     public AutoPositions(MecanumDrive drive) {
         this.drive = drive;
@@ -171,7 +171,7 @@ public class AutoPositions {
         Action secondPath = drive.actionBuilder(blueSecondLine)
                 .lineToY(-60).build();
         Action thirdPath = drive.actionBuilder(blueSecondLine)
-                .setTangent(Math.toRadians(45))
+                .setTangent(Math.toRadians(80))
                 .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180)).build();
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 1.5);
@@ -197,7 +197,7 @@ public class AutoPositions {
 
         Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
         Action maxTimeSecondPath = new TimedAction(secondPath, 2.25);
-        Action maxTimeThirdPath = new TimedAction(thirdPath, 3.5);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 3.75);
 
         return new SequentialAction(
                 maxTimeFirstPath,

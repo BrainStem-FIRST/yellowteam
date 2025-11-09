@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Component;
+import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 @Config
 public class Collection implements Component {
@@ -209,6 +210,8 @@ public class Collection implements Component {
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
 //        telemetry.addData("FLICKER State", flickerState.toString());
 //        telemetry.addData("Clutch State", clutchState.toString());
+        telemetry.addData("POSE", PoseStorage.currentPose);
+        telemetry.addData("STORAGE", PoseStorage.currentTurretEncoder);
     }
 
     @Override
