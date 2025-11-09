@@ -41,7 +41,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         gp2 = new GamepadTracker(gamepad2);
 
         CommandScheduler.getInstance().reset();
-//        brainSTEMRobot.turret.turretState = Turret.TurretState.RESET;
 
         waitForStart();
 

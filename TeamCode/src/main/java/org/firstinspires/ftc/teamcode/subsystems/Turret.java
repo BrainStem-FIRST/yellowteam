@@ -59,8 +59,6 @@ public final class Turret implements Component {
         this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
 
         turretMotor = map.get(DcMotorEx.class, "turret");
-        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
         turretState = TurretState.CENTER;

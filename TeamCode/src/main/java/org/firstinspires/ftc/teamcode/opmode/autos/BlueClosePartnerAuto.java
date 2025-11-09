@@ -10,6 +10,7 @@ import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
@@ -28,6 +29,9 @@ public class BlueClosePartnerAuto extends LinearOpMode {
         Pose2d startPose = new Pose2d(-63.5, -39.5, Math.toRadians(0));
 
         BrainSTEMRobot robot = new BrainSTEMRobot(telemetry, hardwareMap, startPose);
+        robot.turret.turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.turret.turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         AutoPositions autoPositions = new AutoPositions(drive);
