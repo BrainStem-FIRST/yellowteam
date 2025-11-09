@@ -18,7 +18,7 @@ public class AutoPositions {
     public final Pose2d redFarShootingPosition = new Pose2d(50, 10, Math.toRadians(180));
     public final Pose2d redCloseShootingPosition = new Pose2d(-40, 40, Math.toRadians(55));
     public final Pose2d redFirstLine = new Pose2d(-14, 26, Math.toRadians(90));
-    public final Pose2d redSecondLine = new Pose2d(11.5, 26, Math.toRadians(90));
+    public final Pose2d redSecondLine = new Pose2d(12, 26, Math.toRadians(97));
     public final Pose2d redThirdLine = new Pose2d(32, 26, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
     public final Pose2d redEnd = new Pose2d(0, 45, Math.toRadians(0));
@@ -80,12 +80,12 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(-45))
                 .splineToLinearHeading(redSecondLine, Math.toRadians(90)).build();
         Action secondPath = drive.actionBuilder(redSecondLine)
-                .lineToY(60).build();
+                .lineToY(62).build();
         Action thirdPath = drive.actionBuilder(redSecondLine)
                 .setTangent(Math.toRadians(-110))
                 .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
 
-        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2);
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
         Action maxTimeSecondPath = new TimedAction(secondPath, 1.5);
         Action maxTimeThirdPath = new TimedAction(thirdPath, 2.75);
 
@@ -169,7 +169,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(90))
                 .splineToLinearHeading(blueSecondLine, Math.toRadians(90)).build();
         Action secondPath = drive.actionBuilder(blueSecondLine)
-                .lineToY(-60).build();
+                .lineToY(-63).build();
         Action thirdPath = drive.actionBuilder(blueSecondLine)
                 .setTangent(Math.toRadians(80))
                 .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180)).build();
@@ -190,7 +190,7 @@ public class AutoPositions {
                 .setTangent(Math.toRadians(0))
                 .splineToLinearHeading(blueThirdLine, Math.toRadians(-90)).build();
         Action secondPath = drive.actionBuilder(blueThirdLine)
-                .lineToY(-60).build();
+                .lineToY(-63).build();
         Action thirdPath = drive.actionBuilder(blueThirdLine)
                 .setTangent(Math.toRadians(20))
                 .splineToLinearHeading(blueCloseShootingPosition, Math.toRadians(180)).build();

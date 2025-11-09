@@ -32,7 +32,7 @@ public final class Turret implements Component {
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.0075;
+        public double kP = 0.0065;
         public double kI = 0;
         public double kD = 0.0005;
         public int TURRET_INCREMENT = 60;
@@ -112,7 +112,7 @@ public final class Turret implements Component {
         targetTurretPosition += adjustment;
 
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
-        setTurretPosition(targetTurretPosition - PoseStorage.currentTurretEncoder);
+        setTurretPosition(targetTurretPosition);
     }
 
     private void fineAdjustTurretWithTag(AprilTagDetection tag) {
@@ -212,7 +212,7 @@ public final class Turret implements Component {
                 break;
 
             case PARK:
-                setTurretPosition(300);
+                setTurretPosition(-330);
                 break;
         }
 

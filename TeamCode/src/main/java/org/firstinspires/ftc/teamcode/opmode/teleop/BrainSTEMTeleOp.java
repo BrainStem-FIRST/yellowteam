@@ -112,14 +112,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 //                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
 //            else
 //                brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.UPDATE_2;
-//
-        if (gp1.isFirstDpadLeft()) {
-            brainSTEMRobot.turret.turretState = Turret.TurretState.PARK;
-        }
 
-        if (gp1.isFirstDpadRight()) {
-            brainSTEMRobot.parking.parkState = Parking.ParkState.EXTENDED;
-        }
 
 //        if (gp1.isFirstDpadLeft()) {
 //            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
@@ -209,8 +202,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         if (gp2.isFirstX())
             brainSTEMRobot.turret.isRedAlliance = false;
-        if (gp2.isFirstA())
-            brainSTEMRobot.turret.isRedAlliance = true;
+//        if (gp2.isFirstA())
+//            brainSTEMRobot.turret.isRedAlliance = true;
 
         if (gp2.isFirstDpadLeft())
             brainSTEMRobot.turret.adjustment += 10;
@@ -230,6 +223,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 PoseStorage.currentPose = new Pose2d(64, 65.5, Math.toRadians(180));
                 brainSTEMRobot.drive.localizer.setPose(new Pose2d(64, 65.5, Math.toRadians(180)));
             }
+        }
+
+        if (gp2.isFirstY()) {
+            if (brainSTEMRobot.parking.parkState == Parking.ParkState.EXTENDED)
+                brainSTEMRobot.turret.turretState = Turret.TurretState.PARK;
+            else
+                brainSTEMRobot.parking.parkState = Parking.ParkState.EXTENDED;
         }
     }
 }
