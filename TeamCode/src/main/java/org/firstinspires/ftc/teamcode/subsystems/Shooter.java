@@ -202,7 +202,7 @@ public class Shooter implements Component {
             return Math.toRadians(40);
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
-        telemetry.addData("OLD HORZ Angle", 90 - Math.toDegrees(theta));
+        telemetry.addData("OLD HORZ Angle", Math.toDegrees(theta));
 
         return theta;
     }
@@ -390,9 +390,9 @@ public class Shooter implements Component {
                 break;
         }
 
-        telemetry.addData("SHOOTER HIGH ENCODER", -shooterMotorHigh.getCurrentPosition());
+        telemetry.addData("SHOOTER POWER", shooterMotorHigh.getPower());
 //        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
-        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
+//        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
 //        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
     }
