@@ -62,6 +62,7 @@ public final class PinpointLocalizer implements Localizer {
         return txWorldPinpoint.times(txPinpointRobot);
     }
 
+
     @Override
     public PoseVelocity2d update() {
         driver.update();
