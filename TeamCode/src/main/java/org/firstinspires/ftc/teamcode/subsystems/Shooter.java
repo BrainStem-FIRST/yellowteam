@@ -243,16 +243,19 @@ public class Shooter implements Component {
         double power = 0;
         double original_power = 0;
 
-        if (robotPose.position.x < 50) {
-            original_power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
-            double shooter_mps = ticksPerSecToMps(original_power);
-            double robot_mps = computeVelocityTowardGoal(robotPose, targetPose) * 0.0254;
-            double needed_mps = shooter_mps + (robot_mps * SHOOTER_PARAMS.VELOCITY_CORRECTION);
-            telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(needed_mps));
-            telemetry.addData("ROBOT MPS", robot_mps);
-            if (needed_mps < 0) needed_mps = 0;
-            power = mpsToTicksPerSec(needed_mps);
-        } else
+//        if (robotPose.position.x < 50) {
+//            original_power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+//            double shooter_mps = ticksPerSecToMps(original_power);
+//            double robot_mps = computeVelocityTowardGoal(robotPose, targetPose) * 0.0254;
+//            double needed_mps = shooter_mps + (robot_mps * SHOOTER_PARAMS.VELOCITY_CORRECTION);
+//            telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(needed_mps));
+//            telemetry.addData("ROBOT MPS", robot_mps);
+//            if (needed_mps < 0) needed_mps = 0;
+//            power = mpsToTicksPerSec(needed_mps);
+
+        if (robotPose.position.x < 50)
+            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+        else
             power = SHOOTER_PARAMS.TARGET_VELOCITY;
 
         setShooterVelocityPID(power);
