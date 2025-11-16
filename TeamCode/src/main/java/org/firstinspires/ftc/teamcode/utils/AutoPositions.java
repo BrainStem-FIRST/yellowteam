@@ -1,13 +1,9 @@
 package org.firstinspires.ftc.teamcode.utils;
 
-import androidx.annotation.NonNull;
-
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
@@ -21,6 +17,7 @@ public class AutoPositions {
     public final Pose2d redSecondLine = new Pose2d(12, 26, Math.toRadians(97));
     public final Pose2d redThirdLine = new Pose2d(32, 26, Math.toRadians(90));
     public final Pose2d redApproachHP = new Pose2d(35, 68, Math.toRadians(45));
+    public final Pose2d redGate = new Pose2d(12, 30, Math.toRadians(90));
     public final Pose2d redEnd = new Pose2d(0, 45, Math.toRadians(0));
 
     //blue positions
@@ -95,6 +92,28 @@ public class AutoPositions {
                 maxTimeThirdPath
         );
     }
+    public Action secondLineToGate(boolean isClose) {
+        Action firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
+                .setTangent(Math.toRadians(-45))
+                .splineToLinearHeading(redSecondLine, Math.toRadians(90)).build();
+        Action secondPath = drive.actionBuilder(redSecondLine)
+                .lineToY(62).build();
+        Action thirdPath = drive.actionBuilder(redSecondLine)
+                .setTangent(Math.toRadians(-110))
+                .splineTo(redGate.position, redGate.heading)
+                .splineToLinearHeading(redCloseShootingPosition, Math.toRadians(180)).build();
+
+        Action maxTimeFirstPath = new TimedAction(firstLineShot, 2.5);
+        Action maxTimeSecondPath = new TimedAction(secondPath, 1.5);
+        Action maxTimeThirdPath = new TimedAction(thirdPath, 2.75);
+
+        return new SequentialAction(
+                maxTimeFirstPath,
+                maxTimeSecondPath,
+                maxTimeThirdPath
+        );
+    }
+
 
     public Action thirdLineShots(boolean isClose) {
         Action firstLineShot = drive.actionBuilder(isClose ? redCloseShootingPosition : redFarShootingPosition)
@@ -127,7 +146,14 @@ public class AutoPositions {
                 .splineToLinearHeading(isClose ? redCloseShootingPosition : redFarShootingPosition, isClose ? Math.toRadians(180) : Math.toRadians(0));
         return hpShot.build();
     }
-
+public Action goToRedGate() {
+        TrajectoryActionBuilder redGateMove = drive.actionBuilder(redSecondLine)
+                .setTangent(0)
+                .splineTo(redGate.position, redGate.heading)
+                .lineToY(35)
+                .splineTo(redFarShootingPosition.position, redFarShootingPosition.heading);
+        return redGateMove.build();
+}
 
     //blue actions
     public Action blueMoveOffLine(boolean isClose) {
