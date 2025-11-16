@@ -19,21 +19,21 @@ public class Vision implements Component {
     private AprilTagDetection currentTag;
 
     public Vision(HardwareMap hardwareMap, Telemetry telemetry) {
-        tagProcessor = new AprilTagProcessor.Builder()
-                .setDrawAxes(true)
-                .setDrawCubeProjection(true)
-                .setDrawTagID(true)
-                .setDrawTagOutline(true)
-                .build();
+//        tagProcessor = new AprilTagProcessor.Builder()
+//                .setDrawAxes(true)
+//                .setDrawCubeProjection(true)
+//                .setDrawTagID(true)
+//                .setDrawTagOutline(true)
+//                .build();
+//
+//        visionPortal = new VisionPortal.Builder()
+//                .addProcessor(tagProcessor)
+//                .setCamera(hardwareMap.get(WebcamName.class, "Webcam"))
+//                .setCameraResolution(new Size(640, 480))
+//                .build();
 
-        visionPortal = new VisionPortal.Builder()
-                .addProcessor(tagProcessor)
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam"))
-                .setCameraResolution(new Size(640, 480))
-                .build();
-
-        FtcDashboard dashboard = FtcDashboard.getInstance();
-        dashboard.startCameraStream(visionPortal, 0); //192.168.43.1:8080
+//        FtcDashboard dashboard = FtcDashboard.getInstance();
+//        dashboard.startCameraStream(visionPortal, 0); //192.168.43.1:8080
     }
 
     public boolean isTagVisible() {
@@ -55,12 +55,12 @@ public class Vision implements Component {
 
     @Override
     public void update() {
-        List<AprilTagDetection> detections = tagProcessor.getDetections();
-        if (!detections.isEmpty()) {
-            currentTag = detections.get(0);
-        } else {
-            currentTag = null;
-        }
+//        List<AprilTagDetection> detections = tagProcessor.getDetections();
+//        if (!detections.isEmpty()) {
+//            currentTag = detections.get(0);
+//        } else {
+//            currentTag = null;
+//        }
     }
 
     @Override

@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.subsystems;
-import static com.sun.tools.doclint.Entity.theta;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -16,10 +15,9 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 
 @Config
@@ -36,7 +34,7 @@ public class Shooter implements Component {
     public ServoImplEx hoodRightServo;
     public ShooterState shooterState;
 
-    public static class Params{
+    public static class ShooterParams {
         public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
         // (the height of the front wall of the goal is 38.75 in)
@@ -63,8 +61,8 @@ public class Shooter implements Component {
         public double kF = 0.00047;
     }
 
-    public static Params SHOOTER_PARAMS = new Shooter.Params();
-    private PIDController shooterPID;
+    public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
+    private final PIDController shooterPID;
     private double lastVelocity = 0;
     private boolean wasAboveThreshold = true;
     private double servoPos = 0;
@@ -225,9 +223,9 @@ public class Shooter implements Component {
         double ux = dx / dist;
         double uy = dy / dist;
 
-        PoseVelocity2d vel = drive.updatePoseEstimate();
-        double vx = vel.linearVel.x;
-        double vy = vel.linearVel.y;
+        OdoInfo vel = drive.pinpoint().previousVelocities.get(0);
+        double vx = vel.x;
+        double vy = vel.y;
 
         return vx*ux + vy*uy;
     }
@@ -252,6 +250,7 @@ public class Shooter implements Component {
 //            telemetry.addData("ROBOT MPS", robot_mps);
 //            if (needed_mps < 0) needed_mps = 0;
 //            power = mpsToTicksPerSec(needed_mps);
+//        }
 
         if (robotPose.position.x < 50)
             power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
@@ -434,13 +433,13 @@ public class Shooter implements Component {
 //        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
 
-        PoseVelocity2d vel = drive.updatePoseEstimate();
-        double vx = vel.linearVel.x;
-        double vy = vel.linearVel.y;
-        double angle = vel.angVel;
+        OdoInfo vel = drive.pinpoint().previousVelocities.get(0);
+        double vx = vel.x;
+        double vy = vel.y;
+        double angle = Math.toDegrees(vel.headingRad);
         telemetry.addData("X VELOCITY", vx);
         telemetry.addData("Y VELOCITY", vy);
-        telemetry.addData("ANGLE VELOCITY", angle);
+        telemetry.addData("ANGLE VELOCITY DEG", angle);
         telemetry.addData("TOTAL VELOCITY", computeVelocityTowardGoal(drive.localizer.getPose(), turret.targetPose));
     }
     @Override

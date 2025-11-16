@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -10,15 +11,30 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.commandGroups.FullCollectionSequence;
 import org.firstinspires.ftc.teamcode.commands.turretCommands.TurretTrackingCommand;
+import org.firstinspires.ftc.teamcode.opmode.testing.PosePredictionErrorRecorder;
+import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
+import org.firstinspires.ftc.teamcode.utils.HeadingCorrect;
+import org.firstinspires.ftc.teamcode.utils.MathUtils;
+import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
+import org.firstinspires.ftc.teamcode.utils.TelemetryHelper;
 
 @TeleOp(name = "TeleOp", group = "Robot")
+@Config
 public class BrainSTEMTeleOp extends LinearOpMode {
+    public enum PosePredictType {
+        SIMPLE,
+        ADVANCED,
+        CONTROL
+    }
+    public static PosePredictType posePredictType = PosePredictType.SIMPLE;
+    public static double timeAheadToPredict = 0.075; // if this is -1, it will predict future pose next frame
+
     BrainSTEMRobot brainSTEMRobot;
 
     // COMMANDS //
@@ -31,9 +47,14 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     private double hood_position = 0.1;
     private int turret_position = 0;
     private double parking_position = 0.1;
+    private Pose2d lastFrameSimplePrediction, lastFrameAdvancedPrediction;
+
 
     @Override
     public void runOpMode() {
+        lastFrameSimplePrediction = PoseStorage.currentPose;
+        lastFrameAdvancedPrediction = PoseStorage.currentPose;
+
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
 
         brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, PoseStorage.currentPose); //take pose from auto
@@ -43,21 +64,34 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         CommandScheduler.getInstance().reset();
 
         waitForStart();
-
+        int framesRunning = 0;
+        long startTimeNano = System.nanoTime();
         while (opModeIsActive()) {
             gp1.update();
             gp2.update();
+
+            telemetry.addData("velocity size", brainSTEMRobot.drive.pinpoint().previousVelocities.size());
+            telemetry.addData("accel size", brainSTEMRobot.drive.pinpoint().previousAccelerations.size());
+
             updateDrive();
 //            updateDriver1();
             updateDriver2();
             updateTesting();
             CommandScheduler.getInstance().run();
             brainSTEMRobot.update();
-            brainSTEMRobot.drive.updatePoseEstimate();
+
+            updatePosePredict();
+
+            // print delta time
+            framesRunning++;
+            double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
+            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
+            telemetry.addData("predicted dt", MathUtils.format(brainSTEMRobot.drive.pinpoint().getWeightedDt(), 6));
+
             telemetry.update();
         }
 
-        brainSTEMRobot.vision.visionPortal.close();
+//        brainSTEMRobot.vision.visionPortal.close();
     }
 
     private void updateDrive() {
@@ -230,5 +264,47 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             else
                 brainSTEMRobot.parking.parkState = Parking.ParkState.EXTENDED;
         }
+    }
+
+    private void trackPosePredict(Pose2d actualPose) {
+        // save simple and advanced errors
+        OdoInfo simpleError = new OdoInfo(lastFrameSimplePrediction.position.x - actualPose.position.x,
+                lastFrameSimplePrediction.position.y - actualPose.position.y,
+                HeadingCorrect.correctHeadingErrorRad(lastFrameSimplePrediction.heading.toDouble() - actualPose.heading.toDouble()));
+        PosePredictionErrorRecorder.predictionErrorsSimple.add(simpleError);
+        OdoInfo advancedError = new OdoInfo(lastFrameAdvancedPrediction.position.x - actualPose.position.x,
+                lastFrameAdvancedPrediction.position.y - actualPose.position.y,
+                HeadingCorrect.correctHeadingErrorRad(lastFrameAdvancedPrediction.heading.toDouble() - actualPose.heading.toDouble()));
+        PosePredictionErrorRecorder.predictionErrorsAdvanced.add(advancedError);
+
+        // save current velocity and acceleration
+        PinpointLocalizer pinpoint = brainSTEMRobot.drive.pinpoint();
+        if (!pinpoint.previousAccelerations.isEmpty())
+            PosePredictionErrorRecorder.acceleration.add(pinpoint.previousAccelerations.get(0));
+        if (!pinpoint.previousVelocities.isEmpty())
+            PosePredictionErrorRecorder.velocity.add(pinpoint.previousVelocities.get(0));
+
+        // save control group errors
+        Pose2d lastPose = pinpoint.lastPose;
+        OdoInfo controlGroupError = new OdoInfo(lastPose.position.x - actualPose.position.x,
+                lastPose.position.y - actualPose.position.y,
+                lastPose.heading.toDouble() - actualPose.heading.toDouble()
+        );
+        PosePredictionErrorRecorder.controlGroupError.add(controlGroupError);
+    }
+    private void updatePosePredict() {
+        // show predicted pose on dashboard
+        PinpointLocalizer pinpoint = brainSTEMRobot.drive.pinpoint();
+        Pose2d actualPose = pinpoint.getPose();
+        switch (posePredictType) {
+            case SIMPLE: TelemetryHelper.sendRobotPose(actualPose, lastFrameSimplePrediction, pinpoint.lastPose); break;
+            case ADVANCED: TelemetryHelper.sendRobotPose(actualPose, lastFrameAdvancedPrediction, pinpoint.lastPose); break;
+            case CONTROL: TelemetryHelper.sendRobotPose(actualPose, pinpoint.lastPose); break;
+        }
+        lastFrameSimplePrediction = pinpoint.getNextPoseSimple(timeAheadToPredict == -1 ? pinpoint.getWeightedDt() : timeAheadToPredict);
+        lastFrameAdvancedPrediction = pinpoint.getNextPoseAdvanced();
+
+        if (gamepad1.back)
+            trackPosePredict(actualPose);
     }
 }

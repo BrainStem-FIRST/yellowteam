@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -19,11 +20,10 @@ import org.firstinspires.ftc.teamcode.subsystems.Vision;
 import java.util.ArrayList;
 
 
+@Config
 public class BrainSTEMRobot implements Component {
 
-    private LinearOpMode opMode;
-    private Telemetry telemetry;
-    private HardwareMap hardwareMap;
+    public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableVision = true, enablePark = true, enableLED = true;
 
     public Turret turret;
     public Shooter shooter;
@@ -32,11 +32,9 @@ public class BrainSTEMRobot implements Component {
     public MecanumDrive drive;
     public Vision vision;
     public LED led;
-    private ArrayList<Component> subsystems;
+    private final ArrayList<Component> subsystems;
 
     public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
-        this.telemetry = telemetry;
-        this.hardwareMap = hardwareMap;
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
@@ -47,15 +45,19 @@ public class BrainSTEMRobot implements Component {
         parking = new Parking(hardwareMap, telemetry, drive);
         led = new LED(hardwareMap, telemetry, shooter, turret, parking, collection);
 
-        subsystems.add(turret);
-        subsystems.add(shooter);
-        subsystems.add(collection);
-        subsystems.add(parking);
-        subsystems.add(vision);
-        subsystems.add(led);
+        if (enableTurret)
+            subsystems.add(turret);
+        if (enableShooter)
+            subsystems.add(shooter);
+        if (enableCollection)
+            subsystems.add(collection);
+        if (enablePark)
+            subsystems.add(parking);
+        if (enableVision)
+            subsystems.add(vision);
+        if (enableLED)
+            subsystems.add(led);
     }
-
-    public void getTelemetry(){}
 
     @Override
     public void reset() {
@@ -66,13 +68,14 @@ public class BrainSTEMRobot implements Component {
 
     @Override
     public void update(){
+        drive.updatePoseEstimate();
+
         for (Component c : subsystems) {
             c.update();
         }
 
-        drive.updatePoseEstimate();
-        drawRobot(this);
-        telemetry.update();
+//        drawRobot(this);
+//        telemetry.update();
     }
 
     private void drawRobot(BrainSTEMRobot robot) {

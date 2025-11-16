@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 @Config
 public class Collection implements Component {
 
+    public static boolean activateLasers = false;
     private HardwareMap map;
     private Telemetry telemetry;
     private DcMotorEx collectorMotor;
@@ -198,7 +199,8 @@ public class Collection implements Component {
                 break;
         }
 
-        checkForIntakeBalls(timer.seconds());
+        if (activateLasers)
+            checkForIntakeBalls(timer.seconds());
 
 //        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
 //        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));

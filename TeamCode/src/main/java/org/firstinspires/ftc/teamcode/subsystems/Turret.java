@@ -32,9 +32,10 @@ public final class Turret implements Component {
     private ElapsedTime tagLostTimer = new ElapsedTime();
 
     public static class Params{
-        public double kP = 0.0065;
-        public double kI = 0;
-        public double kD = 0.0005;
+        public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
+        public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
+        public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
+        public double lookAheadTime = 0.085; // time to look ahead for pose prediction
         public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
@@ -60,7 +61,7 @@ public final class Turret implements Component {
 
         turretMotor = map.get(DcMotorEx.class, "turret");
 
-        pidController = new PIDController(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
+        pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
     }
 
@@ -71,8 +72,15 @@ public final class Turret implements Component {
     public void setTurretPosition(int ticks) {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double error = getTurretEncoder() - ticks;
+
+        // use correct pid values based on error
+        if (Math.abs(error) < TURRET_PARAMS.smallPIDValuesErrorThreshold)
+            pidController.setPIDValues(TURRET_PARAMS.smallKP, TURRET_PARAMS.smallKI, TURRET_PARAMS.smallKD);
+        else
+            pidController.setPIDValues(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
+
         double power = pidController.updateWithError(error);
-//        telemetry.addData("Turret Power", power);
+        telemetry.addData("turret pid error", error);
         turretMotor.setPower(-power);
     }
 
@@ -169,7 +177,7 @@ public final class Turret implements Component {
                 break;
 
             case TRACKING:
-                poseTargetToTurretTicks(drive.localizer.getPose(), targetPose);
+                poseTargetToTurretTicks(drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime), targetPose);
                 break;
 
             case CENTER:
@@ -231,8 +239,6 @@ public final class Turret implements Component {
 //        }
 
         telemetry.addData("Turret Adjustment Factor", adjustment);
-
-        pidController.setPIDValues(TURRET_PARAMS.kP, TURRET_PARAMS.kI, TURRET_PARAMS.kD);
     }
 
     @Override
