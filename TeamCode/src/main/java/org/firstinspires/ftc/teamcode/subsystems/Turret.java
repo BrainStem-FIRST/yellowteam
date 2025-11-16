@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
@@ -21,19 +22,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
 public final class Turret implements Component {
-    public boolean isRedAlliance = true;
-    private HardwareMap map;
-    private Telemetry telemetry;
-    private FtcDashboard dashboard;
-    public DcMotorEx turretMotor;
-    private PIDController pidController;
-    public TurretState turretState;
-    public int adjustment = 0;
-    Pose2d targetPose = new Pose2d(-62, 62, 0);
-
-    private ElapsedTime tagVisibleTimer = new ElapsedTime();
-    private ElapsedTime tagLostTimer = new ElapsedTime();
-
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
@@ -49,18 +37,26 @@ public final class Turret implements Component {
         public double TAG_LOCK_THRESHOLD = 1.0;
         public double TAG_LOST_THRESHOLD = 0.5;
     }
-
-    public MecanumDrive drive;
-    public Vision vision;
-    public Shooter shooter;
     public static Params TURRET_PARAMS = new Turret.Params();
 
-    public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Vision vision, Shooter shooter){
+    public boolean isRedAlliance = true;
+    private final HardwareMap map;
+    private final Telemetry telemetry;
+    private final FtcDashboard dashboard;
+    public DcMotorEx turretMotor;
+    private final PIDController pidController;
+    public TurretState turretState;
+    public int adjustment = 0;
+    Pose2d targetPose = new Pose2d(-62, 62, 0);
+
+    private final ElapsedTime tagVisibleTimer = new ElapsedTime();
+    private final ElapsedTime tagLostTimer = new ElapsedTime();
+
+    public BrainSTEMRobot robot;
+
+    public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         this.map = hardwareMap;
-//        this.telemetry = telemetry;
-        this.drive = drive;
-        this.vision = vision;
-        this.shooter = shooter;
+        this.robot = robot;
 
         this.dashboard = FtcDashboard.getInstance();
         this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
@@ -104,9 +100,9 @@ public final class Turret implements Component {
 
         // calculating relative velocity of ball
         // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
-        double ballExitSpeedMps = shooter.ticksPerSecToMps(-shooter.shooterMotorHigh.getVelocity());
+        double ballExitSpeedMps = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
         Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
-        OdoInfo robotVelocity = drive.pinpoint().previousVelocities.get(0);
+        OdoInfo robotVelocity = robot.drive.pinpoint().previousVelocities.get(0);
         Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
 
 //        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
@@ -178,7 +174,7 @@ public final class Turret implements Component {
     @Override
     public void update(){
         int correctTagId = (isRedAlliance) ? 24 : 20;
-        boolean isTagVisible = vision.isTagVisible() && vision.isCorrectTag(correctTagId);
+        boolean isTagVisible = robot.vision.isTagVisible() && robot.vision.isCorrectTag(correctTagId);
 
         switch (turretState) {
             case RESET:
@@ -195,7 +191,7 @@ public final class Turret implements Component {
                 break;
 
             case TRACKING:
-                poseTargetToTurretTicks(drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime), targetPose);
+                poseTargetToTurretTicks(robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime), targetPose);
                 break;
 
             case CENTER:
@@ -204,7 +200,7 @@ public final class Turret implements Component {
                 break;
 
             case COARSE:
-                poseTargetToTurretTicks(drive.localizer.getPose(), targetPose);
+                poseTargetToTurretTicks(robot.drive.localizer.getPose(), targetPose);
 
                 if (isTagVisible) {
                     if (tagVisibleTimer.seconds() == 0)
@@ -221,7 +217,7 @@ public final class Turret implements Component {
                 break;
 
             case TAG_LOCK:
-                fineAdjustTurretWithTag(vision.getCurrentTag());
+                fineAdjustTurretWithTag(robot.vision.getCurrentTag());
 
                 if (!isTagVisible) {
                     if (tagLostTimer.seconds() == 0) tagLostTimer.reset();
