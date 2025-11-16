@@ -28,7 +28,10 @@ public class OdoInfo {
     }
     public String toStringHeading(int numDecimalPlaces) {
         return "h:" + MathUtils.format(headingRad, numDecimalPlaces);
-
+    }
+    // converts positional data into a vector
+    public Vec vec() {
+        return new Vec(x, y);
     }
 }
 

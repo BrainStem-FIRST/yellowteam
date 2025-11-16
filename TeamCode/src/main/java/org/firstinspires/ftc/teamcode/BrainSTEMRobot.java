@@ -39,8 +39,9 @@ public class BrainSTEMRobot implements Component {
 
         drive = new MecanumDrive(hardwareMap, initialPose);
         vision = new Vision(hardwareMap, telemetry);
-        turret = new Turret(hardwareMap, telemetry, drive, vision);
+        turret = new Turret(hardwareMap, telemetry, drive, vision, null);
         shooter = new Shooter(hardwareMap, telemetry, drive, turret);
+        turret.shooter = shooter;
         collection = new Collection(hardwareMap, telemetry);
         parking = new Parking(hardwareMap, telemetry, drive);
         led = new LED(hardwareMap, telemetry, shooter, turret, parking, collection);

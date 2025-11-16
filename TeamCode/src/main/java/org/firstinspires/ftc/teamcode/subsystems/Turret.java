@@ -13,8 +13,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
+import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
+import org.firstinspires.ftc.teamcode.utils.Vec;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
@@ -50,13 +52,15 @@ public final class Turret implements Component {
 
     public MecanumDrive drive;
     public Vision vision;
+    public Shooter shooter;
     public static Params TURRET_PARAMS = new Turret.Params();
 
-    public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Vision vision){
+    public Turret(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Vision vision, Shooter shooter){
         this.map = hardwareMap;
 //        this.telemetry = telemetry;
         this.drive = drive;
         this.vision = vision;
+        this.shooter = shooter;
 
         this.dashboard = FtcDashboard.getInstance();
         this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
@@ -92,12 +96,21 @@ public final class Turret implements Component {
     }
 
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
+        Vec robotToTarget = new Vec(targetPose.position.x - robotPose.position.x, targetPose.position.y - robotPose.position.y);
+        Vec robotToTargetNormalized = robotToTarget.normalize();
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
 
-        double targetAngle = Math.atan2(deltaY, deltaX);
+        // calculating relative velocity of ball
+        // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
+        double ballExitSpeedMps = shooter.ticksPerSecToMps(-shooter.shooterMotorHigh.getVelocity());
+        Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
+        OdoInfo robotVelocity = drive.pinpoint().previousVelocities.get(0);
+        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
+
+//        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
+        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
@@ -106,8 +119,6 @@ public final class Turret implements Component {
         else if (turretTargetAngle < turretMin)
             turretTargetAngle = -Math.PI - turretTargetAngle;
 
-        double inverseFactor = (isRedAlliance) ? 1 : -1;
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
         int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
 
 //        telemetry.addData("Turret Angle", turretTargetAngle);

@@ -28,8 +28,8 @@ public class Shooter implements Component {
     private FtcDashboard dashboard;
     private MecanumDrive drive;
     private Turret turret;
-    public DcMotorEx shooterMotorLow;
-    public DcMotorEx shooterMotorHigh;
+    public DcMotorEx shooterMotorLow; // encoders for this one are cooked
+    public DcMotorEx shooterMotorHigh; // encoders only work for this one
     public ServoImplEx hoodLeftServo;
     public ServoImplEx hoodRightServo;
     public ShooterState shooterState;
@@ -41,6 +41,8 @@ public class Shooter implements Component {
 
         public double WALL_OFFSET = 30;
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
+        public double BALL_RADIUS = 0.064;
+        public double SLIP_COEFFICIENT = 0.4386;
         public double FLYWHEEL_TICKS_PER_REV = 32; // ticks in 1 rotation of the motor
         public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
@@ -373,14 +375,15 @@ public class Shooter implements Component {
 
 
     public double ticksPerSecToMps(double ticksPerSec) {
-        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
-        return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference;
+        double wheelCircumference = 2 * Math.PI * (SHOOTER_PARAMS.FLYWHEEL_RADIUS + SHOOTER_PARAMS.BALL_RADIUS);
+        return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference * SHOOTER_PARAMS.SLIP_COEFFICIENT;
     }
 
-    public double mpsToTicksPerSec(double mps) {
-        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
-        return (mps / wheelCircumference) * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
-    }
+    // doesn't account for slippage
+//    public double mpsToTicksPerSec(double mps) {
+//        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
+//        return (mps / wheelCircumference) * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
+//    }
 
     public void setHoodPosition(double position) {
         hoodLeftServo.setPosition(position);

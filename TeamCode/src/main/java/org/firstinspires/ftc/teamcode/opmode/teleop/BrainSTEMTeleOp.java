@@ -79,6 +79,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             updateTesting();
             CommandScheduler.getInstance().run();
             brainSTEMRobot.update();
+            telemetry.addData("low shooter motor vel", brainSTEMRobot.shooter.shooterMotorLow.getVelocity());
+            telemetry.addData("high shooter motor vel", brainSTEMRobot.shooter.shooterMotorHigh.getVelocity());
 
             updatePosePredict();
 
