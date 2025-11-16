@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.TelemetryHelper;
 
-@TeleOp(name = "TeleOp", group = "Robot")
+@TeleOp(name = "TeleOp", group = "Competition")
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
     public enum PosePredictType {

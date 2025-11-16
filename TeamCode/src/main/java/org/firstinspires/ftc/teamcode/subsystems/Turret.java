@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -36,6 +37,7 @@ public final class Turret implements Component {
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
         public double lookAheadTime = 0.085; // time to look ahead for pose prediction
+        public double smoothPowerLerpValue = 0.7, useSmoothLerpValuePowerDiffThreshold = 0.6;
         public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
@@ -79,9 +81,14 @@ public final class Turret implements Component {
         else
             pidController.setPIDValues(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
 
-        double power = pidController.updateWithError(error);
+        double oldPower = turretMotor.getPower();
+        double newPower = -pidController.updateWithError(error);
+        double smoothPower = newPower;
+        if (oldPower!= 0 && Math.abs(newPower - oldPower) > TURRET_PARAMS.useSmoothLerpValuePowerDiffThreshold)
+            smoothPower = MathUtils.lerp(oldPower, newPower, TURRET_PARAMS.smoothPowerLerpValue);
+
         telemetry.addData("turret pid error", error);
-        turretMotor.setPower(-power);
+        turretMotor.setPower(smoothPower);
     }
 
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
