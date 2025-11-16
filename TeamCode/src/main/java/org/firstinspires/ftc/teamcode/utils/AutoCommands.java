@@ -33,23 +33,6 @@ public class AutoCommands {
         return true;
     };
 
-
-    // OTHER
-    public Action setBlueAlliance() {
-        return packet -> {
-            robot.turret.isRedAlliance = false;
-            return false;
-        };
-    }
-
-    public Action setRedAlliance() {
-        return packet -> {
-            robot.turret.isRedAlliance = true;
-            return false;
-        };
-    }
-
-
     // TURRET
     public Action enableTurretTracking() {
         return packet -> {

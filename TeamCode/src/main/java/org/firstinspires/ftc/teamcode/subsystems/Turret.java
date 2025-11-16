@@ -1,33 +1,29 @@
 package org.firstinspires.ftc.teamcode.subsystems;
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
-import org.firstinspires.ftc.teamcode.Component;
-import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
+import org.firstinspires.ftc.teamcode.utils.Subsystem;
 import org.firstinspires.ftc.teamcode.utils.Vec;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
-public final class Turret implements Component {
+public class Turret extends Subsystem {
+    public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
-        public double lookAheadTime = 0.085; // time to look ahead for pose prediction
-        public double smoothPowerLerpValue = 0.7, useSmoothLerpValuePowerDiffThreshold = 0.6;
+        public double lookAheadTime = 0.09; // time to look ahead for pose prediction
+        public double smoothPowerLerpValue = 1, useSmoothLerpValuePowerDiffThreshold = 0.6;
         public int TURRET_INCREMENT = 60;
         public int TURRET_MAX = 300;
         public int TURRET_MIN = -300;
@@ -38,33 +34,25 @@ public final class Turret implements Component {
         public double TAG_LOST_THRESHOLD = 0.5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
-
-    public boolean isRedAlliance = true;
-    private final HardwareMap map;
-    private final Telemetry telemetry;
-    private final FtcDashboard dashboard;
     public DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
     public int adjustment = 0;
-    Pose2d targetPose = new Pose2d(-62, 62, 0);
-
-    private final ElapsedTime tagVisibleTimer = new ElapsedTime();
-    private final ElapsedTime tagLostTimer = new ElapsedTime();
-
-    public BrainSTEMRobot robot;
+    public Pose2d targetPose = new Pose2d(-62, 62, 0);
 
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
-        this.map = hardwareMap;
-        this.robot = robot;
+        super(hardwareMap, telemetry, robot);
 
-        this.dashboard = FtcDashboard.getInstance();
-        this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
-
-        turretMotor = map.get(DcMotorEx.class, "turret");
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
+    }
+
+    @Override
+    public void printInfo() {
+
     }
 
     public int getTurretEncoder() {
@@ -72,7 +60,6 @@ public final class Turret implements Component {
     }
 
     public void setTurretPosition(int ticks) {
-        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         double error = getTurretEncoder() - ticks;
 
         // use correct pid values based on error
@@ -87,19 +74,25 @@ public final class Turret implements Component {
         if (oldPower!= 0 && Math.abs(newPower - oldPower) > TURRET_PARAMS.useSmoothLerpValuePowerDiffThreshold)
             smoothPower = MathUtils.lerp(oldPower, newPower, TURRET_PARAMS.smoothPowerLerpValue);
 
-        telemetry.addData("turret pid error", error);
         turretMotor.setPower(smoothPower);
     }
-
+    public Pose2d getTurretPose(Pose2d robotPose) {
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        double robotHeading = robotPose.heading.toDouble();
+        double xOffset = -Math.cos(robotHeading) * offsetFromCenter;
+        double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
+        double headingOffsetRad = turretMotor.getCurrentPosition() / turretTicksPerRadian;
+        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + headingOffsetRad);
+    }
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
+        Pose2d turretPosition = getTurretPose(robotPose);
+        Vec turretToGoal = new Vec(targetPose.position.x - turretPosition.position.x, targetPose.position.y - turretPosition.position.y).normalize();
+
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
-        double targetAngle = Math.atan2(deltaY, deltaX);
-//        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
+        double targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
@@ -109,18 +102,6 @@ public final class Turret implements Component {
             turretTargetAngle = -Math.PI - turretTargetAngle;
 
         int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
-
-//        telemetry.addData("Turret Angle", turretTargetAngle);
-//        telemetry.addData("Turret Target", targetTurretPosition);
-//        telemetry.addData("Turret Pose X", robotPose.position.x);
-//        telemetry.addData("Turret Pose Y", robotPose.position.y);
-
-        TelemetryPacket packet = new TelemetryPacket();
-        packet.put("Turret Angle", turretTargetAngle);
-        packet.put("Turret Target", targetTurretPosition);
-        packet.put("Turret Encoder", getTurretEncoder());
-
-        dashboard.sendTelemetryPacket(packet);
 
         targetTurretPosition += adjustment;
 
@@ -143,7 +124,6 @@ public final class Turret implements Component {
 //        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
 //
 //        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
-////        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
 //        double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
 //        turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 //
@@ -153,11 +133,6 @@ public final class Turret implements Component {
 //            turretTargetAngle = -Math.PI - turretTargetAngle;
 //
 //        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
-//
-////        telemetry.addData("Turret Angle", turretTargetAngle);
-////        telemetry.addData("Turret Target", targetTurretPosition);
-////        telemetry.addData("Turret Pose X", robotPose.position.x);
-////        telemetry.addData("Turret Pose Y", robotPose.position.y);
 //
 //        TelemetryPacket packet = new TelemetryPacket();
 //        packet.put("Turret Angle", turretTargetAngle);
@@ -185,23 +160,16 @@ public final class Turret implements Component {
         int adjustment = (int)(angularOffset * turretTicksPerRadian);
 
         int targetTicks = currentTicks + adjustment;
-
-        telemetry.addData("FINE ADJUST TARGET", targetTicks);
-        telemetry.addData("TAG X (m)", tagX);
-        telemetry.addData("TAG Z (m)", tagZ);
-        telemetry.addData("ANGLE OFFSET (deg)", Math.toDegrees(angularOffset));
-
         targetTicks = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTicks, TURRET_PARAMS.LEFT_BOUND));
 
         pidController.setTarget(0);
         double power = pidController.update(tagX);
         turretMotor.setPower(-power);
-        telemetry.addData("POWWWWWWW", power);
 //        setTurretPosition(targetTicks);
     }
 
     public enum TurretState {
-        OFF, TRACKING, CENTER, COARSE, TAG_LOCK, PARK, RESET
+        OFF, TRACKING, CENTER, PARK, RESET
     }
 
     @Override
@@ -210,9 +178,6 @@ public final class Turret implements Component {
 
     @Override
     public void update(){
-        int correctTagId = (isRedAlliance) ? 24 : 20;
-        boolean isTagVisible = robot.vision.isTagVisible() && robot.vision.isCorrectTag(correctTagId);
-
         switch (turretState) {
             case RESET:
                 setTurretPosition(-PoseStorage.currentTurretEncoder);
@@ -236,64 +201,27 @@ public final class Turret implements Component {
                 adjustment = 0;
                 break;
 
-            case COARSE:
-                poseTargetToTurretTicks(robot.drive.localizer.getPose(), targetPose);
-
-                if (isTagVisible) {
-                    if (tagVisibleTimer.seconds() == 0)
-                        tagVisibleTimer.reset();
-                    tagLostTimer.reset();
-                } else {
-                    tagVisibleTimer.reset();
-                }
-
-                if (tagVisibleTimer.seconds() >= TURRET_PARAMS.TAG_LOCK_THRESHOLD) {
-                    turretState = TurretState.TAG_LOCK;
-                    tagVisibleTimer.reset();
-                }
-                break;
-
-            case TAG_LOCK:
-                fineAdjustTurretWithTag(robot.vision.getCurrentTag());
-
-                if (!isTagVisible) {
-                    if (tagLostTimer.seconds() == 0) tagLostTimer.reset();
-                } else {
-                    tagLostTimer.reset();
-                }
-
-                if (tagLostTimer.seconds() >= TURRET_PARAMS.TAG_LOST_THRESHOLD) {
-                    turretState = TurretState.COARSE;
-                    tagLostTimer.reset();
-                }
-                break;
-
             case PARK:
                 setTurretPosition(-330);
                 break;
         }
 
-        if (isRedAlliance)
+        if (robot.alliance == Alliance.RED)
             targetPose = new Pose2d(-62, 62, 0);
         else
             targetPose = new Pose2d(-62, -62, 0);
-
-//        telemetry.addData("Alliance", isRedAlliance ? "Red" : "Blue");
-        telemetry.addData("Turret State", turretState.toString());
-//        telemetry.addData("Turret Encoder", getTurretEncoder());
-//        telemetry.addData("Is Tag Visible", isTagVisible);
-//        telemetry.addData("TAG VISIBLE TIMER", tagVisibleTimer.seconds());
-//        telemetry.addData("TAG LOST TIMER", tagLostTimer.seconds());
-
-//        if (!vision.tagProcessor.getDetections().isEmpty()){
-//            telemetry.addData("FTC X", vision.getCurrentTag().ftcPose.x);
-//        }
-
-        telemetry.addData("Turret Adjustment Factor", adjustment);
     }
 
     @Override
     public String test(){
         return null;
+    }
+
+    public void printInfo(Telemetry telemetry) {
+        telemetry.addLine("TURRET");
+        telemetry.addData("state", turretState);
+        telemetry.addData("motor power", turretMotor.getPower());
+        telemetry.addData("motor position", turretMotor.getCurrentPosition());
+        telemetry.addData("motor velocity", turretMotor.getVelocity());
     }
 }

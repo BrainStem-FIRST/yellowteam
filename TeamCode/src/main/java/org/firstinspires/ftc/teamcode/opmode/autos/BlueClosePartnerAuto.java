@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.AutoPositions;
@@ -28,7 +29,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Pose2d startPose = new Pose2d(-63.5, -39.5, Math.toRadians(0));
 
-        BrainSTEMRobot robot = new BrainSTEMRobot(telemetry, hardwareMap, startPose);
+        BrainSTEMRobot robot = new BrainSTEMRobot(Alliance.BLUE, telemetry, hardwareMap, startPose);
         robot.turret.turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.turret.turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -55,7 +56,6 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 //                        autoCommands.saveTurretContinuously,
 
                         new SequentialAction(
-                                autoCommands.setBlueAlliance(),
                                 new ParallelAction(
                                         autoCommands.enableTurretTracking(),
                                         autoCommands.engageClutch(),

@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.LED;
@@ -32,15 +33,17 @@ public class BrainSTEMRobot implements Component {
     public MecanumDrive drive;
     public Vision vision;
     public LED led;
+    public final Alliance alliance;
     private final ArrayList<Component> subsystems;
 
-    public BrainSTEMRobot(Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
+    public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
+        this.alliance = alliance;
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
         vision = new Vision(hardwareMap, telemetry);
         turret = new Turret(hardwareMap, telemetry, this);
-        shooter = new Shooter(hardwareMap, telemetry, drive, turret);
+        shooter = new Shooter(hardwareMap, telemetry, this);
         collection = new Collection(hardwareMap, telemetry);
         parking = new Parking(hardwareMap, telemetry, drive);
         led = new LED(hardwareMap, telemetry, shooter, turret, parking, collection);

@@ -1,11 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.Subsystem;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -18,9 +14,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Component;
+import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
-import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
@@ -29,15 +25,10 @@ import java.util.Collections;
 import java.util.Set;
 
 @Config
-public class Shooter implements Component {
+public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
 
     public static boolean ENABLE_TESTING = false;
     public static double testingShootVelocity = 1300, testingHoodPosition = 0.5;
-    private HardwareMap map;
-    private Telemetry telemetry;
-    private FtcDashboard dashboard;
-    private MecanumDrive drive;
-    private Turret turret;
     public DcMotorEx shooterMotorLow; // encoders for this one are cooked
     public DcMotorEx shooterMotorHigh; // encoders only work for this one
     public ServoImplEx hoodLeftServo;
@@ -82,29 +73,23 @@ public class Shooter implements Component {
     private final ElapsedTime recordTimer;
 
 
-    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
-        this.map = hardwareMap;
-//        this.telemetry = telemetry;
-        this.drive = drive;
-        this.turret = turret;
+    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
+        super(hardwareMap, telemetry, robot);
 
-        this.dashboard = FtcDashboard.getInstance();
-        this.telemetry = new MultipleTelemetry(telemetry, dashboard.getTelemetry());
-
-        shooterMotorLow = map.get(DcMotorEx.class, "lowShoot");
+        shooterMotorLow = hardwareMap.get(DcMotorEx.class, "lowShoot");
         shooterMotorLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooterMotorLow.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        shooterMotorHigh = map.get(DcMotorEx.class, "highShoot");
+        shooterMotorHigh = hardwareMap.get(DcMotorEx.class, "highShoot");
         shooterMotorHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooterMotorHigh.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        hoodLeftServo = map.get(ServoImplEx.class, "hoodLeft");
+        hoodLeftServo = hardwareMap.get(ServoImplEx.class, "hoodLeft");
         hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
 
-        hoodRightServo = map.get(ServoImplEx.class, "hoodRight");
+        hoodRightServo = hardwareMap.get(ServoImplEx.class, "hoodRight");
         hoodRightServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
 
         shooterPID = new PIDController(SHOOTER_PARAMS.kP, SHOOTER_PARAMS.kI, SHOOTER_PARAMS.kD);
@@ -119,14 +104,6 @@ public class Shooter implements Component {
 
         shooterMotorHigh.setPower(power);
         shooterMotorLow.setPower(power);
-    }
-
-    public void setShooterVelocity(double targetVelocityTicksPerSec) {
-        shooterMotorLow.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooterMotorHigh.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        shooterMotorLow.setVelocity(targetVelocityTicksPerSec);
-        shooterMotorHigh.setVelocity(targetVelocityTicksPerSec);
     }
 
     public void setShooterVelocityPID(double targetVelocityTicksPerSec) {
@@ -144,16 +121,6 @@ public class Shooter implements Component {
 
         telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
         telemetry.addData("Shooter Current Vel", currentVelocity);
-//        telemetry.addData("Shooter PID Output", pidOutput);
-//        telemetry.addData("Shooter FeedForward", feedForward);
-//        telemetry.addData("Shooter Total Power", totalPower);
-
-        TelemetryPacket packet = new TelemetryPacket();
-        packet.put("Time (ms)", System.currentTimeMillis());
-        packet.put("Target Velocity", targetVelocityTicksPerSec);
-        packet.put("Current Velocity", currentVelocity);
-
-        dashboard.sendTelemetryPacket(packet);
     }
 
     public enum ShootingZone {
@@ -239,7 +206,7 @@ public class Shooter implements Component {
         double ux = dx / dist;
         double uy = dy / dist;
 
-        OdoInfo vel = drive.pinpoint().previousVelocities.get(0);
+        OdoInfo vel = robot.drive.pinpoint().previousVelocities.get(0);
         double vx = vel.x;
         double vy = vel.y;
 
@@ -279,12 +246,6 @@ public class Shooter implements Component {
         setShooterVelocityPID(velocity);
         telemetry.addData("ORIGINAL POWER", original_power);
 
-        TelemetryPacket packet = new TelemetryPacket();
-        packet.put("Original Velocity", original_power);
-        packet.put("Adjusted Velocity", velocity);
-
-        dashboard.sendTelemetryPacket(packet);
-
         if (ENABLE_TESTING)
             setHoodPosition(testingHoodPosition);
         else {
@@ -298,7 +259,7 @@ public class Shooter implements Component {
 
     public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
 
-        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+        targetPose = robot.alliance == Alliance.RED ? new Pose2d(-62, 58, Math.toRadians(0)) :
                 new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
@@ -320,7 +281,7 @@ public class Shooter implements Component {
 
     public double calculateHoodAnglePART2(Pose2d robotPose, Pose2d targetPose) {
 
-        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+        targetPose = robot.alliance == Alliance.RED ? new Pose2d(-62, 58, Math.toRadians(0)) :
                 new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
@@ -376,7 +337,7 @@ public class Shooter implements Component {
     }
 
     private void incrementHood(Pose2d robotPose, Pose2d targetPose) {
-        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
+        targetPose = robot.alliance == Alliance.RED ? new Pose2d(-62, 58, Math.toRadians(0)) :
                 new Pose2d(-62, -58, Math.toRadians(0));
 
         double deltaX = targetPose.position.x - robotPose.position.x;
@@ -425,7 +386,7 @@ public class Shooter implements Component {
                 break;
 
             case UPDATE:
-                updateShooterSystem(drive.localizer.getPose(), turret.targetPose);
+                updateShooterSystem(robot.drive.localizer.getPose(), robot.turret.targetPose);
                 break;
 
             case SHOOT:
@@ -440,11 +401,11 @@ public class Shooter implements Component {
                 break;
 
             case FAR_SHOT_HOOD_UPDATES:
-                farShotHoodUpdates(drive.localizer.getPose(), turret.targetPose);
+                farShotHoodUpdates(robot.drive.localizer.getPose(), robot.turret.targetPose);
                 break;
 
             case UPDATE_2:
-                updateShooterSystemPART2(drive.localizer.getPose(), turret.targetPose);
+                updateShooterSystemPART2(robot.drive.localizer.getPose(), robot.turret.targetPose);
                 break;
         }
 
@@ -454,14 +415,14 @@ public class Shooter implements Component {
 //        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
 
-        OdoInfo vel = drive.pinpoint().previousVelocities.get(0);
+        OdoInfo vel = robot.drive.pinpoint().previousVelocities.get(0);
         double vx = vel.x;
         double vy = vel.y;
         double angle = Math.toDegrees(vel.headingRad);
         telemetry.addData("X VELOCITY", vx);
         telemetry.addData("Y VELOCITY", vy);
         telemetry.addData("ANGLE VELOCITY DEG", angle);
-        telemetry.addData("TOTAL VELOCITY", computeVelocityTowardGoal(drive.localizer.getPose(), turret.targetPose));
+        telemetry.addData("TOTAL VELOCITY", computeVelocityTowardGoal(robot.drive.localizer.getPose(), robot.turret.targetPose));
     }
     @Override
     public String test(){
@@ -500,4 +461,9 @@ public class Shooter implements Component {
         };
     }
 
+
+    @Override
+    public void printInfo() {
+
+    }
 }

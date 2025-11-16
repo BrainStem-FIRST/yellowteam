@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.AutoPositions;
@@ -27,7 +28,7 @@ public class BlueFarPartnerAuto extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         Pose2d startPose = new Pose2d(63.5, -18.5, Math.toRadians(180));
 
-        BrainSTEMRobot robot = new BrainSTEMRobot(telemetry, hardwareMap, startPose);
+        BrainSTEMRobot robot = new BrainSTEMRobot(Alliance.BLUE, telemetry, hardwareMap, startPose);
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         AutoPositions autoPositions = new AutoPositions(drive);
@@ -48,8 +49,6 @@ public class BlueFarPartnerAuto extends LinearOpMode {
                 autoCommands.savePoseContinuously,
 
                 new SequentialAction(
-                    autoCommands.setBlueAlliance(),
-
                         new ParallelAction(
                             autoCommands.enableTurretTracking(),
                             autoCommands.engageClutch(),
