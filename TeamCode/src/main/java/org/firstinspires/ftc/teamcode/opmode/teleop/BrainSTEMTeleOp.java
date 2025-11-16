@@ -56,13 +56,16 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         lastFrameAdvancedPrediction = PoseStorage.currentPose;
 
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
+        CommandScheduler.getInstance().reset();
 
         brainSTEMRobot = new BrainSTEMRobot(telemetry, hardwareMap, PoseStorage.currentPose); //take pose from auto
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
 
-        CommandScheduler.getInstance().reset();
-
+        if (Shooter.ENABLE_TESTING) {
+            telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+            telemetry.update();
+        }
         waitForStart();
         int framesRunning = 0;
         long startTimeNano = System.nanoTime();
@@ -124,6 +127,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
                 brainSTEMRobot.shooter.shooterState = Shooter.ShooterState.UPDATE;
+        if (gp1.isFirstDpadDown())
+            brainSTEMRobot.shooter.shooterTrackerCommand(gp1).schedule();
+
 
         if (gp1.isFirstX())
             if (brainSTEMRobot.turret.turretState == Turret.TurretState.CENTER)

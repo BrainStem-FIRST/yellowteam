@@ -6,23 +6,33 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
+import com.arcrobotics.ftclib.command.Command;
+import com.arcrobotics.ftclib.command.Subsystem;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Component;
+import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
+
+import java.util.Collections;
+import java.util.Set;
 
 @Config
 public class Shooter implements Component {
 
+    public static boolean ENABLE_TESTING = false;
+    public static double testingShootVelocity = 1300, testingHoodPosition = 0.5;
     private HardwareMap map;
     private Telemetry telemetry;
     private FtcDashboard dashboard;
@@ -53,14 +63,14 @@ public class Shooter implements Component {
         public double B_FAR_VALUE = 725;
         public double SLOPE_CLOSE_VALUE = 4.53882;
         public double SLOPE_FAR_VALUE = 4.03631;
-        public double TARGET_VELOCITY = 1525;
+        public double TARGET_VELOCITY = 1525; //1525
         public double VELOCITY_OFFSET = 1;
-        public double VELOCITY_CORRECTION = 1.5;
+        public double VELOCITY_CORRECTION = 1;
 
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kF = 0.00047;
+        public double kF = 0.00056;
     }
 
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
@@ -69,6 +79,8 @@ public class Shooter implements Component {
     private boolean wasAboveThreshold = true;
     private double servoPos = 0;
     public double adjustment = 0;
+    private final ElapsedTime recordTimer;
+
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive, Turret turret){
         this.map = hardwareMap;
@@ -98,6 +110,7 @@ public class Shooter implements Component {
         shooterPID = new PIDController(SHOOTER_PARAMS.kP, SHOOTER_PARAMS.kI, SHOOTER_PARAMS.kD);
 
         shooterState = ShooterState.OFF;
+        recordTimer = new ElapsedTime();
     }
 
     public void setShooterPower(double power) {
@@ -198,7 +211,8 @@ public class Shooter implements Component {
         double x = distance * 0.0254; // convert inches to meters
         double y = heightToTarget * 0.0254; // convert inches to meters
 
-        double v = actualVelocityMps;
+        double robotVelToGoal = computeVelocityTowardGoal(robotPose, targetPose);
+        double v = actualVelocityMps + robotVelToGoal * SHOOTER_PARAMS.VELOCITY_CORRECTION;
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
         if (discriminant <= 0)
             return Math.toRadians(40);
@@ -240,42 +254,46 @@ public class Shooter implements Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
-        double power = 0;
+        double velocity = 0;
         double original_power = 0;
 
 //        if (robotPose.position.x < 50) {
 //            original_power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
 //            double shooter_mps = ticksPerSecToMps(original_power);
-//            double robot_mps = computeVelocityTowardGoal(robotPose, targetPose) * 0.0254;
+//            double robot_mps = computeVelocityTowardGoal(robotPose, targetPose) * 0.0254; // actually returns negative value
 //            double needed_mps = shooter_mps + (robot_mps * SHOOTER_PARAMS.VELOCITY_CORRECTION);
 //            telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(needed_mps));
 //            telemetry.addData("ROBOT MPS", robot_mps);
 //            if (needed_mps < 0) needed_mps = 0;
 //            power = mpsToTicksPerSec(needed_mps);
 //        }
+        if (ENABLE_TESTING)
+            velocity = testingShootVelocity;
+        else {
+            if (robotPose.position.x < 50)
+                velocity = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+            else
+                velocity = SHOOTER_PARAMS.TARGET_VELOCITY;
+        }
 
-        if (robotPose.position.x < 50)
-            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
-        else
-            power = SHOOTER_PARAMS.TARGET_VELOCITY;
-
-        setShooterVelocityPID(power);
+        setShooterVelocityPID(velocity);
         telemetry.addData("ORIGINAL POWER", original_power);
 
         TelemetryPacket packet = new TelemetryPacket();
         packet.put("Original Velocity", original_power);
-        packet.put("Adjusted Velocity", power);
+        packet.put("Adjusted Velocity", velocity);
 
         dashboard.sendTelemetryPacket(packet);
 
-        calculateHoodAngle(robotPose, targetPose);
-        double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-
-        if (robotPose.position.x < 50)
-            setHoodFromAngle(hoodAngle);
-        else
-            setHoodPosition(1);
-
+        if (ENABLE_TESTING)
+            setHoodPosition(testingHoodPosition);
+        else {
+            double hoodAngle = calculateHoodAngle(robotPose, targetPose);
+            if (robotPose.position.x < 50)
+                setHoodFromAngle(hoodAngle);
+            else
+                setHoodPosition(1);
+        }
     }
 
     public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
@@ -380,10 +398,10 @@ public class Shooter implements Component {
     }
 
     // doesn't account for slippage
-//    public double mpsToTicksPerSec(double mps) {
-//        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
-//        return (mps / wheelCircumference) * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
-//    }
+    public double mpsToTicksPerSec(double mps) {
+        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
+        return (mps / wheelCircumference) * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
+    }
 
     public void setHoodPosition(double position) {
         hoodLeftServo.setPosition(position);
@@ -449,4 +467,37 @@ public class Shooter implements Component {
     public String test(){
         return null;
     }
+    public Command shooterTrackerCommand(GamepadTracker g) {
+        return new Command() {
+            private int num = 0;
+            private double lastTime = 0;
+            @Override
+            public void execute() {
+                if (recordTimer.milliseconds() - lastTime > ShooterSpeedRecorder.recordIntervalMs
+                        && num < ShooterSpeedRecorder.recordAmountForEachShot
+                        && ShooterSpeedRecorder.getCurrentShot() < ShooterSpeedRecorder.numShotsToRecord) {
+                    lastTime = recordTimer.milliseconds();
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][0] = recordTimer.seconds();
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][1] = shooterPID.getTarget();
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][2] = -shooterMotorHigh.getVelocity();
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][3] = shooterMotorHigh.getPower();
+                    num++;
+                }
+            }
+            @Override
+            public void end(boolean interrupted) {
+                ShooterSpeedRecorder.incrementCurrentShot();
+            }
+            @Override
+            public boolean isFinished() {
+                return !g.gamepad.dpad_down || num >= ShooterSpeedRecorder.recordAmountForEachShot;
+            }
+
+            @Override
+            public Set<Subsystem> getRequirements() {
+                return Collections.emptySet();
+            }
+        };
+    }
+
 }

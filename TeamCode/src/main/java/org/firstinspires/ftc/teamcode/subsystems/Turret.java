@@ -92,21 +92,14 @@ public final class Turret implements Component {
     }
 
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
-        Vec robotToTarget = new Vec(targetPose.position.x - robotPose.position.x, targetPose.position.y - robotPose.position.y);
-        Vec robotToTargetNormalized = robotToTarget.normalize();
+        double deltaX = targetPose.position.x - robotPose.position.x;
+        double deltaY = targetPose.position.y - robotPose.position.y;
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
 
-        // calculating relative velocity of ball
-        // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
-        double ballExitSpeedMps = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
-        Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
-        OdoInfo robotVelocity = robot.drive.pinpoint().previousVelocities.get(0);
-        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
-
-//        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
-        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
+        double targetAngle = Math.atan2(deltaY, deltaX);
+//        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
@@ -134,6 +127,50 @@ public final class Turret implements Component {
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
     }
+
+//    public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
+//        Vec robotToTarget = new Vec(targetPose.position.x - robotPose.position.x, targetPose.position.y - robotPose.position.y);
+//        Vec robotToTargetNormalized = robotToTarget.normalize();
+//        double turretMax = Math.toRadians(90);
+//        double turretMin = Math.toRadians(-90);
+//        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
+//
+//        // calculating relative velocity of ball
+//        // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
+//        double ballExitSpeedMps = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+//        Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
+//        OdoInfo robotVelocity = robot.drive.pinpoint().previousVelocities.get(0);
+//        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
+//
+//        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
+////        double targetAngle = Math.atan2(ballRelativeExitVel.y, ballRelativeExitVel.x);
+//        double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
+//        turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
+//
+//        if (turretTargetAngle > turretMax)
+//            turretTargetAngle = Math.PI - turretTargetAngle; //mirror angle
+//        else if (turretTargetAngle < turretMin)
+//            turretTargetAngle = -Math.PI - turretTargetAngle;
+//
+//        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
+//
+////        telemetry.addData("Turret Angle", turretTargetAngle);
+////        telemetry.addData("Turret Target", targetTurretPosition);
+////        telemetry.addData("Turret Pose X", robotPose.position.x);
+////        telemetry.addData("Turret Pose Y", robotPose.position.y);
+//
+//        TelemetryPacket packet = new TelemetryPacket();
+//        packet.put("Turret Angle", turretTargetAngle);
+//        packet.put("Turret Target", targetTurretPosition);
+//        packet.put("Turret Encoder", getTurretEncoder());
+//
+//        dashboard.sendTelemetryPacket(packet);
+//
+//        targetTurretPosition += adjustment;
+//
+//        targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
+//        setTurretPosition(targetTurretPosition);
+//    }
 
     private void fineAdjustTurretWithTag(AprilTagDetection tag) {
         if (tag == null) return;
