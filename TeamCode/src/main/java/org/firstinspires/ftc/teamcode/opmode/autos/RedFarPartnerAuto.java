@@ -36,7 +36,10 @@ public class RedFarPartnerAuto extends LinearOpMode {
 
         Action driveToShootingPose = autoPositions.driveToFarShootingPose(startPose);
         Action thirdLineShots = autoPositions.thirdLineShots(false);
+        Action secondLineShots = autoPositions.secondLineShots(false);
+        Action firstLineShots = autoPositions.firstLineShots(false);
         Action humanPlayerShots = autoPositions.humanPlayerShots(false);
+        Action secondLineToGate = autoPositions.secondLineToGate(false);
 
         telemetry.addLine("Ready");
         telemetry.update();
@@ -64,7 +67,29 @@ public class RedFarPartnerAuto extends LinearOpMode {
                     // SHOOT 3 PRELOADS
                     autoCommands.runIntake(),
                     new SleepAction(3),
-                    autoCommands.disengageClutch(),
+                    autoCommands.disengageClutch()
+
+                        // COLLECT AND SHOOT HP LINE
+                        ,humanPlayerShots
+                        ,autoCommands.engageClutch(),
+                        new SleepAction(3),
+//                    autoCommands.waitForSeconds(0.5),
+//                    autoCommands.spinUpShooter(),
+//                    autoCommands.engageClutch(),
+//                    autoCommands.waitForSeconds(3),
+
+                        // COLLECT AND SHOOT THIRD LINE
+                        secondLineToGate,
+                        autoCommands.engageClutch(),
+                        new SleepAction(3),
+                        autoCommands.disengageClutch(),
+//                    autoCommands.waitForSeconds(0.5),
+//                    autoCommands.spinUpShooter(),
+//                    autoCommands.engageClutch(),
+//                    autoCommands.waitForSeconds(3),
+//                    autoCommands.disengageClutch(),
+
+
 
                     // COLLECT AND SHOOT THIRD LINE
                     thirdLineShots,
@@ -77,14 +102,17 @@ public class RedFarPartnerAuto extends LinearOpMode {
 //                    autoCommands.waitForSeconds(3),
 //                    autoCommands.disengageClutch(),
 //
-//                    // COLLECT AND SHOOT HP LINE
-                    ,humanPlayerShots
-                    ,autoCommands.engageClutch(),
+//
+//                    // COLLECT AND SHOOT THIRD LINE
+                    ,firstLineShots,
+                    autoCommands.engageClutch(),
                     new SleepAction(3)
-//                    autoCommands.waitForSeconds(0.5),
-//                    autoCommands.spinUpShooter(),
-//                    autoCommands.engageClutch(),
-//                    autoCommands.waitForSeconds(3),
+//                    autoCommands.disengageClutch()
+////                    autoCommands.waitForSeconds(0.5),
+////                    autoCommands.spinUpShooter(),
+////                    autoCommands.engageClutch(),
+////                    autoCommands.waitForSeconds(3),
+////                    autoCommands.disengageClutch(),
 //
 //                    // POWER DOWN SUBSYSTEMS
 //                    autoCommands.stopIntake(),

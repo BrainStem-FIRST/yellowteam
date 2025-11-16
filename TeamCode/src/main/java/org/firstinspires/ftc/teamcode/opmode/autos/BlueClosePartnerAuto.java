@@ -52,6 +52,7 @@ public class BlueClosePartnerAuto extends LinearOpMode {
 
                 new ParallelAction(
                         autoCommands.updateRobot,
+
                         autoCommands.savePoseContinuously,
 //                        autoCommands.saveTurretContinuously,
 
