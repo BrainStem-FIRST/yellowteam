@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
+import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.Vec;
@@ -27,7 +28,7 @@ public class Turret extends Component {
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
-        public double predictVelocityRobotSpeedThreshold = 2;
+        public double predictVelocityRobotSpeedThresholdInchesPerSec = 2;
         public double predictVelocityMultiplier = 5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
@@ -39,7 +40,7 @@ public class Turret extends Component {
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose = new Pose2d(-62, 62, 0);
-    public Vec robotVelocity, relativeBallExitVelocity, globalBallExitVelocity;
+    public Vec turretVelocity, relativeBallExitVelocity, globalBallExitVelocity;
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
@@ -48,7 +49,7 @@ public class Turret extends Component {
 
         pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
-        robotVelocity = new Vec(0, 0);
+        turretVelocity = new Vec(0, 0);
         relativeBallExitVelocity = new Vec(0, 0);
         globalBallExitVelocity = new Vec(0, 0);
     }
@@ -94,27 +95,42 @@ public class Turret extends Component {
         double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad());
     }
-    public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
+    public void poseTargetToTurretTicks (Pose2d currentRobotPose, Pose2d targetPose) {
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
-        Pose2d turretPose = getTurretPose(robotPose);
-        Vec turretToGoal = new Vec(targetPose.position.x - turretPose.position.x,
-                targetPose.position.y - turretPose.position.y).normalize();
-        Vec robotVelocityInchesPerSec = robot.drive.pinpoint().getMostRecentVelocity().vec();
+        Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime);
+        Pose2d currentTurretPose = getTurretPose(currentRobotPose);
+        Pose2d futureTurretPose = getTurretPose(futureRobotPose);
+
+        // this predicts turret velocity, but should i predict turret velocity? or use most recent velocity? idk
+        OdoInfo turretVelocityInchesPerSec = new OdoInfo(
+                futureTurretPose.position.x - currentTurretPose.position.x,
+                futureTurretPose.position.y - currentTurretPose.position.y,
+                futureTurretPose.heading.toDouble() - currentTurretPose.heading.toDouble()
+        );
+        Vec turretLinearVelocityInchesPerSec = turretVelocityInchesPerSec.vec();
+
+        // predict turret position to account for turret lag
+        Vec turretToGoal = new Vec(targetPose.position.x - futureTurretPose.position.x,
+                targetPose.position.y - futureTurretPose.position.y).normalize();
 
         double targetAngle;
         // only account for robot velocity if it is significant
-        if (robotVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityRobotSpeedThreshold && useRelativeVelocityCorrection) {
+        if (turretLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityRobotSpeedThresholdInchesPerSec && useRelativeVelocityCorrection) {
             // find speed of ball relative to the ground (magnitude only)
             double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+
             // find velocity of ball relative to the ground (direction and magnitude)
             globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
+
             // find robot velocity in meters and apply empirical multiplier
-            robotVelocity = robot.drive.pinpoint().getMostRecentVelocity().vec().mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
+            turretVelocity = turretLinearVelocityInchesPerSec.mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
+
             // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
-            relativeBallExitVelocity = globalBallExitVelocity.sub(robotVelocity);
+            relativeBallExitVelocity = globalBallExitVelocity.sub(turretVelocity);
+
             // find angle to shoot at relative velocity
             targetAngle = Math.atan2(relativeBallExitVelocity.y, relativeBallExitVelocity.x);
         }
@@ -122,7 +138,7 @@ public class Turret extends Component {
             // find angle to shoot at normally
             targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
 
-        double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
+        double turretTargetAngle = targetAngle - currentRobotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
         if (turretTargetAngle > turretMax)
@@ -180,7 +196,7 @@ public class Turret extends Component {
                 break;
 
             case TRACKING:
-                poseTargetToTurretTicks(robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime), targetPose);
+                poseTargetToTurretTicks(robot.drive.pinpoint().getPose(), targetPose);
                 break;
 
             case CENTER:

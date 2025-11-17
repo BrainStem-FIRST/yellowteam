@@ -279,8 +279,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         fieldOverlay.setStroke("black");
         fieldOverlay.strokeLine(robotPose.position.x,
                 robotPose.position.y,
-                robotPose.position.x + robot.turret.robotVelocity.x,
-                robotPose.position.y + robot.turret.robotVelocity.y);
+                robotPose.position.x + robot.turret.turretVelocity.x,
+                robotPose.position.y + robot.turret.turretVelocity.y);
         if (showRelative) {
             Vec vec = robot.turret.relativeBallExitVelocity.normalize().mult(velocitySize);
             fieldOverlay.setStroke("green");
