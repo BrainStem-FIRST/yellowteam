@@ -61,7 +61,6 @@ public class BrainSTEMRobot {
     }
     public void update(){
         drive.updatePoseEstimate();
-        turret.updateCaches(drive.pinpoint().getPose());
 
         for (Component c : subsystems) {
             c.update();

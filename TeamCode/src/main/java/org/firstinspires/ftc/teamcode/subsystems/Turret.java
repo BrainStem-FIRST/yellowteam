@@ -17,6 +17,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 public class Turret extends Component {
     public static boolean useRelativeVelocityCorrection = true;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
+
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
@@ -78,13 +79,20 @@ public class Turret extends Component {
 
         turretMotor.setPower(smoothPower);
     }
-    public Pose2d getTurretPose(Pose2d robotPose) {
+
+    public void resetEncoders() {
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+    public double getTurretRelativeAngleRad() {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        return turretMotor.getCurrentPosition() / turretTicksPerRadian;
+    }
+    public Pose2d getTurretPose(Pose2d robotPose) {
         double robotHeading = robotPose.heading.toDouble();
         double xOffset = -Math.cos(robotHeading) * offsetFromCenter;
         double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
-        double headingOffsetRad = turretMotor.getCurrentPosition() / turretTicksPerRadian;
-        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + headingOffsetRad);
+        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad());
     }
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
         double turretMax = Math.toRadians(90);
@@ -119,44 +127,6 @@ public class Turret extends Component {
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
     }
-
-//    public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
-//        Vec robotToTarget = new Vec(targetPose.position.x - robotPose.position.x, targetPose.position.y - robotPose.position.y);
-//        Vec robotToTargetNormalized = robotToTarget.normalize();
-//        double turretMax = Math.toRadians(90);
-//        double turretMin = Math.toRadians(-90);
-//        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI) * 1;
-//
-//        // calculating relative velocity of ball
-//        // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
-//        double ballExitSpeedMps = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
-//        Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
-//        OdoInfo robotVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-//        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
-//
-//        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
-//        double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
-//        turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
-//
-//        if (turretTargetAngle > turretMax)
-//            turretTargetAngle = Math.PI - turretTargetAngle; //mirror angle
-//        else if (turretTargetAngle < turretMin)
-//            turretTargetAngle = -Math.PI - turretTargetAngle;
-//
-//        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
-//
-//        TelemetryPacket packet = new TelemetryPacket();
-//        packet.put("Turret Angle", turretTargetAngle);
-//        packet.put("Turret Target", targetTurretPosition);
-//        packet.put("Turret Encoder", getTurretEncoder());
-//
-//        dashboard.sendTelemetryPacket(packet);
-//
-//        targetTurretPosition += adjustment;
-//
-//        targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
-//        setTurretPosition(targetTurretPosition);
-//    }
 
     private void fineAdjustTurretWithTag(AprilTagDetection tag) {
         if (tag == null) return;
