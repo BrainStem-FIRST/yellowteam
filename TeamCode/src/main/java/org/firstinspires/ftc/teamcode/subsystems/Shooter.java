@@ -28,7 +28,8 @@ import java.util.Set;
 public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
 
     public static boolean ENABLE_TESTING = false;
-    public static double testingShootVelocity = 1300, testingHoodPosition = 0.5;
+    public static boolean useVelocity = false;
+    public static double testingShootPower = 0.99, testingShootVelocity = 1300, testingHoodPosition = 0.5;
     public DcMotorEx shooterMotorLow; // encoders for this one are cooked
     public DcMotorEx shooterMotorHigh; // encoders only work for this one
     public ServoImplEx hoodLeftServo;
@@ -45,7 +46,6 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
         public double BALL_RADIUS = 0.064;
         public double SLIP_COEFFICIENT = 0.4386;
         public double FLYWHEEL_TICKS_PER_REV = 32; // ticks in 1 rotation of the motor
-        public double SHOOTER_POWER = 1.0;
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.7;
         public double FAR_SHOOTER_POWER = 0.9;
@@ -99,9 +99,6 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
     }
 
     public void setShooterPower(double power) {
-        shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         shooterMotorHigh.setPower(power);
         shooterMotorLow.setPower(power);
     }
@@ -206,19 +203,19 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
         double ux = dx / dist;
         double uy = dy / dist;
 
-        OdoInfo vel = robot.drive.pinpoint().previousVelocities.get(0);
+        OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
         double vx = vel.x;
         double vy = vel.y;
 
         return vx*ux + vy*uy;
     }
 
-    public void updateShooterSystem(Pose2d robotPose, Pose2d targetPose) {
+    public void updateShooterSystem(Pose2d turretPose, Pose2d targetPose) {
 
 //        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
 //                new Pose2d(-62, -58, Math.toRadians(0));
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
+        double deltaX = targetPose.position.x - turretPose.position.x;
+        double deltaY = targetPose.position.y - turretPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
         double velocity = 0;
@@ -237,20 +234,23 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
         if (ENABLE_TESTING)
             velocity = testingShootVelocity;
         else {
-            if (robotPose.position.x < 50)
+            if (turretPose.position.x < 50)
                 velocity = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
             else
                 velocity = SHOOTER_PARAMS.TARGET_VELOCITY;
         }
 
-        setShooterVelocityPID(velocity);
+        if (!ENABLE_TESTING || useVelocity)
+            setShooterVelocityPID(velocity);
+        else
+            setShooterPower(testingShootPower);
         telemetry.addData("ORIGINAL POWER", original_power);
 
         if (ENABLE_TESTING)
             setHoodPosition(testingHoodPosition);
         else {
-            double hoodAngle = calculateHoodAngle(robotPose, targetPose);
-            if (robotPose.position.x < 50)
+            double hoodAngle = calculateHoodAngle(turretPose, targetPose);
+            if (turretPose.position.x < 50)
                 setHoodFromAngle(hoodAngle);
             else
                 setHoodPosition(1);
@@ -386,7 +386,7 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
                 break;
 
             case UPDATE:
-                updateShooterSystem(robot.drive.localizer.getPose(), robot.turret.targetPose);
+                updateShooterSystem(robot.turret.getTurretPose(robot.drive.localizer.getPose()), robot.turret.targetPose);
                 break;
 
             case SHOOT:
@@ -415,7 +415,7 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
 //        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
 
-        OdoInfo vel = robot.drive.pinpoint().previousVelocities.get(0);
+        OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
         double vx = vel.x;
         double vy = vel.y;
         double angle = Math.toDegrees(vel.headingRad);
@@ -464,6 +464,5 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
 
     @Override
     public void printInfo() {
-
     }
 }

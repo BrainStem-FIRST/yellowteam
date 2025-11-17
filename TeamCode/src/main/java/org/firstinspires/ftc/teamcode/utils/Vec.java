@@ -22,12 +22,12 @@ public class Vec {
     }
 
     // Multiply by scalar
-    public Vec mul(double s) {
+    public Vec mult(double s) {
         return new Vec(this.x * s, this.y * s);
     }
 
     // Element-wise multiply vector
-    public Vec mul(Vec other) {
+    public Vec mult(Vec other) {
         return new Vec(this.x * other.x, this.y * other.y);
     }
 

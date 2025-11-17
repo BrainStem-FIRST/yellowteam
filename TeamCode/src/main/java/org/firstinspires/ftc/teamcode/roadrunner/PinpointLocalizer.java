@@ -214,4 +214,10 @@ public final class PinpointLocalizer implements Localizer {
             dt += previousDeltaTimes.get(i) * posePredictParams.dtWeights[i];
         return dt;
     }
+
+    public OdoInfo getMostRecentVelocity() {
+        if (previousVelocities.isEmpty())
+            return new OdoInfo(0, 0, 0);
+        return previousVelocities.get(0).clone();
+    }
 }

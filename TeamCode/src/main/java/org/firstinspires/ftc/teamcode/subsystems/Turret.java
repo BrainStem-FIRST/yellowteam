@@ -17,6 +17,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
 public class Turret extends Subsystem {
+    public static boolean useRelativeVelocityCorrection = true;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
@@ -24,22 +25,22 @@ public class Turret extends Subsystem {
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
         public double lookAheadTime = 0.09; // time to look ahead for pose prediction
         public double smoothPowerLerpValue = 1, useSmoothLerpValuePowerDiffThreshold = 0.6;
-        public int TURRET_INCREMENT = 60;
-        public int TURRET_MAX = 300;
-        public int TURRET_MIN = -300;
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
-        public double TAG_LOCK_THRESHOLD = 1.0;
-        public double TAG_LOST_THRESHOLD = 0.5;
+        public double predictVelocityBallExitSpeedThreshold = 1;
+        public double predictVelocityMultiplier = 5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
+    public enum TurretState {
+        OFF, TRACKING, CENTER, PARK, RESET
+    }
     public DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose = new Pose2d(-62, 62, 0);
-
+    public Vec robotVelocity, relativeBallExitVelocity, globalBallExitVelocity;
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
@@ -48,6 +49,9 @@ public class Turret extends Subsystem {
 
         pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
+        robotVelocity = new Vec(0, 0);
+        relativeBallExitVelocity = new Vec(0, 0);
+        globalBallExitVelocity = new Vec(0, 0);
     }
 
     @Override
@@ -85,14 +89,23 @@ public class Turret extends Subsystem {
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + headingOffsetRad);
     }
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
-        Pose2d turretPosition = getTurretPose(robotPose);
-        Vec turretToGoal = new Vec(targetPose.position.x - turretPosition.position.x, targetPose.position.y - turretPosition.position.y).normalize();
-
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
-        double targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
+        Pose2d turretPose = getTurretPose(robotPose);
+        Vec turretToGoal = new Vec(targetPose.position.x - turretPose.position.x, targetPose.position.y - turretPose.position.y).normalize();
+        double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+        double targetAngle;
+        if (ballExitSpeed > TURRET_PARAMS.predictVelocityBallExitSpeedThreshold && useRelativeVelocityCorrection) {
+            globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
+            robotVelocity = robot.drive.pinpoint().getMostRecentVelocity().vec().mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
+            relativeBallExitVelocity = globalBallExitVelocity.sub(robotVelocity);
+            targetAngle = Math.atan2(relativeBallExitVelocity.y, relativeBallExitVelocity.x);
+        }
+        else
+            targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
+
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
         turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
 
@@ -120,7 +133,7 @@ public class Turret extends Subsystem {
 //        // assuming no angular velocity b/c turret SHOULD be accounting for that by tracking goal
 //        double ballExitSpeedMps = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
 //        Vec ballAbsoluteExitVel = robotToTargetNormalized.mul(ballExitSpeedMps);
-//        OdoInfo robotVelocity = robot.drive.pinpoint().previousVelocities.get(0);
+//        OdoInfo robotVelocity = robot.drive.pinpoint().getMostRecentVelocity();
 //        Vec ballRelativeExitVel = ballAbsoluteExitVel.sub(robotVelocity.vec());
 //
 //        double targetAngle = Math.atan2(robotToTargetNormalized.y, robotToTargetNormalized.x);
@@ -166,10 +179,6 @@ public class Turret extends Subsystem {
         double power = pidController.update(tagX);
         turretMotor.setPower(-power);
 //        setTurretPosition(targetTicks);
-    }
-
-    public enum TurretState {
-        OFF, TRACKING, CENTER, PARK, RESET
     }
 
     @Override
@@ -223,5 +232,6 @@ public class Turret extends Subsystem {
         telemetry.addData("motor power", turretMotor.getPower());
         telemetry.addData("motor position", turretMotor.getCurrentPosition());
         telemetry.addData("motor velocity", turretMotor.getVelocity());
+        telemetry.addData("exit speed", robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity()));
     }
 }

@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -21,9 +24,12 @@ import org.firstinspires.ftc.teamcode.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.TelemetryHelper;
+import org.firstinspires.ftc.teamcode.utils.Vec;
 
 @Config
 public abstract class BrainSTEMTeleOp extends LinearOpMode {
+    public static boolean showRelative = false, showGlobal = true;
+    public static double velocitySize = 10;
     public enum PosePredictType {
         SIMPLE,
         ADVANCED,
@@ -56,7 +62,11 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         gp2 = new GamepadTracker(gamepad2);
 
         if (Shooter.ENABLE_TESTING) {
-            telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+            if (Shooter.useVelocity)
+                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+            else
+                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+
             telemetry.update();
         }
         waitForStart();
@@ -73,10 +83,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
             robot.update();
 
-            Pose2d robotPose = robot.drive.pinpoint().getPose();
-            TelemetryHelper.sendRobotPose(robotPose, robot.turret.getTurretPose(robotPose));
+            updateDashboardField();
 //            updatePosePredict();
 
+            telemetry.addData("shooter motor encoder", robot.shooter.shooterMotorHigh.getCurrentPosition());
             // print delta time
             framesRunning++;
             double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
@@ -222,9 +232,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         PinpointLocalizer pinpoint = robot.drive.pinpoint();
         Pose2d actualPose = pinpoint.getPose();
         switch (posePredictType) {
-            case SIMPLE: TelemetryHelper.sendRobotPose(actualPose, lastFrameSimplePrediction, pinpoint.lastPose); break;
-            case ADVANCED: TelemetryHelper.sendRobotPose(actualPose, lastFrameAdvancedPrediction, pinpoint.lastPose); break;
-            case CONTROL: TelemetryHelper.sendRobotPose(actualPose, pinpoint.lastPose); break;
+            case SIMPLE: TelemetryHelper.sendRobotPoses(actualPose, lastFrameSimplePrediction, pinpoint.lastPose); break;
+            case ADVANCED: TelemetryHelper.sendRobotPoses(actualPose, lastFrameAdvancedPrediction, pinpoint.lastPose); break;
+            case CONTROL: TelemetryHelper.sendRobotPoses(actualPose, pinpoint.lastPose); break;
         }
         lastFrameSimplePrediction = pinpoint.getNextPoseSimple(timeAheadToPredict == -1 ? pinpoint.getWeightedDt() : timeAheadToPredict);
         lastFrameAdvancedPrediction = pinpoint.getNextPoseAdvanced();
@@ -258,4 +268,43 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         );
         PosePredictionErrorRecorder.controlGroupError.add(controlGroupError);
     }
+    private void updateDashboardField() {
+        Pose2d robotPose = robot.drive.pinpoint().getPose();
+        Pose2d turretPose = robot.turret.getTurretPose(robotPose);
+
+        TelemetryPacket packet = new TelemetryPacket();
+        Canvas fieldOverlay = packet.fieldOverlay();
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose);
+        fieldOverlay.setAlpha(1);
+        fieldOverlay.setStroke("black");
+        fieldOverlay.strokeLine(robotPose.position.x,
+                robotPose.position.y,
+                robotPose.position.x + robot.turret.robotVelocity.x,
+                robotPose.position.y + robot.turret.robotVelocity.y);
+        if (showRelative) {
+            Vec vec = robot.turret.relativeBallExitVelocity.normalize().mult(velocitySize);
+            fieldOverlay.setStroke("green");
+            fieldOverlay.strokeLine(turretPose.position.x,
+                    turretPose.position.y,
+                    turretPose.position.x + vec.x,
+                    turretPose.position.y + vec.y
+            );
+        }
+        if (showGlobal) {
+            Vec vec = robot.turret.globalBallExitVelocity.normalize().mult(velocitySize);
+            fieldOverlay.setStroke("blue");
+            fieldOverlay.strokeLine(turretPose.position.x,
+                    turretPose.position.y,
+                    turretPose.position.x + vec.x,
+                    turretPose.position.y + vec.y
+            );
+        }
+
+        fieldOverlay.setStroke("yellow");
+        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
+        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+
+//       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
+    }
+
 }

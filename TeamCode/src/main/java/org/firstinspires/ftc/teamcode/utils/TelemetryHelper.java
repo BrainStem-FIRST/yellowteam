@@ -10,13 +10,17 @@ import com.acmerobotics.roadrunner.Pose2d;
 public class TelemetryHelper {
     public static String[] colors = { "red", "green", "blue" };
     public static Integer[] strokeWidths = { 1, 1, 1 };
+    public static Integer[] radii = { 3, 3, 3 };
     public static int numPosesToShow = 2;
     public static double strokeAlpha = 0.5;
-    public static double fieldRotation = 90, robotRadius = 5;
+    public static double fieldRotation = 0;
 
-    public static void sendRobotPose(Pose2d ...poses) {
+    public static void sendRobotPoses(Pose2d ...poses) {
         TelemetryPacket packet = new TelemetryPacket();
-        Canvas fieldOverlay = packet.fieldOverlay();
+        addRobotPoseToCanvas(packet.fieldOverlay(), poses);
+        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+    }
+    public static void addRobotPoseToCanvas(Canvas fieldOverlay, Pose2d...poses) {
         fieldOverlay.setRotation(Math.toRadians(fieldRotation)); // rotate 90deg clockwise
 
         for (int i=0; i<Math.min(numPosesToShow, poses.length); i++) {
@@ -25,9 +29,8 @@ public class TelemetryHelper {
             fieldOverlay.setStrokeWidth(strokeWidths[i % strokeWidths.length]);
             fieldOverlay.setStroke(colors[i % colors.length]);
             double x = pose.position.x, y = pose.position.y, heading = pose.heading.toDouble();
-            fieldOverlay.strokeCircle(x, y, robotRadius);
-            fieldOverlay.strokeLine(x, y, x + robotRadius * Math.cos(heading), y + robotRadius * Math.sin(heading));
+            fieldOverlay.strokeCircle(x, y, radii[i]);
+            fieldOverlay.strokeLine(x, y, x + radii[i] * Math.cos(heading), y + radii[i] * Math.sin(heading));
         }
-        FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
 }
