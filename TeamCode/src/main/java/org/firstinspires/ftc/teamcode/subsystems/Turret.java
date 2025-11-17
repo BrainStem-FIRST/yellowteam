@@ -27,7 +27,7 @@ public class Turret extends Component {
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
-        public double predictVelocityBallExitSpeedThreshold = 0.2;
+        public double predictVelocityRobotSpeedThreshold = 2;
         public double predictVelocityMultiplier = 5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
@@ -102,17 +102,24 @@ public class Turret extends Component {
         Pose2d turretPose = getTurretPose(robotPose);
         Vec turretToGoal = new Vec(targetPose.position.x - turretPose.position.x,
                 targetPose.position.y - turretPose.position.y).normalize();
-        double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+        Vec robotVelocityInchesPerSec = robot.drive.pinpoint().getMostRecentVelocity().vec();
 
         double targetAngle;
-        // if shooter speed is too slow, don't account for relative velocity
-        if (ballExitSpeed > TURRET_PARAMS.predictVelocityBallExitSpeedThreshold && useRelativeVelocityCorrection) {
+        // only account for robot velocity if it is significant
+        if (robotVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityRobotSpeedThreshold && useRelativeVelocityCorrection) {
+            // find speed of ball relative to the ground (magnitude only)
+            double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+            // find velocity of ball relative to the ground (direction and magnitude)
             globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
+            // find robot velocity in meters and apply empirical multiplier
             robotVelocity = robot.drive.pinpoint().getMostRecentVelocity().vec().mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
+            // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
             relativeBallExitVelocity = globalBallExitVelocity.sub(robotVelocity);
+            // find angle to shoot at relative velocity
             targetAngle = Math.atan2(relativeBallExitVelocity.y, relativeBallExitVelocity.x);
         }
         else
+            // find angle to shoot at normally
             targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
 
         double turretTargetAngle = targetAngle - robotPose.heading.toDouble();
