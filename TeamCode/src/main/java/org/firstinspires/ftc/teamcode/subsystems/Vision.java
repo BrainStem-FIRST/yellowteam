@@ -1,24 +1,19 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import android.util.Size;
-
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import java.util.List;
 
-public class Vision implements Component {
+public class Vision extends Component {
     public VisionPortal visionPortal;
     public AprilTagProcessor tagProcessor;
     private AprilTagDetection currentTag;
 
-    public Vision(HardwareMap hardwareMap, Telemetry telemetry) {
+    public Vision(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
+        super(hardwareMap, telemetry, robot);
 //        tagProcessor = new AprilTagProcessor.Builder()
 //                .setDrawAxes(true)
 //                .setDrawCubeProjection(true)
@@ -49,9 +44,10 @@ public class Vision implements Component {
     }
 
     @Override
-    public void reset() {
+    public void printInfo() {}
 
-    }
+    @Override
+    public void reset() {}
 
     @Override
     public void update() {
@@ -61,10 +57,5 @@ public class Vision implements Component {
 //        } else {
 //            currentTag = null;
 //        }
-    }
-
-    @Override
-    public String test() {
-        return "";
     }
 }

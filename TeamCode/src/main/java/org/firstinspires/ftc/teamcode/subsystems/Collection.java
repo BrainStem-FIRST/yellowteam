@@ -9,30 +9,27 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Component;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
 
 @Config
-public class Collection implements Component {
+public class Collection extends Component {
 
     public static boolean activateLasers = false;
-    private HardwareMap map;
-    private Telemetry telemetry;
-    private DcMotorEx collectorMotor;
-    private ServoImplEx clutchLeft;
-    private ServoImplEx clutchRight;
+    private final DcMotorEx collectorMotor;
+    private final ServoImplEx clutchLeft;
+    private final ServoImplEx clutchRight;
     public ServoImplEx flickerRight;
 //    private ServoImplEx flickerLeft;
 
-    private ElapsedTime flickerTimer = new ElapsedTime();
+    private final ElapsedTime flickerTimer = new ElapsedTime();
     private boolean flickerStarted = false;
 
     //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
 
-    private AnalogInput frontRightLaser;
-    private AnalogInput frontLeftLaser;
-    private AnalogInput backTopLaser;
-    private AnalogInput backBottomLaser;
+    private final AnalogInput frontRightLaser;
+    private final AnalogInput frontLeftLaser;
+    private final AnalogInput backTopLaser;
+    private final AnalogInput backBottomLaser;
 
     public CollectionState collectionState;
     public ClutchState clutchState;
@@ -52,21 +49,20 @@ public class Collection implements Component {
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
 
-    public Collection(HardwareMap hardwareMap, Telemetry telemetry){
-        this.map = hardwareMap;
-        this.telemetry = telemetry;
+    public Collection(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
+        super(hardwareMap, telemetry, robot);
 
-        collectorMotor = map.get(DcMotorEx.class, "intake");
+        collectorMotor = hardwareMap.get(DcMotorEx.class, "intake");
         collectorMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         collectorMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        clutchRight = map.get(ServoImplEx.class, "clutchRight");
+        clutchRight = hardwareMap.get(ServoImplEx.class, "clutchRight");
         clutchRight.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
-        clutchLeft = map.get(ServoImplEx.class, "clutchLeft");
+        clutchLeft = hardwareMap.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
-        flickerRight = map.get(ServoImplEx.class, "flickerRight");
+        flickerRight = hardwareMap.get(ServoImplEx.class, "flickerRight");
         flickerRight.setPwmRange(new PwmControl.PwmRange(1490, 1640));
 
 //        flickerLeft = map.get(ServoImplEx.class, "flickerLeft");
@@ -139,6 +135,9 @@ public class Collection implements Component {
     public enum FlickerState {
         UP, DOWN, UP_DOWN
     }
+
+    @Override
+    public void printInfo() {}
 
     @Override
     public void reset() {
@@ -214,10 +213,5 @@ public class Collection implements Component {
 //        telemetry.addData("Clutch State", clutchState.toString());
         telemetry.addData("POSE", PoseStorage.currentPose);
         telemetry.addData("STORAGE", PoseStorage.currentTurretEncoder);
-    }
-
-    @Override
-    public String test(){
-        return null;
     }
 }

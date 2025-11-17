@@ -1,25 +1,16 @@
 package org.firstinspires.ftc.teamcode.subsystems;
-import android.graphics.Color;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Component;
-import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
 @Config
-public class Parking implements Component {
-    private HardwareMap map;
-    private Telemetry telemetry;
-    private MecanumDrive drive;
+public class Parking extends Component {
     public ServoImplEx parkLeftServo;
     public ServoImplEx parkRightServo;
-//    public ColorSensor leftColorSensor;
-//    public ColorSensor rightColorSensor;
     public ParkState parkState;
 
     public static class Params{
@@ -32,19 +23,14 @@ public class Parking implements Component {
 
     public static Params PARK_PARAMS = new Parking.Params();
 
-    public Parking(HardwareMap hardwareMap, Telemetry telemetry, MecanumDrive drive){
-        this.map = hardwareMap;
-        this.telemetry = telemetry;
-        this.drive = drive;
+    public Parking(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
+        super(hardwareMap, telemetry, robot);
 
-        parkLeftServo = map.get(ServoImplEx.class, "parkLeft");
+        parkLeftServo = hardwareMap.get(ServoImplEx.class, "parkLeft");
         parkLeftServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
-        parkRightServo = map.get(ServoImplEx.class, "parkRight");
+        parkRightServo = hardwareMap.get(ServoImplEx.class, "parkRight");
         parkRightServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
-
-//        leftColorSensor = hardwareMap.get(ColorSensor.class, "leftColor");
-//        rightColorSensor = hardwareMap.get(ColorSensor.class, "rightColor");
 
         parkState = ParkState.RETRACTED;
     }
@@ -68,10 +54,13 @@ public class Parking implements Component {
     }
 
     @Override
+    public void printInfo() {}
+
+    @Override
     public void reset() {}
 
     @Override
-    public void update(){
+    public void update() {
         switch (parkState) {
             case RETRACTED:
                 setParkServoPosition(PARK_PARAMS.RETRACTED_POS);
@@ -85,9 +74,5 @@ public class Parking implements Component {
                 setParkServoPosition(PARK_PARAMS.MIDDLE_POS);
                 break;
         }
-    }
-    @Override
-    public String test(){
-        return null;
     }
 }

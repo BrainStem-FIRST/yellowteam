@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.utils.AutoCommands;
@@ -30,8 +30,7 @@ public class RedClosePartnerAuto extends LinearOpMode {
         Pose2d startPose = new Pose2d(-63.5, 39.5, Math.toRadians(0));
 
         BrainSTEMRobot robot = new BrainSTEMRobot(Alliance.RED, telemetry, hardwareMap, startPose);
-        robot.turret.turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        robot.turret.turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.turret.resetEncoders();
 
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
