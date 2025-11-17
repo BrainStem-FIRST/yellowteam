@@ -14,7 +14,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
@@ -25,7 +24,7 @@ import java.util.Collections;
 import java.util.Set;
 
 @Config
-public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
+public class Shooter extends Component {
 
     public static boolean ENABLE_TESTING = false;
     public static double testingShootVelocity = 1300, testingHoodPosition = 0.5;
@@ -72,8 +71,7 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
     public double adjustment = 0;
     private final ElapsedTime recordTimer;
 
-
-    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
+    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
 
         shooterMotorLow = hardwareMap.get(DcMotorEx.class, "lowShoot");
@@ -423,10 +421,6 @@ public class Shooter extends org.firstinspires.ftc.teamcode.utils.Subsystem {
         telemetry.addData("Y VELOCITY", vy);
         telemetry.addData("ANGLE VELOCITY DEG", angle);
         telemetry.addData("TOTAL VELOCITY", computeVelocityTowardGoal(robot.drive.localizer.getPose(), robot.turret.targetPose));
-    }
-    @Override
-    public String test(){
-        return null;
     }
     public Command shooterTrackerCommand(GamepadTracker g) {
         return new Command() {

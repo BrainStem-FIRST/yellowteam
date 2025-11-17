@@ -6,17 +6,16 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.Subsystem;
 import org.firstinspires.ftc.teamcode.utils.Vec;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
-public class Turret extends Subsystem {
+public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
@@ -34,32 +33,39 @@ public class Turret extends Subsystem {
         public double TAG_LOST_THRESHOLD = 0.5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
-    public DcMotorEx turretMotor;
+    private final DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose = new Pose2d(-62, 62, 0);
 
+    private int turretEncoder;
+    private double relTurretAngle;
+    private Pose2d turretPose;
+    public enum TurretState {
+        OFF, TRACKING, CENTER, PARK, RESET
+    }
+
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
-        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        resetEncoders();
 
         pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
     }
 
-    @Override
-    public void printInfo() {
-
+    public void resetEncoders() {
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
-
     public int getTurretEncoder() {
-        return turretMotor.getCurrentPosition();
+        return turretEncoder;
     }
 
     public void setTurretPosition(int ticks) {
+        double prev = System.currentTimeMillis();
         double error = getTurretEncoder() - ticks;
 
         // use correct pid values based on error
@@ -75,14 +81,13 @@ public class Turret extends Subsystem {
             smoothPower = MathUtils.lerp(oldPower, newPower, TURRET_PARAMS.smoothPowerLerpValue);
 
         turretMotor.setPower(smoothPower);
+        telemetry.addData("dt for set turret pos", (System.currentTimeMillis() - prev) / 1000);
     }
     public Pose2d getTurretPose(Pose2d robotPose) {
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-        double robotHeading = robotPose.heading.toDouble();
-        double xOffset = -Math.cos(robotHeading) * offsetFromCenter;
-        double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
-        double headingOffsetRad = turretMotor.getCurrentPosition() / turretTicksPerRadian;
-        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + headingOffsetRad);
+        return turretPose;
+    }
+    public double getRelTurretAngle() {
+        return relTurretAngle;
     }
     public void poseTargetToTurretTicks (Pose2d robotPose, Pose2d targetPose) {
         Pose2d turretPosition = getTurretPose(robotPose);
@@ -168,22 +173,25 @@ public class Turret extends Subsystem {
 //        setTurretPosition(targetTicks);
     }
 
-    public enum TurretState {
-        OFF, TRACKING, CENTER, PARK, RESET
-    }
 
     @Override
-    public void reset() {
-    }
+    public void reset() {}
+    public void updateCaches(Pose2d robotPose) {
+        turretEncoder = turretMotor.getCurrentPosition();
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        relTurretAngle = turretEncoder / turretTicksPerRadian;
 
+        double xOffset = -Math.cos(robotPose.heading.toDouble()) * offsetFromCenter;
+        double yOffset = -Math.sin(robotPose.heading.toDouble()) * offsetFromCenter;
+        turretPose = new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotPose.heading.toDouble() + relTurretAngle);
+    }
     @Override
-    public void update(){
+    public void update() {
         switch (turretState) {
             case RESET:
                 setTurretPosition(-PoseStorage.currentTurretEncoder);
                 if (Math.abs((getTurretEncoder() - PoseStorage.currentTurretEncoder)) < 5) {
-                    turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                    turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                    resetEncoders();
                     turretState = TurretState.CENTER;
                 }
                 break;
@@ -211,13 +219,8 @@ public class Turret extends Subsystem {
         else
             targetPose = new Pose2d(-62, -62, 0);
     }
-
     @Override
-    public String test(){
-        return null;
-    }
-
-    public void printInfo(Telemetry telemetry) {
+    public void printInfo() {
         telemetry.addLine("TURRET");
         telemetry.addData("state", turretState);
         telemetry.addData("motor power", turretMotor.getPower());

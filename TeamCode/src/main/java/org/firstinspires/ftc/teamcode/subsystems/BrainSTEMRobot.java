@@ -1,28 +1,21 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.subsystems.Collection;
-import org.firstinspires.ftc.teamcode.subsystems.LED;
-import org.firstinspires.ftc.teamcode.subsystems.Parking;
-import org.firstinspires.ftc.teamcode.subsystems.Shooter;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
-import org.firstinspires.ftc.teamcode.subsystems.Vision;
 
 
 import java.util.ArrayList;
 
 
 @Config
-public class BrainSTEMRobot implements Component {
+public class BrainSTEMRobot {
 
     public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableVision = true, enablePark = true, enableLED = true;
 
@@ -41,12 +34,12 @@ public class BrainSTEMRobot implements Component {
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
-        vision = new Vision(hardwareMap, telemetry);
+        vision = new Vision(hardwareMap, telemetry, this);
         turret = new Turret(hardwareMap, telemetry, this);
         shooter = new Shooter(hardwareMap, telemetry, this);
-        collection = new Collection(hardwareMap, telemetry);
-        parking = new Parking(hardwareMap, telemetry, drive);
-        led = new LED(hardwareMap, telemetry, shooter, turret, parking, collection);
+        collection = new Collection(hardwareMap, telemetry, this);
+        parking = new Parking(hardwareMap, telemetry, this);
+        led = new LED(hardwareMap, telemetry, this);
 
         if (enableTurret)
             subsystems.add(turret);
@@ -61,34 +54,25 @@ public class BrainSTEMRobot implements Component {
         if (enableLED)
             subsystems.add(led);
     }
-
-    @Override
     public void reset() {
         for (Component c : subsystems) {
             c.reset();
         }
     }
-
-    @Override
     public void update(){
         drive.updatePoseEstimate();
+        turret.updateCaches(drive.pinpoint().getPose());
 
         for (Component c : subsystems) {
             c.update();
         }
 
 //        drawRobot(this);
-//        telemetry.update();
     }
 
     private void drawRobot(BrainSTEMRobot robot) {
         TelemetryPacket packet = new TelemetryPacket();
         packet.fieldOverlay().setStroke("#3F51B5");
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
-    }
-
-    @Override
-    public String test() {
-        return null;
     }
 }
