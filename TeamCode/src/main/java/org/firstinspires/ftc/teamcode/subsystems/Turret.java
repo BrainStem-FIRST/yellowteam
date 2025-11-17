@@ -27,7 +27,7 @@ public class Turret extends Component {
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
-        public double predictVelocityBallExitSpeedThreshold = 1;
+        public double predictVelocityBallExitSpeedThreshold = 0.2;
         public double predictVelocityMultiplier = 5;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
@@ -100,9 +100,12 @@ public class Turret extends Component {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
         Pose2d turretPose = getTurretPose(robotPose);
-        Vec turretToGoal = new Vec(targetPose.position.x - turretPose.position.x, targetPose.position.y - turretPose.position.y).normalize();
+        Vec turretToGoal = new Vec(targetPose.position.x - turretPose.position.x,
+                targetPose.position.y - turretPose.position.y).normalize();
         double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+
         double targetAngle;
+        // if shooter speed is too slow, don't account for relative velocity
         if (ballExitSpeed > TURRET_PARAMS.predictVelocityBallExitSpeedThreshold && useRelativeVelocityCorrection) {
             globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
             robotVelocity = robot.drive.pinpoint().getMostRecentVelocity().vec().mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
