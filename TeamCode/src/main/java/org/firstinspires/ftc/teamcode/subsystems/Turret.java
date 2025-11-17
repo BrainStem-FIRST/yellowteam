@@ -6,17 +6,15 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.PIDController;
 import org.firstinspires.ftc.teamcode.utils.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.Subsystem;
 import org.firstinspires.ftc.teamcode.utils.Vec;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
-public class Turret extends Subsystem {
+public class Turret extends Component {
     public static boolean useRelativeVelocityCorrection = true;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params{
@@ -219,11 +217,6 @@ public class Turret extends Subsystem {
             targetPose = new Pose2d(-62, 62, 0);
         else
             targetPose = new Pose2d(-62, -62, 0);
-    }
-
-    @Override
-    public String test(){
-        return null;
     }
 
     public void printInfo(Telemetry telemetry) {
