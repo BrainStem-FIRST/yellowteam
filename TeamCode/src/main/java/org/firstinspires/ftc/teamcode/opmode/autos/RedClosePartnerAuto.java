@@ -10,14 +10,13 @@ import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.utils.AutoCommands;
-import org.firstinspires.ftc.teamcode.utils.AutoPositions;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoPositions;
 
 @Autonomous(name="Red Close Partner Auto", group="Robot")
 public class RedClosePartnerAuto extends LinearOpMode {

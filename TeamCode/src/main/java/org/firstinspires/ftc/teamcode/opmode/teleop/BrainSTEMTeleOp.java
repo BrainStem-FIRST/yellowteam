@@ -18,13 +18,13 @@ import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
-import org.firstinspires.ftc.teamcode.utils.GamepadTracker;
-import org.firstinspires.ftc.teamcode.utils.HeadingCorrect;
-import org.firstinspires.ftc.teamcode.utils.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.OdoInfo;
-import org.firstinspires.ftc.teamcode.utils.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.TelemetryHelper;
-import org.firstinspires.ftc.teamcode.utils.Vec;
+import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
+import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
+import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
+import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
+import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
+import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public abstract class BrainSTEMTeleOp extends LinearOpMode {

@@ -7,11 +7,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
-import org.firstinspires.ftc.teamcode.utils.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.OdoInfo;
-import org.firstinspires.ftc.teamcode.utils.PIDController;
-import org.firstinspires.ftc.teamcode.utils.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.Vec;
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
+import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
+import org.firstinspires.ftc.teamcode.utils.math.PIDController;
+import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
+import org.firstinspires.ftc.teamcode.utils.math.Vec;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config

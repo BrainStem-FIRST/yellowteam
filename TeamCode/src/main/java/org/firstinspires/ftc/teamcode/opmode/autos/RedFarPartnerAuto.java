@@ -15,8 +15,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
-import org.firstinspires.ftc.teamcode.utils.AutoCommands;
-import org.firstinspires.ftc.teamcode.utils.AutoPositions;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoPositions;
 
 @Autonomous(name="Red Far Partner Auto", group="Robot")
 public class RedFarPartnerAuto extends LinearOpMode {

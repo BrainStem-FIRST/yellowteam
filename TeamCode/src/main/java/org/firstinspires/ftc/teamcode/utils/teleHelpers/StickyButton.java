@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils;
+package org.firstinspires.ftc.teamcode.utils.teleHelpers;
 
 public class StickyButton {
     private boolean previousState = false, currentState = false;

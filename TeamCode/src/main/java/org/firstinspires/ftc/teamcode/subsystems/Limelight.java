@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.teamcode.utils.Vec;
+import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 public class Limelight extends Component {
     // i should tune the camera so that it gives me the turret center position

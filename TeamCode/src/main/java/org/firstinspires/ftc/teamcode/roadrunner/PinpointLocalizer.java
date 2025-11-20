@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
-import org.firstinspires.ftc.teamcode.utils.OdoInfo;
+import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
