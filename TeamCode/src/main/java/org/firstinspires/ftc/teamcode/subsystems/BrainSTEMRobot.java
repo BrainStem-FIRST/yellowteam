@@ -19,14 +19,15 @@ import java.util.List;
 @Config
 public class BrainSTEMRobot {
 
-    public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableVision = true, enablePark = true, enableLED = true;
+    public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableLimelight = true, enablePark = true, enableLED = true;
 
     public Turret turret;
     public Shooter shooter;
     public Collection collection;
     public Parking parking;
     public MecanumDrive drive;
-    public Vision vision;
+//    public Vision vision;
+    public Limelight limelight;
     public LED led;
     public final Alliance alliance;
     private final ArrayList<Component> subsystems;
@@ -41,7 +42,8 @@ public class BrainSTEMRobot {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         drive = new MecanumDrive(hardwareMap, initialPose);
-        vision = new Vision(hardwareMap, telemetry, this);
+//        vision = new Vision(hardwareMap, telemetry, this);
+        limelight = new Limelight(hardwareMap, telemetry, this);
         turret = new Turret(hardwareMap, telemetry, this);
         shooter = new Shooter(hardwareMap, telemetry, this);
         collection = new Collection(hardwareMap, telemetry, this);
@@ -56,8 +58,9 @@ public class BrainSTEMRobot {
             subsystems.add(collection);
         if (enablePark)
             subsystems.add(parking);
-        if (enableVision)
-            subsystems.add(vision);
+        if (enableLimelight)
+            subsystems.add(limelight);
+//        subsystems.add(vision);
         if (enableLED)
             subsystems.add(led);
     }

@@ -18,7 +18,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 public class Turret extends Component {
     public static boolean useRelativeVelocityCorrection = true;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
-
+    public static boolean updating = false;
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
@@ -183,6 +183,8 @@ public class Turret extends Component {
 
     @Override
     public void update(){
+        if(!updating)
+            return;
         switch (turretState) {
             case RESET:
                 setTurretPosition(-PoseStorage.currentTurretEncoder);

@@ -36,7 +36,7 @@ public class ShooterTestingOp extends LinearOpMode {
 
 
             telemetry.addData("SHOOTER HIGH POWER", robot.shooter.shooterMotorHigh.getPower());
-            telemetry.addData("SHOOTER LOW POWER", robot.shooter.shooterMotorHigh.getPower());
+            telemetry.addData("SHOOTER LOW POWER", robot.shooter.shooterMotorLow.getPower());
             telemetry.addData("SHOOTER HIGH VELOCITY", robot.shooter.shooterMotorHigh.getVelocity());
             telemetry.addData("SHOOTER LOW VELOCITY", robot.shooter.shooterMotorLow.getVelocity());
 

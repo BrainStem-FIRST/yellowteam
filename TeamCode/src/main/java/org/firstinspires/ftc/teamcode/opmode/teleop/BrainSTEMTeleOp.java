@@ -86,6 +86,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDashboardField();
 //            updatePosePredict();
             robot.turret.printInfo();
+            robot.limelight.printInfo();
             telemetry.addData("shooter motor encoder", robot.shooter.shooterMotorHigh.getCurrentPosition());
             // print delta time
             framesRunning++;
