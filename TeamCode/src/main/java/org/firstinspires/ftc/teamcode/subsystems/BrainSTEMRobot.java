@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -12,6 +13,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 @Config
@@ -28,10 +30,15 @@ public class BrainSTEMRobot {
     public LED led;
     public final Alliance alliance;
     private final ArrayList<Component> subsystems;
+    private final List<LynxModule> allHubs;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.alliance = alliance;
         subsystems = new ArrayList<>();
+
+        allHubs = hardwareMap.getAll(LynxModule.class);
+        for(LynxModule hub : allHubs)
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         drive = new MecanumDrive(hardwareMap, initialPose);
         vision = new Vision(hardwareMap, telemetry, this);
@@ -60,6 +67,9 @@ public class BrainSTEMRobot {
         }
     }
     public void update(){
+        for(LynxModule hub : allHubs)
+            hub.clearBulkCache();
+
         drive.updatePoseEstimate();
 
         for (Component c : subsystems) {

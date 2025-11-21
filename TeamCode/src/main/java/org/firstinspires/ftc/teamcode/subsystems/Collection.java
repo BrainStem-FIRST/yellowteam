@@ -201,10 +201,10 @@ public class Collection extends Component {
         if (activateLasers)
             checkForIntakeBalls(timer.seconds());
 
-//        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
-//        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));
-//        telemetry.addData("Front Right Laser", voltageToDistance(frontRightLaser.getVoltage()));
-//        telemetry.addData("Front left Laser", voltageToDistance(frontLeftLaser.getVoltage()));
+        telemetry.addData("Back Top Laser", voltageToDistance(backBottomLaser.getVoltage()));
+        telemetry.addData("Back Bottom Laser", voltageToDistance(backTopLaser.getVoltage()));
+        telemetry.addData("Front Right Laser", voltageToDistance(frontRightLaser.getVoltage()));
+        telemetry.addData("Front left Laser", voltageToDistance(frontLeftLaser.getVoltage()));
 //        // front 6.087 in
 //
 //        telemetry.addData("Back Ball Detected", isBackBallDetected());

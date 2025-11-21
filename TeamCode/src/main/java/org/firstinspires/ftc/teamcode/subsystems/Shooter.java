@@ -28,7 +28,7 @@ public class Shooter extends Component {
 
     public static boolean ENABLE_TESTING = false;
     public static boolean useVelocity = false;
-    public static double testingShootPower = 0.99, testingShootVelocity = 1300, testingHoodPosition = 0.5;
+    public static double testingShootPower = -0.99, testingShootVelocity = 1300, testingHoodPosition = 0.7;
     public DcMotorEx shooterMotorLow; // encoders for this one are cooked
     public DcMotorEx shooterMotorHigh; // encoders only work for this one
     public ServoImplEx hoodLeftServo;
@@ -44,9 +44,9 @@ public class Shooter extends Component {
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double BALL_RADIUS = 0.064;
         public double SLIP_COEFFICIENT = 0.4386;
-        public double FLYWHEEL_TICKS_PER_REV = 32; // ticks in 1 rotation of the motor
+        public double FLYWHEEL_TICKS_PER_REV = 38.5; // ticks in 1 rotation of the motor
         public double HOOD_INCREMENT = 0.1;
-        public double CLOSE_SHOOTER_POWER = 0.7;
+        public double CLOSE_SHOOTER_POWER = 0.99;
         public double FAR_SHOOTER_POWER = 0.9;
         public double ZONE_THRESHOLD = 100;
         public double B_CLOSE_VALUE = 800.29968;
@@ -77,12 +77,12 @@ public class Shooter extends Component {
         shooterMotorLow = hardwareMap.get(DcMotorEx.class, "lowShoot");
         shooterMotorLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotorLow.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooterMotorLow.setDirection(DcMotorSimple.Direction.FORWARD);
 
         shooterMotorHigh = hardwareMap.get(DcMotorEx.class, "highShoot");
         shooterMotorHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterMotorHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterMotorHigh.setDirection(DcMotorSimple.Direction.FORWARD);
+        shooterMotorHigh.setDirection(DcMotorSimple.Direction.REVERSE);
 
         hoodLeftServo = hardwareMap.get(ServoImplEx.class, "hoodLeft");
         hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
@@ -408,9 +408,10 @@ public class Shooter extends Component {
         }
 
         telemetry.addData("SHOOTER POWER", shooterMotorHigh.getPower());
+        telemetry.addData("SHOOTER POWER", shooterMotorHigh.getPower());
 //        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
-//        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
-//        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
+        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
+        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
 //        telemetry.addData("Shooter Adjustment Factor", adjustment);
 
         OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
