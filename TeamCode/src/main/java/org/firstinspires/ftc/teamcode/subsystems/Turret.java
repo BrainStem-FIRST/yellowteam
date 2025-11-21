@@ -40,7 +40,8 @@ public class Turret extends Component {
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose = new Pose2d(-62, 62, 0);
-    public Vec turretVelocity, relativeBallExitVelocity, globalBallExitVelocity;
+    public Vec turretVelocity, relativeBallExitVelocity, globalBallExitVelocity, turretLinearVelocityInchesPerSec;
+    public double ballExitSpeed;
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
@@ -56,7 +57,8 @@ public class Turret extends Component {
 
     @Override
     public void printInfo() {
-
+        telemetry.addData("ball exit speed", ballExitSpeed);
+        telemetry.addData("turret vel", turretLinearVelocityInchesPerSec.mag());
     }
 
     public int getTurretEncoder() {
@@ -110,7 +112,7 @@ public class Turret extends Component {
                 futureTurretPose.position.y - currentTurretPose.position.y,
                 futureTurretPose.heading.toDouble() - currentTurretPose.heading.toDouble()
         );
-        Vec turretLinearVelocityInchesPerSec = turretVelocityInchesPerSec.vec();
+        turretLinearVelocityInchesPerSec = turretVelocityInchesPerSec.vec();
 
         // predict turret position to account for turret lag
         Vec turretToGoal = new Vec(targetPose.position.x - futureTurretPose.position.x,
@@ -120,7 +122,7 @@ public class Turret extends Component {
         // only account for robot velocity if it is significant
         if (turretLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityRobotSpeedThresholdInchesPerSec && useRelativeVelocityCorrection) {
             // find speed of ball relative to the ground (magnitude only)
-            double ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+            ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
 
             // find velocity of ball relative to the ground (direction and magnitude)
             globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
