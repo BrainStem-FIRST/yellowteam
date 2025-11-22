@@ -4,12 +4,16 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.math.Vec;
+import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 
 import java.util.ArrayList;
@@ -18,7 +22,7 @@ import java.util.List;
 
 @Config
 public class BrainSTEMRobot {
-
+    public static boolean enablePinpoint = true, enableSubsystems = true;
     public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableLimelight = true, enablePark = true, enableLED = true;
 
     public Turret turret;
@@ -32,8 +36,13 @@ public class BrainSTEMRobot {
     public final Alliance alliance;
     private final ArrayList<Component> subsystems;
     private final List<LynxModule> allHubs;
+    private Telemetry telemetry;
+    public GamepadTracker g1;
+    private Pose2d prevPose;
+    private double lastUpdateTime, dt;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
+        this.telemetry = telemetry;
         this.alliance = alliance;
         subsystems = new ArrayList<>();
 
@@ -64,27 +73,37 @@ public class BrainSTEMRobot {
         if (enableLED)
             subsystems.add(led);
     }
+    public void setG1(GamepadTracker g1) {
+        this.g1 = g1;
+    }
     public void reset() {
         for (Component c : subsystems) {
             c.reset();
         }
     }
-    public void update(){
+    public void update() {
+        long startNano = System.nanoTime();
         for(LynxModule hub : allHubs)
             hub.clearBulkCache();
 
-        drive.updatePoseEstimate();
-
-        for (Component c : subsystems) {
-            c.update();
+        if(enablePinpoint) {
+            drive.updatePoseEstimate();
+            dt = (System.currentTimeMillis() - lastUpdateTime) / 1000.0;
         }
-
+        if(enableSubsystems)
+            for (Component c : subsystems)
+                c.update();
 //        drawRobot(this);
+        prevPose = drive.localizer.getPose();
+        lastUpdateTime = System.currentTimeMillis();
     }
 
     private void drawRobot(BrainSTEMRobot robot) {
         TelemetryPacket packet = new TelemetryPacket();
         packet.fieldOverlay().setStroke("#3F51B5");
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
+    }
+    public Vector2d getLinearVel() {
+        return drive.localizer.getPose().position.minus(prevPose.position).div(dt);
     }
 }

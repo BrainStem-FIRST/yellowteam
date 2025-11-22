@@ -25,16 +25,6 @@ import java.util.Set;
 
 @Config
 public class Shooter extends Component {
-
-    public static boolean ENABLE_TESTING = false;
-    public static boolean useVelocity = false;
-    public static double testingShootPower = -0.99, testingShootVelocity = 1300, testingHoodPosition = 0.7;
-    public DcMotorEx shooterMotorLow; // encoders for this one are cooked
-    public DcMotorEx shooterMotorHigh; // encoders only work for this one
-    public ServoImplEx hoodLeftServo;
-    public ServoImplEx hoodRightServo;
-    public ShooterState shooterState;
-
     public static class ShooterParams {
         public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
@@ -60,10 +50,24 @@ public class Shooter extends Component {
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kF = 0.00056;
+        public double kF = 0.0005;
     }
-
+    public static class HoodParams {
+        public double restingDistanceMm = 82;
+        public double downPWM = 1050, upPWM = 1950;
+        public double servoRangeMm = 30;
+    }
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
+    public static HoodParams HOOD_PARAMS = new HoodParams();
+    public static boolean ENABLE_TESTING = false;
+    public static boolean useVelocity = false;
+    public static double testingShootPower = -0.99, testingShootVelocity = 1300, testingHoodPosition = 0.7;
+    public DcMotorEx shooterMotorLow; // encoders for this one are cooked
+    public DcMotorEx shooterMotorHigh; // encoders only work for this one
+    public ServoImplEx hoodLeftServo;
+    public ServoImplEx hoodRightServo;
+    public ShooterState shooterState;
+
     private final PIDController shooterPID;
     private double lastVelocity = 0;
     private boolean wasAboveThreshold = true;
@@ -85,10 +89,10 @@ public class Shooter extends Component {
         shooterMotorHigh.setDirection(DcMotorSimple.Direction.REVERSE);
 
         hoodLeftServo = hardwareMap.get(ServoImplEx.class, "hoodLeft");
-        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
+        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(HOOD_PARAMS.downPWM, HOOD_PARAMS.upPWM));
 
         hoodRightServo = hardwareMap.get(ServoImplEx.class, "hoodRight");
-        hoodRightServo.setPwmRange(new PwmControl.PwmRange(1000, 1800));
+        hoodRightServo.setPwmRange(new PwmControl.PwmRange(HOOD_PARAMS.downPWM, HOOD_PARAMS.upPWM));
 
         shooterPID = new PIDController(SHOOTER_PARAMS.kP, SHOOTER_PARAMS.kI, SHOOTER_PARAMS.kD);
 
@@ -113,9 +117,6 @@ public class Shooter extends Component {
         totalPower = Math.abs(Range.clip(totalPower, -1.0, 1.0));
 
         setShooterPower(totalPower);
-
-        telemetry.addData("Shooter Target Vel", targetVelocityTicksPerSec);
-        telemetry.addData("Shooter Current Vel", currentVelocity);
     }
 
     public enum ShootingZone {
@@ -138,8 +139,6 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
-        telemetry.addData("Dist to Shooter", distance);
-
         if (distance <= SHOOTER_PARAMS.ZONE_THRESHOLD)
             return ShootingZone.CLOSE;
         else
@@ -161,10 +160,8 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
-        telemetry.addData("Dist to Shooter", distance);
 
         double actualVelocityMps = ticksPerSecToMps(-shooterMotorHigh.getVelocity());
-        telemetry.addData("MPS", actualVelocityMps);
 
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
@@ -180,18 +177,24 @@ public class Shooter extends Component {
             return Math.toRadians(40);
 
         double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
-        telemetry.addData("OLD HORZ Angle", Math.toDegrees(theta));
 
         return theta;
     }
-
     public void setHoodFromAngle(double angleRadians) {
         double angleDeg = Math.toDegrees(angleRadians);
-        angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
-        servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
-
+        double totalLinearDistanceMm = -0.00125315 * Math.pow(angleDeg, 2) + 0.858968 * angleDeg + 63.03978;
+        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
+        servoPos = linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
         setHoodPosition(servoPos);
     }
+    // old crucible code
+//    public void setHoodFromAngle(double angleRadians) {
+//        double angleDeg = Math.toDegrees(angleRadians);
+//        angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
+//        servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
+//
+//        setHoodPosition(servoPos);
+//    }
 
     public double computeVelocityTowardGoal(Pose2d robotPose, Pose2d targetPose) {
         double dx = targetPose.position.x - robotPose.position.x;
@@ -242,7 +245,6 @@ public class Shooter extends Component {
             setShooterVelocityPID(velocity);
         else
             setShooterPower(testingShootPower);
-        telemetry.addData("ORIGINAL POWER", original_power);
 
         if (ENABLE_TESTING)
             setHoodPosition(testingHoodPosition);
@@ -285,10 +287,7 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
-        telemetry.addData("Dist to Shooter", distance);
-
         double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-        telemetry.addData("MPS", actualVelocityMps / SHOOTER_PARAMS.VELOCITY_OFFSET);
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
 
         double g = 9.81;
@@ -301,9 +300,6 @@ public class Shooter extends Component {
         double part2 = Math.sqrt(1 - part1);
         double thetaHigh = 90 - Math.sinh((Math.sqrt((1 + part2)/2)));
         double thetaLow = 90 - Math.sinh((Math.sqrt((1 - part2)/2)));
-
-        telemetry.addData("THETA HIGH", thetaHigh);
-        telemetry.addData("THETA LOW", thetaLow);
 
         return 0;
     }
@@ -342,7 +338,6 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
-        telemetry.addData("Dist to Shooter", distance);
         setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
         double hood = 0.025 * ((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0) + 36.16667;
         hood = 90 - hood;
@@ -407,21 +402,11 @@ public class Shooter extends Component {
                 break;
         }
 
-        telemetry.addData("SHOOTER POWER", shooterMotorHigh.getPower());
-        telemetry.addData("SHOOTER POWER", shooterMotorHigh.getPower());
-//        telemetry.addData("SHOOTER LOW ENCODER", shooterMotorLow.getCurrentPosition());
-        telemetry.addData("SHOOTER HIGH VELOCITY", shooterMotorHigh.getVelocity());
-        telemetry.addData("SHOOTER LOW VELOCITY", shooterMotorLow.getVelocity());
-//        telemetry.addData("Shooter Adjustment Factor", adjustment);
 
         OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
         double vx = vel.x;
         double vy = vel.y;
         double angle = Math.toDegrees(vel.headingRad);
-        telemetry.addData("X VELOCITY", vx);
-        telemetry.addData("Y VELOCITY", vy);
-        telemetry.addData("ANGLE VELOCITY DEG", angle);
-        telemetry.addData("TOTAL VELOCITY", computeVelocityTowardGoal(robot.drive.localizer.getPose(), robot.turret.targetPose));
     }
     public Command shooterTrackerCommand(GamepadTracker g) {
         return new Command() {
@@ -456,8 +441,24 @@ public class Shooter extends Component {
         };
     }
 
+    public double getVelHigh() {
+        return shooterMotorHigh.getVelocity();
+    }
+    public double getVelLow() {
+        return shooterMotorLow.getVelocity();
+    }
 
     @Override
     public void printInfo() {
+        telemetry.addLine("SHOOTER------");
+        telemetry.addData("state", shooterState);
+        telemetry.addData("vel high", getVelHigh());
+        telemetry.addData("vel low", getVelLow());
+        telemetry.addData("target", shooterPID.getTarget());
+
+        telemetry.addLine();
+        telemetry.addLine("HOOD------");
+        telemetry.addData("left servo pos", hoodLeftServo.getPosition());
+        telemetry.addData("right servo pos", hoodRightServo.getPosition());
     }
 }

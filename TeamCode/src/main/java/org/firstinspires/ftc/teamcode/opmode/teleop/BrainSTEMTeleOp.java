@@ -60,6 +60,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         robot = new BrainSTEMRobot(alliance, telemetry, hardwareMap, PoseStorage.currentPose); //take pose from auto
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
+        robot.setG1(gp1);
 
         if (Shooter.ENABLE_TESTING) {
             if (Shooter.useVelocity)
@@ -80,19 +81,21 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDriver2();
             updateDriver1();
             CommandScheduler.getInstance().run();
+            robot.turret.printInfo();
+            robot.shooter.printInfo();
 
             robot.update();
 
             updateDashboardField();
 //            updatePosePredict();
-            robot.turret.printInfo();
-            robot.limelight.printInfo();
-            telemetry.addData("shooter motor encoder", robot.shooter.shooterMotorHigh.getCurrentPosition());
             // print delta time
             framesRunning++;
             double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
+            if(gp1.isFirstStart()) {
+                framesRunning = 0;
+                startTimeNano = System.nanoTime();
+            }
             telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
-            telemetry.addData("predicted dt", MathUtils.format(robot.drive.pinpoint().getWeightedDt(), 6));
 
             telemetry.update();
         }

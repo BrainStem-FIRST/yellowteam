@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -16,9 +17,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 @Config
 public class Turret extends Component {
-    public static boolean useRelativeVelocityCorrection = true;
+    public static boolean useRelativeVelocityCorrection = false;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
-    public static boolean updating = false;
     public static class Params{
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.013, smallKI = 0, smallKD = 0.0003;
@@ -28,8 +28,8 @@ public class Turret extends Component {
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
-        public double predictVelocityRobotSpeedThresholdInchesPerSec = 2;
-        public double predictVelocityMultiplier = 5;
+        public double predictVelocityRobotSpeedThresholdInchesPerSec = 20;
+        public double predictVelocityMultiplier = 1;
     }
     public static Params TURRET_PARAMS = new Turret.Params();
     public enum TurretState {
@@ -57,8 +57,18 @@ public class Turret extends Component {
 
     @Override
     public void printInfo() {
+        telemetry.addLine("TURRET------");
+        telemetry.addData("state", turretState);
         telemetry.addData("ball exit speed", ballExitSpeed);
-        telemetry.addData("turret vel", turretLinearVelocityInchesPerSec.mag());
+        if(turretLinearVelocityInchesPerSec != null)
+            telemetry.addData("turret vel", turretLinearVelocityInchesPerSec.mag());
+        if(globalBallExitVelocity != null && relativeBallExitVelocity != null) {
+            double globalA = Math.atan2(globalBallExitVelocity.y, globalBallExitVelocity.x);
+            double localA = Math.atan2(relativeBallExitVelocity.y, relativeBallExitVelocity.x);
+            telemetry.addData("global exit angle", globalA);
+            telemetry.addData("relative exit angle", localA);
+            telemetry.addData("offset", globalA - localA);
+        }
     }
 
     public int getTurretEncoder() {
@@ -106,13 +116,12 @@ public class Turret extends Component {
         Pose2d currentTurretPose = getTurretPose(currentRobotPose);
         Pose2d futureTurretPose = getTurretPose(futureRobotPose);
 
-        // this predicts turret velocity, but should i predict turret velocity? or use most recent velocity? idk
-        OdoInfo turretVelocityInchesPerSec = new OdoInfo(
-                futureTurretPose.position.x - currentTurretPose.position.x,
-                futureTurretPose.position.y - currentTurretPose.position.y,
-                futureTurretPose.heading.toDouble() - currentTurretPose.heading.toDouble()
-        );
-        turretLinearVelocityInchesPerSec = turretVelocityInchesPerSec.vec();
+//        telemetry.addData("currentRobotPose", currentRobotPose);
+//        telemetry.addData("targetPose", targetPose);
+//        telemetry.addData("futureRobotPose", futureRobotPose);
+//        telemetry.addData("currentTurretPose", currentTurretPose);
+//        telemetry.addData("futureTurretPose", futureTurretPose);
+        turretLinearVelocityInchesPerSec = new Vec(futureTurretPose.position.x - currentTurretPose.position.x, futureTurretPose.position.y - currentTurretPose.position.y);
 
         // predict turret position to account for turret lag
         Vec turretToGoal = new Vec(targetPose.position.x - futureTurretPose.position.x,
@@ -183,8 +192,6 @@ public class Turret extends Component {
 
     @Override
     public void update(){
-        if(!updating)
-            return;
         switch (turretState) {
             case RESET:
                 setTurretPosition(-PoseStorage.currentTurretEncoder);
