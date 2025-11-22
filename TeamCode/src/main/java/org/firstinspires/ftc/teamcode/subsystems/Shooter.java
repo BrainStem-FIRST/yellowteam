@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import android.sax.StartElementListener;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.arcrobotics.ftclib.command.Command;
@@ -54,8 +56,23 @@ public class Shooter extends Component {
     }
     public static class HoodParams {
         public double restingDistanceMm = 82;
-        public double downPWM = 1050, upPWM = 1950;
+        public double hoodPivotAngleOffsetFromHoodExitAngleDeg = 7.8;
+        public double downPWM = 900, upPWM = 2065;
         public double servoRangeMm = 30;
+        public static double minAngleDeg = 20, maxAngleDeg = 50;
+    }
+
+    public static double getHoodServoPosition(double angleRadians, Telemetry telemetry) {
+        double hoodExitAngleDeg = Range.clip(Math.toDegrees(angleRadians), HoodParams.minAngleDeg, HoodParams.maxAngleDeg);
+        double hoodPivotAngleDeg = hoodExitAngleDeg + HOOD_PARAMS.hoodPivotAngleOffsetFromHoodExitAngleDeg;
+        double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
+        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
+
+        telemetry.addLine("HOOD SERVO POS CALCULATION");
+        if (telemetry != null)
+            telemetry.addData("total linear distance mm", totalLinearDistanceMm);
+
+        return linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
     }
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
@@ -181,11 +198,6 @@ public class Shooter extends Component {
         return theta;
     }
     public void setHoodFromAngle(double angleRadians) {
-        double angleDeg = Math.toDegrees(angleRadians);
-        double totalLinearDistanceMm = -0.00125315 * Math.pow(angleDeg, 2) + 0.858968 * angleDeg + 63.03978;
-        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
-        servoPos = linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
-        setHoodPosition(servoPos);
     }
     // old crucible code
 //    public void setHoodFromAngle(double angleRadians) {
@@ -249,9 +261,11 @@ public class Shooter extends Component {
         if (ENABLE_TESTING)
             setHoodPosition(testingHoodPosition);
         else {
-            double hoodAngle = calculateHoodAngle(turretPose, targetPose);
-            if (turretPose.position.x < 50)
-                setHoodFromAngle(hoodAngle);
+            double hoodAngleRad = calculateHoodAngle(turretPose, targetPose);
+            if (turretPose.position.x < 50) {
+                servoPos = getHoodServoPosition(hoodAngleRad, null);
+                setHoodPosition(servoPos);
+            }
             else
                 setHoodPosition(1);
         }

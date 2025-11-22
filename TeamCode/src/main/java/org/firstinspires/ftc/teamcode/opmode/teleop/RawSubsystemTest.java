@@ -18,19 +18,21 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.List;
 
 @Config
-@TeleOp(name="raw subsystem test")
+@TeleOp(name="Raw subsystem test")
 public class RawSubsystemTest extends LinearOpMode {
     public static int updateIntervalMs = 20;
     public static boolean bulkCaching = true;
     public static double intakePower = 0.99;
     public static double hoodPos = 0.87;
-    public static int hoodLower = 1050, hoodUpper = 1950;
+    public static boolean setHoodByAngle = true, activateLeftServo = false, activateRightServo = true;
+    public static double targetHoodAngleDeg = 30;
     public static double hoodInc = 0.03;
     public static class ShooterParams {
         public boolean usePid = true;
@@ -66,9 +68,9 @@ public class RawSubsystemTest extends LinearOpMode {
         PIDController shooterPid = new PIDController(sParams.kP, sParams.kI, sParams.kD);
 
         ServoImplEx hoodLeft = hardwareMap.get(ServoImplEx.class, "hoodLeft");
-        hoodLeft.setPwmRange(new PwmControl.PwmRange(hoodLower, hoodUpper));
+        hoodLeft.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
         ServoImplEx hoodRight = hardwareMap.get(ServoImplEx.class, "hoodRight");
-        hoodRight.setPwmRange(new PwmControl.PwmRange(hoodLower, hoodUpper));
+        hoodRight.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
 
         shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -132,6 +134,10 @@ public class RawSubsystemTest extends LinearOpMode {
                     shooter2.setPower(sParams.power * sParams.dirFlip);
                 }
             }
+            else {
+                shooter1.setPower(0);
+                shooter2.setPower(0);
+            }
 
             if(g1.isFirstDpadUp())
                 hoodPos += hoodInc;
@@ -144,18 +150,22 @@ public class RawSubsystemTest extends LinearOpMode {
                 else
                     collectorMotor.setPower(intakePower);
 
-            else if(g1.isFirstB())
-                if(clutchLeft.getPosition() > 0.5) {
+            else if(g1.isFirstB()) {
+                if (clutchLeft.getPosition() > 0.5) {
                     clutchLeft.setPosition(Collection.COLLECTOR_PARAMS.ENGAGED_POS);
                     clutchRight.setPosition(Collection.COLLECTOR_PARAMS.ENGAGED_POS);
-                }
-                else {
+                } else {
                     clutchLeft.setPosition(Collection.COLLECTOR_PARAMS.DISENGAGED_POS);
                     clutchRight.setPosition(Collection.COLLECTOR_PARAMS.DISENGAGED_POS);
 
                 }
-            hoodLeft.setPosition(hoodPos);
-            hoodRight.setPosition(hoodPos);
+            }
+            if (setHoodByAngle)
+                hoodPos = Shooter.getHoodServoPosition(Math.toRadians(targetHoodAngleDeg), telemetry);
+            if (activateLeftServo)
+                hoodLeft.setPosition(hoodPos);
+            if (activateRightServo)
+                hoodRight.setPosition(hoodPos);
 
             if (g1.isFirstLeftBumper()) {
                 shotRecordNum = 0;
@@ -201,6 +211,8 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("1 encoder", shooter1.getCurrentPosition());
             telemetry.addData("2 encoder", shooter2.getCurrentPosition());
             telemetry.addLine();
+            telemetry.addData("setting hood by angle", setHoodByAngle);
+            telemetry.addData("target hood pos", hoodPos);
             telemetry.addData("hoodL pos", hoodLeft.getPosition());
             telemetry.addData("hoodR pos", hoodRight.getPosition());
             telemetry.addLine();
