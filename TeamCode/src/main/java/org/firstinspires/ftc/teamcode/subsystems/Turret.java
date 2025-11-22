@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -9,7 +8,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
@@ -97,15 +95,15 @@ public class Turret extends Component {
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
-    public double getTurretRelativeAngleRad() {
+    public static double getTurretRelativeAngleRad(int turretPosition) {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-        return turretMotor.getCurrentPosition() / turretTicksPerRadian;
+        return turretPosition / turretTicksPerRadian;
     }
-    public Pose2d getTurretPose(Pose2d robotPose) {
+    public static Pose2d getTurretPose(Pose2d robotPose, int turretPosition) {
         double robotHeading = robotPose.heading.toDouble();
         double xOffset = -Math.cos(robotHeading) * offsetFromCenter;
         double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
-        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad());
+        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad(turretPosition));
     }
     public void poseTargetToTurretTicks (Pose2d currentRobotPose, Pose2d targetPose) {
         double turretMax = Math.toRadians(90);
@@ -113,8 +111,8 @@ public class Turret extends Component {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
         Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime);
-        Pose2d currentTurretPose = getTurretPose(currentRobotPose);
-        Pose2d futureTurretPose = getTurretPose(futureRobotPose);
+        Pose2d currentTurretPose = getTurretPose(currentRobotPose, getTurretEncoder());
+        Pose2d futureTurretPose = getTurretPose(futureRobotPose, getTurretEncoder());
 
 //        telemetry.addData("currentRobotPose", currentRobotPose);
 //        telemetry.addData("targetPose", targetPose);
@@ -131,7 +129,7 @@ public class Turret extends Component {
         // only account for robot velocity if it is significant
         if (turretLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityRobotSpeedThresholdInchesPerSec && useRelativeVelocityCorrection) {
             // find speed of ball relative to the ground (magnitude only)
-            ballExitSpeed = robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity());
+            ballExitSpeed = Shooter.ticksPerSecToFlywheelMps(-robot.shooter.shooterMotorHigh.getVelocity());
 
             // find velocity of ball relative to the ground (direction and magnitude)
             globalBallExitVelocity = turretToGoal.mult(ballExitSpeed);
@@ -232,6 +230,6 @@ public class Turret extends Component {
         telemetry.addData("motor power", turretMotor.getPower());
         telemetry.addData("motor position", turretMotor.getCurrentPosition());
         telemetry.addData("motor velocity", turretMotor.getVelocity());
-        telemetry.addData("exit speed", robot.shooter.ticksPerSecToMps(-robot.shooter.shooterMotorHigh.getVelocity()));
+        telemetry.addData("exit speed (m/s)", Shooter.ticksPerSecToFlywheelMps(-robot.shooter.shooterMotorHigh.getVelocity()));
     }
 }

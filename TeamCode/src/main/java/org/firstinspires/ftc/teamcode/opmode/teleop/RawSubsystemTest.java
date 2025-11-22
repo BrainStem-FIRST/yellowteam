@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -19,7 +21,9 @@ import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
+import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.List;
@@ -31,14 +35,12 @@ public class RawSubsystemTest extends LinearOpMode {
     public static boolean bulkCaching = true;
     public static double intakePower = 0.99;
     public static double hoodPos = 0.87;
-    public static boolean setHoodByAngle = true, activateLeftServo = false, activateRightServo = true;
+    public static boolean setHoodByAngle = true, activateLeftServo = true, activateRightServo = true;
     public static double targetHoodAngleDeg = 30;
     public static double hoodInc = 0.03;
     public static class ShooterParams {
         public boolean usePid = true;
         public double power = 0.9, targetVelTicksPerSec = 1700;
-        public double encodersPerRev = 28 * 30.0 / 22;
-        public double flywheelRadius = 3;
         public int dirFlip = -1;
         public double kP = 0.005;
         public double kI = 0.0;
@@ -66,6 +68,10 @@ public class RawSubsystemTest extends LinearOpMode {
         DcMotorEx shooter1 = hardwareMap.get(DcMotorEx.class, "lowShoot");
         DcMotorEx shooter2 = hardwareMap.get(DcMotorEx.class, "highShoot");
         PIDController shooterPid = new PIDController(sParams.kP, sParams.kI, sParams.kD);
+
+        DcMotorEx turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         ServoImplEx hoodLeft = hardwareMap.get(ServoImplEx.class, "hoodLeft");
         hoodLeft.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
@@ -202,12 +208,11 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("target", sParams.targetVelTicksPerSec);
             telemetry.addData("vel (ticks/s)", shooterVelTicks);
 
-            // rotations per second
-            double rps = shooterVelTicks / sParams.encodersPerRev;
-            telemetry.addData("vel(m/s)", rps / (Math.PI * 2) * sParams.flywheelRadius);
             telemetry.addLine();
+            telemetry.addData("ball exit height meters at target hood angle", Shooter.getExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
             telemetry.addData("1 vel (ticks/s)", shooter1.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooter2.getVelocity());
+            telemetry.addData("flywheel vel (m/s)", Shooter.ticksPerSecToFlywheelMps((Math.abs(shooter1.getVelocity()) + Math.abs(shooter2.getVelocity())) * 0.5));
             telemetry.addData("1 encoder", shooter1.getCurrentPosition());
             telemetry.addData("2 encoder", shooter2.getCurrentPosition());
             telemetry.addLine();
@@ -219,7 +224,24 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("intake power", collectorMotor.getPower());
             telemetry.addData("left clutch pos", clutchLeft.getPosition());
             telemetry.addData("right clutch pos", clutchRight.getPosition());
+
+            updateDashboardField(turretMotor.getCurrentPosition(), Math.toRadians(targetHoodAngleDeg));
             telemetry.update();
         }
+    }
+    private void updateDashboardField(int turretEncoder, double hoodAngleRad) {
+
+        double shooterCombinedRadiusInches = (Shooter.SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + Shooter.SHOOTER_PARAMS.BALL_RADIUS_METERS) / 0.0254;
+        double offsetFromTurretInches = Shooter.SHOOTER_PARAMS.FLYWHEEL_OFFSET_FROM_TURRET_INCHES - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
+        telemetry.addData("offset from turret inches", offsetFromTurretInches);
+        Pose2d robotPose = new Pose2d(0, 0, 0);
+        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
+        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, turretEncoder, hoodAngleRad);
+        TelemetryPacket packet = new TelemetryPacket();
+        Canvas fieldOverlay = packet.fieldOverlay();
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, turretPose.heading.toDouble()));
+        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+
+//       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
     }
 }

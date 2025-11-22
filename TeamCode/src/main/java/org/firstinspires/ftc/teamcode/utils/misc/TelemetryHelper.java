@@ -10,9 +10,9 @@ import com.acmerobotics.roadrunner.Pose2d;
 public class TelemetryHelper {
     public static String[] colors = { "red", "green", "blue" };
     public static Integer[] strokeWidths = { 1, 1, 1 };
-    public static Integer[] radii = { 3, 3, 3 };
+    public static Integer[] radii = { 10, 6, 3 };
     public static int numPosesToShow = 2;
-    public static double strokeAlpha = 0.5;
+    public static double strokeAlpha = 1;
     public static double fieldRotation = 0;
 
     public static void sendRobotPoses(Pose2d ...poses) {

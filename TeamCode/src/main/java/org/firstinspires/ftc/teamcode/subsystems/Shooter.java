@@ -1,9 +1,8 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import android.sax.StartElementListener;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.Subsystem;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -28,15 +27,19 @@ import java.util.Set;
 @Config
 public class Shooter extends Component {
     public static class ShooterParams {
-        public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
-        public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
+        public double FLYWHEEL_HEIGHT_METERS = 0.2413;
+        public double TARGET_HEIGHT_INCHES = 48.00; // inches from floor to goal height into target
         // (the height of the front wall of the goal is 38.75 in)
 
-        public double WALL_OFFSET = 30;
-        public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
-        public double BALL_RADIUS = 0.064;
-        public double SLIP_COEFFICIENT = 0.4386;
-        public double FLYWHEEL_TICKS_PER_REV = 38.5; // ticks in 1 rotation of the motor
+        public double WALL_OFFSET_INCHES = 30;
+        public double FLYWHEEL_OFFSET_FROM_TURRET_INCHES = 2.4783465;
+        public double FLYWHEEL_RADIUS_METERS = 0.050; // meters of radius of the flywheel
+        public double BALL_RADIUS_METERS = 0.064;
+        public double SLIP_COEFFICIENT = 1;
+        public double SHOOTER_MOTOR_TICKS_PER_REV = 28;
+
+        // pulley ratio is 30:22
+        public double FLYWHEEL_TICKS_PER_REV = SHOOTER_MOTOR_TICKS_PER_REV * 30 / 22; // ticks in 1 rotation of flywheel
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.99;
         public double FAR_SHOOTER_POWER = 0.9;
@@ -45,7 +48,7 @@ public class Shooter extends Component {
         public double B_FAR_VALUE = 725;
         public double SLOPE_CLOSE_VALUE = 4.53882;
         public double SLOPE_FAR_VALUE = 4.03631;
-        public double TARGET_VELOCITY = 1525; //1525
+        public double TARGET_VELOCITY_TICKS = 1525; //1525
         public double VELOCITY_OFFSET = 1;
         public double VELOCITY_CORRECTION = 1;
 
@@ -62,6 +65,20 @@ public class Shooter extends Component {
         public static double minAngleDeg = 20, maxAngleDeg = 50;
     }
 
+    public static Vector2d getExitPositionInches(Pose2d robotPose, int turretEncoder, double hoodAngleRad) {
+        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
+        double shooterCombinedRadiusInches = (SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + SHOOTER_PARAMS.BALL_RADIUS_METERS) / 0.0254;
+        double offsetFromTurretInches = SHOOTER_PARAMS.FLYWHEEL_OFFSET_FROM_TURRET_INCHES - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
+
+        return new Vector2d(
+                turretPose.position.x + offsetFromTurretInches * Math.cos(turretPose.heading.toDouble()),
+                turretPose.position.y + offsetFromTurretInches * Math.sin(turretPose.heading.toDouble())
+        );
+
+    }
+    public static double getExitHeightMeters(double hoodAngleRad) {
+        return SHOOTER_PARAMS.FLYWHEEL_HEIGHT_METERS + (SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + SHOOTER_PARAMS.BALL_RADIUS_METERS) * Math.sin(hoodAngleRad);
+    }
     public static double getHoodServoPosition(double angleRadians, Telemetry telemetry) {
         double hoodExitAngleDeg = Range.clip(Math.toDegrees(angleRadians), HoodParams.minAngleDeg, HoodParams.maxAngleDeg);
         double hoodPivotAngleDeg = hoodExitAngleDeg + HOOD_PARAMS.hoodPivotAngleOffsetFromHoodExitAngleDeg;
@@ -88,7 +105,8 @@ public class Shooter extends Component {
     private final PIDController shooterPID;
     private double lastVelocity = 0;
     private boolean wasAboveThreshold = true;
-    private double servoPos = 0;
+    private double hoodAngleRad;
+    private double hoodServoPos = 0;
     public double adjustment = 0;
     private final ElapsedTime recordTimer;
 
@@ -117,6 +135,9 @@ public class Shooter extends Component {
         recordTimer = new ElapsedTime();
     }
 
+    public double getHoodAngleRad() {
+        return hoodAngleRad;
+    }
     public void setShooterPower(double power) {
         shooterMotorHigh.setPower(power);
         shooterMotorLow.setPower(power);
@@ -170,22 +191,16 @@ public class Shooter extends Component {
         setShooterPower(targetPower);
     }
 
-    public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
-//        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
-//                new Pose2d(-62, -58, Math.toRadians(0));
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
+    public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose, double distance) {
+        double actualVelocityMps = ticksPerSecToFlywheelMps(Math.abs(shooterMotorHigh.getVelocity()));
 
-
-        double actualVelocityMps = ticksPerSecToMps(-shooterMotorHigh.getVelocity());
-
-        double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
+        double exitHeightMeters = getExitHeightMeters(hoodAngleRad);
+        double heightToTargetMeters = (SHOOTER_PARAMS.TARGET_HEIGHT_INCHES * 0.0254 - exitHeightMeters);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
         double g = 9.81;
         double x = distance * 0.0254; // convert inches to meters
-        double y = heightToTarget * 0.0254; // convert inches to meters
+        double y = heightToTargetMeters; // convert inches to meters
 
         double robotVelToGoal = computeVelocityTowardGoal(robotPose, targetPose);
         double v = actualVelocityMps + robotVelToGoal * SHOOTER_PARAMS.VELOCITY_CORRECTION;
@@ -203,9 +218,9 @@ public class Shooter extends Component {
 //    public void setHoodFromAngle(double angleRadians) {
 //        double angleDeg = Math.toDegrees(angleRadians);
 //        angleDeg = Math.max(16.5, Math.min(45.1, angleDeg));
-//        servoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
+//        hoodServoPos = (-0.03497 * angleDeg) + 1.578; //angle(16.5-45.1) conversion to servo pos(1-0)
 //
-//        setHoodPosition(servoPos);
+//        setHoodPosition(hoodServoPos);
 //    }
 
     public double computeVelocityTowardGoal(Pose2d robotPose, Pose2d targetPose) {
@@ -229,9 +244,9 @@ public class Shooter extends Component {
 //                new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - turretPose.position.x;
         double deltaY = targetPose.position.y - turretPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
-        double velocity = 0;
+        double velocityTicks = 0;
         double original_power = 0;
 
 //        if (robotPose.position.x < 50) {
@@ -245,26 +260,26 @@ public class Shooter extends Component {
 //            power = mpsToTicksPerSec(needed_mps);
 //        }
         if (ENABLE_TESTING)
-            velocity = testingShootVelocity;
+            velocityTicks = testingShootVelocity;
         else {
             if (turretPose.position.x < 50)
-                velocity = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+                velocityTicks = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
             else
-                velocity = SHOOTER_PARAMS.TARGET_VELOCITY;
+                velocityTicks = SHOOTER_PARAMS.TARGET_VELOCITY_TICKS;
         }
 
         if (!ENABLE_TESTING || useVelocity)
-            setShooterVelocityPID(velocity);
+            setShooterVelocityPID(velocityTicks);
         else
             setShooterPower(testingShootPower);
 
         if (ENABLE_TESTING)
             setHoodPosition(testingHoodPosition);
         else {
-            double hoodAngleRad = calculateHoodAngle(turretPose, targetPose);
+            hoodAngleRad = calculateHoodAngle(turretPose, targetPose, distance);
             if (turretPose.position.x < 50) {
-                servoPos = getHoodServoPosition(hoodAngleRad, null);
-                setHoodPosition(servoPos);
+                hoodServoPos = getHoodServoPosition(hoodAngleRad, telemetry);
+                setHoodPosition(hoodServoPos);
             }
             else
                 setHoodPosition(1);
@@ -301,12 +316,12 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - robotPose.position.y;
         double distance = Math.hypot(deltaX, deltaY);
 
-        double actualVelocityMps = ticksPerSecToMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
-        double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
+        double actualVelocityMps = ticksPerSecToFlywheelMps((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0);
+        double heightToTargetMeters = SHOOTER_PARAMS.TARGET_HEIGHT_INCHES * 0.0254 - SHOOTER_PARAMS.FLYWHEEL_HEIGHT_METERS;
 
         double g = 9.81;
         double r = (distance * 0.0254) * 2; // convert inches to meters
-        double y = heightToTarget * 0.0254; // convert inches to meters
+        double y = heightToTargetMeters; // convert inches to meters
 
         double v = actualVelocityMps / SHOOTER_PARAMS.VELOCITY_OFFSET;
 
@@ -321,7 +336,7 @@ public class Shooter extends Component {
     public void farShotHoodUpdates(Pose2d robotPose, Pose2d targetPose) {
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
         double power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
         setShooterVelocityPID(power);
@@ -329,8 +344,8 @@ public class Shooter extends Component {
         double currentVelocity = shooterMotorHigh.getVelocity();
 
         if (wasAboveThreshold && (lastVelocity - currentVelocity) >= 250) {
-            if (servoPos + SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0) {
-                servoPos += SHOOTER_PARAMS.HOOD_INCREMENT;
+            if (hoodServoPos + SHOOTER_PARAMS.HOOD_INCREMENT <= 1.0) {
+                hoodServoPos += SHOOTER_PARAMS.HOOD_INCREMENT;
             }
             wasAboveThreshold = false;
         }
@@ -339,7 +354,7 @@ public class Shooter extends Component {
             wasAboveThreshold = true;
         }
 
-        setHoodPosition(servoPos);
+        setHoodPosition(hoodServoPos);
 
         lastVelocity = currentVelocity;
     }
@@ -350,9 +365,9 @@ public class Shooter extends Component {
 
         double deltaX = targetPose.position.x - robotPose.position.x;
         double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
+        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
-        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+        setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY_TICKS);
         double hood = 0.025 * ((shooterMotorLow.getVelocity() + shooterMotorHigh.getVelocity()) / 2.0) + 36.16667;
         hood = 90 - hood;
         double servoPos1 = (-0.03497 * hood) + 1.578;
@@ -360,14 +375,14 @@ public class Shooter extends Component {
     }
 
 
-    public double ticksPerSecToMps(double ticksPerSec) {
-        double wheelCircumference = 2 * Math.PI * (SHOOTER_PARAMS.FLYWHEEL_RADIUS + SHOOTER_PARAMS.BALL_RADIUS);
+    public static double ticksPerSecToFlywheelMps(double ticksPerSec) {
+        double wheelCircumference = 2 * Math.PI * (SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS);
         return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference * SHOOTER_PARAMS.SLIP_COEFFICIENT;
     }
 
     // doesn't account for slippage
     public double mpsToTicksPerSec(double mps) {
-        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS;
+        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS;
         return (mps / wheelCircumference) * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
     }
 
@@ -393,11 +408,11 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
-                updateShooterSystem(robot.turret.getTurretPose(robot.drive.localizer.getPose()), robot.turret.targetPose);
+                updateShooterSystem(Turret.getTurretPose(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder()), robot.turret.targetPose);
                 break;
 
             case SHOOT:
-                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY);
+                setShooterVelocityPID(SHOOTER_PARAMS.TARGET_VELOCITY_TICKS);
 //                calculateHoodAngle(drive.localizer.getPose(), turret.targetPose);
 //                incrementHood(drive.localizer.getPose(), turret.targetPose);
                 break;

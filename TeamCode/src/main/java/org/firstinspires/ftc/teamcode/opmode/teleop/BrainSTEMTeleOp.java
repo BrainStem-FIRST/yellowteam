@@ -24,7 +24,6 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
-import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public abstract class BrainSTEMTeleOp extends LinearOpMode {
@@ -274,35 +273,16 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
-        Pose2d turretPose = robot.turret.getTurretPose(robotPose);
-
+        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getHoodAngleRad());
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose);
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, 0));
         fieldOverlay.setAlpha(1);
         fieldOverlay.setStroke("black");
         fieldOverlay.strokeLine(robotPose.position.x,
                 robotPose.position.y,
                 robotPose.position.x + robot.turret.turretVelocity.x,
                 robotPose.position.y + robot.turret.turretVelocity.y);
-        if (showRelative) {
-            Vec vec = robot.turret.relativeBallExitVelocity.normalize().mult(velocitySize);
-            fieldOverlay.setStroke("green");
-            fieldOverlay.strokeLine(turretPose.position.x,
-                    turretPose.position.y,
-                    turretPose.position.x + vec.x,
-                    turretPose.position.y + vec.y
-            );
-        }
-        if (showGlobal) {
-            Vec vec = robot.turret.globalBallExitVelocity.normalize().mult(velocitySize);
-            fieldOverlay.setStroke("blue");
-            fieldOverlay.strokeLine(turretPose.position.x,
-                    turretPose.position.y,
-                    turretPose.position.x + vec.x,
-                    turretPose.position.y + vec.y
-            );
-        }
 
         fieldOverlay.setStroke("yellow");
         fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
@@ -310,5 +290,43 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
 //       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
     }
+//    private void updateDashboardField() {
+//        Pose2d robotPose = robot.drive.pinpoint().getPose();
+//        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
+//
+//        TelemetryPacket packet = new TelemetryPacket();
+//        Canvas fieldOverlay = packet.fieldOverlay();
+//        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose);
+//        fieldOverlay.setAlpha(1);
+//        fieldOverlay.setStroke("black");
+//        fieldOverlay.strokeLine(robotPose.position.x,
+//                robotPose.position.y,
+//                robotPose.position.x + robot.turret.turretVelocity.x,
+//                robotPose.position.y + robot.turret.turretVelocity.y);
+//        if (showRelative) {
+//            Vec vec = robot.turret.relativeBallExitVelocity.normalize().mult(velocitySize);
+//            fieldOverlay.setStroke("green");
+//            fieldOverlay.strokeLine(turretPose.position.x,
+//                    turretPose.position.y,
+//                    turretPose.position.x + vec.x,
+//                    turretPose.position.y + vec.y
+//            );
+//        }
+//        if (showGlobal) {
+//            Vec vec = robot.turret.globalBallExitVelocity.normalize().mult(velocitySize);
+//            fieldOverlay.setStroke("blue");
+//            fieldOverlay.strokeLine(turretPose.position.x,
+//                    turretPose.position.y,
+//                    turretPose.position.x + vec.x,
+//                    turretPose.position.y + vec.y
+//            );
+//        }
+//
+//        fieldOverlay.setStroke("yellow");
+//        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
+//        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+//
+//       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
+//    }
 
 }
