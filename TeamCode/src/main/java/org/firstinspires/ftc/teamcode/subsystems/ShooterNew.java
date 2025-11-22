@@ -16,15 +16,15 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
-import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
+import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.Collections;
 import java.util.Set;
 
 @Config
-public class Shooter extends Component {
+public class ShooterNew extends Component {
     public static class ShooterParams {
         public double SHOOTER_HEIGHT = 12.89; // inches from floor to where ball ejects
         public double TARGET_HEIGHT = 48.00; // inches from floor to goal height into target
@@ -33,7 +33,7 @@ public class Shooter extends Component {
         public double WALL_OFFSET = 30;
         public double FLYWHEEL_RADIUS = 0.050; // meters of radius of the flywheel
         public double BALL_RADIUS = 0.064;
-        public double SLIP_COEFFICIENT = 0.4386;
+        public double SLIP_COEFFICIENT = 1;
         public double FLYWHEEL_TICKS_PER_REV = 38.5; // ticks in 1 rotation of the motor
         public double HOOD_INCREMENT = 0.1;
         public double CLOSE_SHOOTER_POWER = 0.99;
@@ -59,7 +59,6 @@ public class Shooter extends Component {
     }
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
-    public static boolean ENABLE_TESTING = false;
     public static boolean useVelocity = false;
     public static double testingShootPower = -0.99, testingShootVelocity = 1300, testingHoodPosition = 0.7;
     public DcMotorEx shooterMotorLow; // encoders for this one are cooked
@@ -75,7 +74,7 @@ public class Shooter extends Component {
     public double adjustment = 0;
     private final ElapsedTime recordTimer;
 
-    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
+    public ShooterNew(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
 
         shooterMotorLow = hardwareMap.get(DcMotorEx.class, "lowShoot");
@@ -153,14 +152,7 @@ public class Shooter extends Component {
         setShooterPower(targetPower);
     }
 
-    public double calculateHoodAngle(Pose2d robotPose, Pose2d targetPose) {
-//        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
-//                new Pose2d(-62, -58, Math.toRadians(0));
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
-
-
+    public double calculateHoodAngle(double distance, double shooterVel) {
         double actualVelocityMps = ticksPerSecToMps(-shooterMotorHigh.getVelocity());
 
         double heightToTarget = (SHOOTER_PARAMS.TARGET_HEIGHT - SHOOTER_PARAMS.SHOOTER_HEIGHT);
@@ -170,15 +162,11 @@ public class Shooter extends Component {
         double x = distance * 0.0254; // convert inches to meters
         double y = heightToTarget * 0.0254; // convert inches to meters
 
-        double robotVelToGoal = computeVelocityTowardGoal(robotPose, targetPose);
-        double v = actualVelocityMps + robotVelToGoal * SHOOTER_PARAMS.VELOCITY_CORRECTION;
-        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
+        double discriminant = shooterVel*shooterVel*shooterVel*shooterVel - g*(g*x*x + 2*y*shooterVel*shooterVel);
         if (discriminant <= 0)
             return Math.toRadians(40);
 
-        double theta = Math.atan( (v*v - Math.sqrt(discriminant)) / (g * x) );
-
-        return theta;
+        return Math.atan( (shooterVel*shooterVel - Math.sqrt(discriminant)) / (g * x) );
     }
     public void setHoodFromAngle(double angleRadians) {
         double angleDeg = Math.toDegrees(angleRadians);
@@ -212,72 +200,48 @@ public class Shooter extends Component {
     }
 
     public void updateShooterSystem(Pose2d turretPose, Pose2d targetPose) {
-
-//        targetPose = turret.isRedAlliance ? new Pose2d(-62, 58, Math.toRadians(0)) :
-//                new Pose2d(-62, -58, Math.toRadians(0));
         double deltaX = targetPose.position.x - turretPose.position.x;
         double deltaY = targetPose.position.y - turretPose.position.y;
         double distance = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET;
 
-        double velocity = 0;
-        double original_power = 0;
-
-//        if (robotPose.position.x < 50) {
-//            original_power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
-//            double shooter_mps = ticksPerSecToMps(original_power);
-//            double robot_mps = computeVelocityTowardGoal(robotPose, targetPose) * 0.0254; // actually returns negative value
-//            double needed_mps = shooter_mps + (robot_mps * SHOOTER_PARAMS.VELOCITY_CORRECTION);
-//            telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(needed_mps));
-//            telemetry.addData("ROBOT MPS", robot_mps);
-//            if (needed_mps < 0) needed_mps = 0;
-//            power = mpsToTicksPerSec(needed_mps);
-//        }
-        if (ENABLE_TESTING)
-            velocity = testingShootVelocity;
-        else {
-            if (turretPose.position.x < 50)
-                velocity = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
-            else
-                velocity = SHOOTER_PARAMS.TARGET_VELOCITY;
-        }
-
-        if (!ENABLE_TESTING || useVelocity)
-            setShooterVelocityPID(velocity);
+        double velocityTicks;
+        if (turretPose.position.x < 50)
+            velocityTicks = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
         else
-            setShooterPower(testingShootPower);
+            velocityTicks = SHOOTER_PARAMS.TARGET_VELOCITY;
 
-        if (ENABLE_TESTING)
-            setHoodPosition(testingHoodPosition);
-        else {
-            double hoodAngle = calculateHoodAngle(turretPose, targetPose);
-            if (turretPose.position.x < 50)
-                setHoodFromAngle(hoodAngle);
-            else
-                setHoodPosition(1);
-        }
+
+        setShooterVelocityPID(velocityTicks);
+
+        double velocityMps = ticksPerSecToMps(velocityTicks);
+        double hoodAngle = calculateHoodAngle(distance, velocityMps);
+        if (turretPose.position.x < 50)
+            setHoodFromAngle(hoodAngle);
+        else
+            setHoodPosition(1);
     }
 
-    public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
-
-        targetPose = robot.alliance == Alliance.RED ? new Pose2d(-62, 58, Math.toRadians(0)) :
-                new Pose2d(-62, -58, Math.toRadians(0));
-        double deltaX = targetPose.position.x - robotPose.position.x;
-        double deltaY = targetPose.position.y - robotPose.position.y;
-        double distance = Math.hypot(deltaX, deltaY);
-
-        double power = 0;
-
-        if (robotPose.position.x < 20)
-            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
-        else
-            power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
-
-        setShooterVelocityPID(power);
-
-        calculateHoodAnglePART2(robotPose, targetPose);
-        double hoodAngle = calculateHoodAnglePART2(robotPose, targetPose);
-//        setHoodFromAngle(hoodAngle);
-    }
+//    public void updateShooterSystemPART2(Pose2d robotPose, Pose2d targetPose) {
+//
+//        targetPose = robot.alliance == Alliance.RED ? new Pose2d(-62, 58, Math.toRadians(0)) :
+//                new Pose2d(-62, -58, Math.toRadians(0));
+//        double deltaX = targetPose.position.x - robotPose.position.x;
+//        double deltaY = targetPose.position.y - robotPose.position.y;
+//        double distance = Math.hypot(deltaX, deltaY);
+//
+//        double power = 0;
+//
+//        if (robotPose.position.x < 20)
+//            power = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * distance) + SHOOTER_PARAMS.B_CLOSE_VALUE;
+//        else
+//            power = (SHOOTER_PARAMS.SLOPE_FAR_VALUE * distance) + SHOOTER_PARAMS.B_FAR_VALUE;
+//
+//        setShooterVelocityPID(power);
+//
+//        calculateHoodAnglePART2(robotPose, targetPose);
+//        double hoodAngle = calculateHoodAnglePART2(robotPose, targetPose);
+////        setHoodFromAngle(hoodAngle);
+//    }
 
     public double calculateHoodAnglePART2(Pose2d robotPose, Pose2d targetPose) {
 
@@ -347,7 +311,7 @@ public class Shooter extends Component {
 
 
     public double ticksPerSecToMps(double ticksPerSec) {
-        double wheelCircumference = 2 * Math.PI * (SHOOTER_PARAMS.FLYWHEEL_RADIUS + SHOOTER_PARAMS.BALL_RADIUS);
+        double wheelCircumference = 2 * Math.PI * (SHOOTER_PARAMS.FLYWHEEL_RADIUS);
         return (ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV) * wheelCircumference * SHOOTER_PARAMS.SLIP_COEFFICIENT;
     }
 
@@ -397,9 +361,9 @@ public class Shooter extends Component {
                 farShotHoodUpdates(robot.drive.localizer.getPose(), robot.turret.targetPose);
                 break;
 
-            case UPDATE_2:
-                updateShooterSystemPART2(robot.drive.localizer.getPose(), robot.turret.targetPose);
-                break;
+//            case UPDATE_2:
+//                updateShooterSystemPART2(robot.drive.localizer.getPose(), robot.turret.targetPose);
+//                break;
         }
 
 
