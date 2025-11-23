@@ -37,9 +37,9 @@ public class Limelight extends Component {
         if(result != null) {
             telemetry.addData("isValid", result.isValid());
             telemetry.addData("turret pos", turretPos);
-            telemetry.addData("turret heading", turretHeading);
+            telemetry.addData("turret heading", Math.floor(turretHeading * 180 / Math.PI * 100) / 100);
             telemetry.addData("robot pos", robotPos);
-            telemetry.addData("robot heading", robotHeading);
+            telemetry.addData("robot heading", Math.floor(robotHeading * 180 / Math.PI * 100) / 100);
         }
         else
             telemetry.addLine("result is null");

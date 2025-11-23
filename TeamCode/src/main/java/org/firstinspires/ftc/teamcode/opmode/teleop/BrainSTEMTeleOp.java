@@ -80,6 +80,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDriver2();
             updateDriver1();
             CommandScheduler.getInstance().run();
+            robot.limelight.printInfo();
             robot.turret.printInfo();
             robot.shooter.printInfo();
 

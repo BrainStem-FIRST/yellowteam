@@ -82,7 +82,6 @@ public class BrainSTEMRobot {
         }
     }
     public void update() {
-        long startNano = System.nanoTime();
         for(LynxModule hub : allHubs)
             hub.clearBulkCache();
 
