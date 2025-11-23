@@ -1,6 +1,9 @@
 package com.example.meepmeeptesting;
 
+import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Rotation2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.noahbres.meepmeep.MeepMeep;
 import com.noahbres.meepmeep.core.colorscheme.scheme.ColorSchemeBlueDark;
 import com.noahbres.meepmeep.core.colorscheme.scheme.ColorSchemeRedDark;
@@ -94,14 +97,59 @@ public class MeepMeepTesting {
                 .splineToLinearHeading(new Pose2d(-55, 40, Math.toRadians(135)), Math.toRadians(90))
                 .build());
 
-//
+        RoadRunnerBotEntity fifteenSolo = new DefaultBotBuilder(meepMeep)
+                .setColorScheme(new ColorSchemeRedDark())
+                .setConstraints(90, 90, Math.toRadians(180), Math.toRadians(180), 15)
+                .build();
 
+        fifteenSolo.runAction(fifteenSolo.getDrive().actionBuilder(new Pose2d(60, 20, Math.toRadians(180)))
+                .waitSeconds(1)
+                .splineToLinearHeading(new Pose2d(50, 15, Math.toRadians(180)), Math.toRadians(180))
+                .waitSeconds(1)
+                // human player collection
+                .setTangent(Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(50, 56, Math.toRadians(45)), Math.toRadians(90))
+                .splineToLinearHeading(new Pose2d(60, 56, Math.toRadians(45)), Math.toRadians(0))
+                //return to shoot
+                .setTangent(Math.toRadians(-110))
+                .splineToLinearHeading(new Pose2d(50, 15, Math.toRadians(115)), Math.toRadians(-90))
+                .waitSeconds(1)
+                // second spike line
+                .setTangent(Math.toRadians(135))
+                .splineToLinearHeading(new Pose2d(12, 30, Math.toRadians(90)), Math.toRadians(90))
+                .lineToY(62)
+                // open gate
+                .setTangent(Math.toRadians(-115))
+                .splineToLinearHeading(new Pose2d(0, 50, Math.toRadians(180)), Math.toRadians(135))
+                .lineToY(56)
+                //return to shoot
+                .setTangent(Math.toRadians(-110))
+                .splineToLinearHeading(new Pose2d(50, 10, Math.toRadians(180)), Math.toRadians(0))
+                .waitSeconds(1)
+                // third spike mark
+                .splineToLinearHeading(new Pose2d(35, 35, Math.toRadians(90)), Math.toRadians(90))
+                .lineToY(50)
+                // return to shoot
+                .setTangent(Math.toRadians(-45))
+                .splineToLinearHeading(new Pose2d(50, 10, Math.toRadians(115)), Math.toRadians(-45))
+                .waitSeconds(1)
+                // first spike mark
+                .setTangent(Math.toRadians(135))
+                .splineToLinearHeading(new Pose2d(-12, 30, Math.toRadians(90)), Math.toRadians(90))
+                .lineToY(50)
+                // return to shoot
+                .setTangent(-45)
+                .splineToLinearHeading(new Pose2d(-12, 12, Math.toRadians(135)), Math.toRadians(-90))
+                .waitSeconds(1)
+                .build());
+
+//
         meepMeep.setBackground(MeepMeep.Background.FIELD_DECODE_OFFICIAL)
                 .setDarkMode(true)
                 .setBackgroundAlpha(0.95f)
 //                .addEntity(redFarSolo)
 //                .addEntity(redCloseSolo)
-                .addEntity(redFarPartner)
+                .addEntity(fifteenSolo)
 //                .addEntity(redClosePartner)
 //
                 .start();
