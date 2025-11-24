@@ -63,9 +63,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
         if (Shooter.ENABLE_TESTING) {
             if (Shooter.useVelocity)
-                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
             else
-                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingHoodPosition);
+                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
 
             telemetry.update();
         }
@@ -274,7 +274,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
-        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getHoodAngleRad());
+        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
         TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, 0));

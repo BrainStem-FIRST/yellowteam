@@ -38,8 +38,6 @@ public class BrainSTEMRobot {
     private final List<LynxModule> allHubs;
     private Telemetry telemetry;
     public GamepadTracker g1;
-    private Pose2d prevPose;
-    private double lastUpdateTime, dt;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;
@@ -85,24 +83,22 @@ public class BrainSTEMRobot {
         for(LynxModule hub : allHubs)
             hub.clearBulkCache();
 
-        if(enablePinpoint) {
+        if(enablePinpoint)
             drive.updatePoseEstimate();
-            dt = (System.currentTimeMillis() - lastUpdateTime) / 1000.0;
-        }
         if(enableSubsystems)
             for (Component c : subsystems)
                 c.update();
+        if(enableLimelight) {
+//            Pose2d robotPose = limelight.getRobotPose();
+//            if(robotPose != null)
+//                drive.pinpoint().setPose(robotPose);
+        }
 //        drawRobot(this);
-        prevPose = drive.localizer.getPose();
-        lastUpdateTime = System.currentTimeMillis();
     }
 
     private void drawRobot(BrainSTEMRobot robot) {
         TelemetryPacket packet = new TelemetryPacket();
         packet.fieldOverlay().setStroke("#3F51B5");
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
-    }
-    public Vector2d getLinearVel() {
-        return drive.localizer.getPose().position.minus(prevPose.position).div(dt);
     }
 }
