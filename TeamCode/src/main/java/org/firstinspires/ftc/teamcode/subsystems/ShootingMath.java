@@ -104,8 +104,9 @@ public class ShootingMath {
                 targetPose.position.y - futureExitPosition.y).normalize();
 
         double targetAngleRad;
-        // only account for robot velocity if it is significant
-        if (ballExitLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityExitSpeedThresholdInchesPerSec && enableRelativeVelocity) {
+
+        // account for relative velocity
+        if (enableRelativeVelocity && ballExitLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityExitSpeedThresholdInchesPerSec) {
             // find speed of ball relative to the ground (magnitude only)
 
             // find velocity of ball relative to the ground (direction and magnitude)
@@ -119,7 +120,8 @@ public class ShootingMath {
 
             // find angle to shoot at relative velocity
             targetAngleRad = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
-        } else
+        }
+        else
             // find angle to shoot at normally
             targetAngleRad = Math.atan2(ballExitToGoal.y, ballExitToGoal.x);
 

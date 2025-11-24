@@ -230,7 +230,7 @@ public class Shooter extends Component {
         double inchesFromGoal = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
         // update FLYWHEEL
-        double flywheelTicksPerSec = SHOOTER_PARAMS.FAR_TARGET_VEL_TICKS;
+        double flywheelTicksPerSec = SHOOTER_PARAMS.FAR_TARGET_VEL_TICKS; // for now, setting to constant velocity for far shots
         if (ballExitPosition.x < 50) {
             OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
             flywheelTicksPerSec = ShootingMath.calculateFlywheelSpeedTicksPerSec(targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
