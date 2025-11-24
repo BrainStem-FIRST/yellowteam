@@ -26,46 +26,22 @@ import java.util.Set;
 @Config
 public class Shooter extends Component {
     public static class ShooterParams {
-        public double FLYWHEEL_HEIGHT_METERS = 0.2413;
-        public double TARGET_HEIGHT_INCHES = 48.00; // inches from floor to goal height into target
-        // (the height of the front wall of the goal is 38.75 in)
-
         public double WALL_OFFSET_INCHES = 30;
-        public double FLYWHEEL_OFFSET_FROM_TURRET_INCHES = 2.4783465;
-        public double FLYWHEEL_RADIUS_METERS = 0.050; // meters of radius of the flywheel
-        public double BALL_RADIUS_METERS = 0.064;
-        public double GRIP_COEFFICIENT = 1;// actual exit velocity / theoretical exit velocity
-        public double SHOOTER_MOTOR_TICKS_PER_REV = 28;
-
-        // pulley ratio is 30:22
-        public double FLYWHEEL_TICKS_PER_REV = SHOOTER_MOTOR_TICKS_PER_REV * 30 / 22; // ticks in 1 rotation of flywheel
-        public double B_CLOSE_VALUE = 800.29968;
-        public double SLOPE_CLOSE_VALUE = 4.53882;
         public double FAR_TARGET_VEL_TICKS = 1525;
-        public double RELATIVE_VELOCITY_CORRECTION = 1;
-
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.00056;
     }
     public static class HoodParams {
-        public double restingDistanceMm = 82;
-        public double hoodPivotAngleOffsetFromHoodExitAngleDeg = 7.8;
         public double downPWM = 900, upPWM = 2065;
-        public double servoRangeMm = 30;
-        public static double minAngleDeg = 20, maxAngleDeg = 50;
     }
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
     public static boolean ENABLE_TESTING = false;
-    public static boolean useRelativeVelocity = false;
 
     public enum ShooterState {
         OFF, UPDATE, FIXED_VELOCITY_IN_AUTO
-    }
-    public enum ShootingZone {
-        CLOSE, FAR
     }
 
     /*
@@ -137,44 +113,44 @@ public class Shooter extends Component {
 
         setShooterPower(totalPower);
     }
-    public double calculateBallExitAngleRad(Vector2d ballExitPosition, Pose2d targetPose, double distance) {
-        double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
-
-        // get the EXACT exit height of the ball (depends on hood position)
-        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(ballExitAngleRad);
-        double heightToTargetMeters = (SHOOTER_PARAMS.TARGET_HEIGHT_INCHES * 0.0254 - exitHeightMeters);
-
-        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
-        double g = 9.81;
-        double x = distance * 0.0254; // convert inches to meters
-        double y = heightToTargetMeters; // convert inches to meters
-
-        double v = ballExitSpeedMps;
-         if (useRelativeVelocity) {
-             double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
-             v -= exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
-         }
-        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
-        if (discriminant <= 0)
-            return Math.toRadians(40);
-
-        double tanTheta = (v*v - Math.sqrt(discriminant)) / (g * x);
-        return Math.atan(tanTheta);
-    }
-    public double computeSpeedTowardGoalMps(Vector2d ballExitPosition, Pose2d targetPose) {
-        double dx = targetPose.position.x - ballExitPosition.x;
-        double dy = targetPose.position.y - ballExitPosition.y;
-
-        double distanceFromGoal = Math.hypot(dx, dy);
-        double ux = dx / distanceFromGoal;
-        double uy = dy / distanceFromGoal;
-
-        OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
-        double vx = vel.x;
-        double vy = vel.y;
-
-        return -(vx*ux + vy*uy) * 0.0254;
-    }
+//    public double calculateBallExitAngleRad(Vector2d ballExitPosition, Pose2d targetPose, double distance) {
+//        double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
+//
+//        // get the EXACT exit height of the ball (depends on hood position)
+//        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(ballExitAngleRad);
+//        double heightToTargetMeters = (SHOOTER_PARAMS.TARGET_HEIGHT_INCHES * 0.0254 - exitHeightMeters);
+//
+//        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
+//        double g = 9.81;
+//        double x = distance * 0.0254; // convert inches to meters
+//        double y = heightToTargetMeters; // convert inches to meters
+//
+//        double v = ballExitSpeedMps;
+//         if (useRelativeVelocity) {
+//             double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
+//             v -= exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
+//         }
+//        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
+//        if (discriminant <= 0)
+//            return Math.toRadians(40);
+//
+//        double tanTheta = (v*v - Math.sqrt(discriminant)) / (g * x);
+//        return Math.atan(tanTheta);
+//    }
+//    public double computeSpeedTowardGoalMps(Vector2d ballExitPosition, Pose2d targetPose) {
+//        double dx = targetPose.position.x - ballExitPosition.x;
+//        double dy = targetPose.position.y - ballExitPosition.y;
+//
+//        double distanceFromGoal = Math.hypot(dx, dy);
+//        double ux = dx / distanceFromGoal;
+//        double uy = dy / distanceFromGoal;
+//
+//        OdoInfo vel = robot.drive.pinpoint().getMostRecentVelocity();
+//        double vx = vel.x;
+//        double vy = vel.y;
+//
+//        return -(vx*ux + vy*uy) * 0.0254;
+//    }
 
     // old update shooter system function
     /*

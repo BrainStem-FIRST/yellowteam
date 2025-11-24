@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmode.poseCrucibleAutos;
+package org.firstinspires.ftc.teamcode.opmode.postCrucibleAutos;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 

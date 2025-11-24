@@ -108,6 +108,7 @@ public class Turret extends Component {
     }
 
     // calculates turret angle with ball exit position
+    /*
     public void poseTargetToTurretTicks (Pose2d currentRobotPose, Pose2d targetPose) {
         double turretMax = Math.toRadians(90);
         double turretMin = Math.toRadians(-90);
@@ -164,6 +165,7 @@ public class Turret extends Component {
         targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
         setTurretPosition(targetTurretPosition);
     }
+    */
 
     @Override
     public void reset() {}

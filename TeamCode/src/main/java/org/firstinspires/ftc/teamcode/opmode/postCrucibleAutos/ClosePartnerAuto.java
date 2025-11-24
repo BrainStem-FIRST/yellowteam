@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmode.poseCrucibleAutos;
+package org.firstinspires.ftc.teamcode.opmode.postCrucibleAutos;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;

@@ -231,8 +231,8 @@ public class RawSubsystemTest extends LinearOpMode {
     }
     private void updateDashboardField(int turretEncoder, double hoodAngleRad) {
 
-        double shooterCombinedRadiusInches = (Shooter.SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + Shooter.SHOOTER_PARAMS.BALL_RADIUS_METERS) / 0.0254;
-        double offsetFromTurretInches = Shooter.SHOOTER_PARAMS.FLYWHEEL_OFFSET_FROM_TURRET_INCHES - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
+        double shooterCombinedRadiusInches = (ShootingMath.shooterSystemParams.flywheelRadiusMeters + ShootingMath.shooterSystemParams.ballRadiusMeters) / 0.0254;
+        double offsetFromTurretInches = ShootingMath.shooterSystemParams.flywheelOffsetFromTurretInches - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
         telemetry.addData("offset from turret inches", offsetFromTurretInches);
         Pose2d robotPose = new Pose2d(0, 0, 0);
         Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
