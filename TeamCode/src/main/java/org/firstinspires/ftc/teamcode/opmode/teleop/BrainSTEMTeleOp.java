@@ -62,10 +62,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         robot.setG1(gp1);
 
         if (Shooter.ENABLE_TESTING) {
-            if (Shooter.useVelocity)
-                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER VELOCITY SET TO " + Shooter.testingShootVelocity + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
-            else
-                telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
+            telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
 
             telemetry.update();
         }
@@ -275,21 +272,33 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
         Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, 0));
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad));
+
+        // draw exit position velocity
         fieldOverlay.setAlpha(1);
         fieldOverlay.setStroke("black");
         fieldOverlay.strokeLine(robotPose.position.x,
                 robotPose.position.y,
-                robotPose.position.x + robot.turret.turretVelocity.x,
-                robotPose.position.y + robot.turret.turretVelocity.y);
+                robotPose.position.x + robot.turret.exitVelocityMps.x,
+                robotPose.position.y + robot.turret.exitVelocityMps.y);
 
+        // draw where turret is pointed
+        fieldOverlay.setStroke("blue");
+        double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(robot.turret.targetAngleRad),
+                exitPosition.y + dist * Math.sin(robot.turret.targetAngleRad)
+        );
+
+        // draw goal
         fieldOverlay.setStroke("yellow");
         fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
-
-//       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
     }
 //    private void updateDashboardField() {
 //        Pose2d robotPose = robot.drive.pinpoint().getPose();
@@ -302,10 +311,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 //        fieldOverlay.setStroke("black");
 //        fieldOverlay.strokeLine(robotPose.position.x,
 //                robotPose.position.y,
-//                robotPose.position.x + robot.turret.turretVelocity.x,
-//                robotPose.position.y + robot.turret.turretVelocity.y);
+//                robotPose.position.x + robot.turret.exitVelocityMps.x,
+//                robotPose.position.y + robot.turret.exitVelocityMps.y);
 //        if (showRelative) {
-//            Vec vec = robot.turret.relativeBallExitVelocity.normalize().mult(velocitySize);
+//            Vec vec = robot.turret.relativeBallExitVelocityMps.normalize().mult(velocitySize);
 //            fieldOverlay.setStroke("green");
 //            fieldOverlay.strokeLine(turretPose.position.x,
 //                    turretPose.position.y,
@@ -314,7 +323,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 //            );
 //        }
 //        if (showGlobal) {
-//            Vec vec = robot.turret.globalBallExitVelocity.normalize().mult(velocitySize);
+//            Vec vec = robot.turret.globalBallExitVelocityMps.normalize().mult(velocitySize);
 //            fieldOverlay.setStroke("blue");
 //            fieldOverlay.strokeLine(turretPose.position.x,
 //                    turretPose.position.y,

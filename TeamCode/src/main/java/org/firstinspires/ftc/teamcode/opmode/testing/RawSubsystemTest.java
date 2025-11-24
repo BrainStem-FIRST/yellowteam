@@ -211,7 +211,7 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("ball exit height meters at target hood angle", Shooter.getExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
             telemetry.addData("1 vel (ticks/s)", shooter1.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooter2.getVelocity());
-            telemetry.addData("flywheel vel (m/s)", Shooter.ticksPerSecToFlywheelMps(Math.abs(shooter2.getVelocity())));
+            telemetry.addData("ball exit vel (m/s)", Shooter.ticksPerSecToExitSpeedMps(Math.abs(shooter2.getVelocity())));
             telemetry.addData("1 encoder", shooter1.getCurrentPosition());
             telemetry.addData("2 encoder", shooter2.getCurrentPosition());
             telemetry.addLine();
