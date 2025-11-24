@@ -138,7 +138,7 @@ public class Shooter extends Component {
         setShooterPower(totalPower);
     }
     public double calculateBallExitAngleRad(Vector2d ballExitPosition, Pose2d targetPose, double distance) {
-        double ballExitSpeedMps = ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
+        double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
 
         // get the EXACT exit height of the ball (depends on hood position)
         double exitHeightMeters = ShootingMath.calculateExitHeightMeters(ballExitAngleRad);
@@ -176,6 +176,8 @@ public class Shooter extends Component {
         return -(vx*ux + vy*uy) * 0.0254;
     }
 
+    // old update shooter system function
+    /*
     public void updateShooterSystem(Vector2d ballExitPosition, Pose2d targetPose) {
         double deltaX = targetPose.position.x - ballExitPosition.x;
         double deltaY = targetPose.position.y - ballExitPosition.y;
@@ -186,14 +188,14 @@ public class Shooter extends Component {
         if (ballExitPosition.x < 50) {
             double absoluteExitSpeedTicksPerSec = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * inchesFromGoal) + SHOOTER_PARAMS.B_CLOSE_VALUE;
             if (useRelativeVelocity) {
-                double absoluteExitSpeedMps = ticksPerSecToExitSpeedMps(absoluteExitSpeedTicksPerSec);
+                double absoluteExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(absoluteExitSpeedTicksPerSec);
                 // SHOULD return positive value
                 double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
                 double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION);
-                telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(relativeExitSpeedMps));
+                telemetry.addData("ADJUSTED POWER", ShootingMath.mpsToTicksPerSec(relativeExitSpeedMps));
                 telemetry.addData("BALL EXIT MPS", exitPositionSpeedTowardsGoalMps);
 
-                velocityTicks = mpsToTicksPerSec(relativeExitSpeedMps);
+                velocityTicks = ShootingMath.mpsToTicksPerSec(relativeExitSpeedMps);
             }
             else
                 velocityTicks = absoluteExitSpeedTicksPerSec;
@@ -210,7 +212,7 @@ public class Shooter extends Component {
         }
         else {
             if (ballExitPosition.x < 50) {
-                double ballExitSpeedMps = ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
+                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
                 OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
                 ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, ballExitSpeedMps, ballExitAngleRad, mostRecentVelocity);
 
@@ -221,19 +223,38 @@ public class Shooter extends Component {
                 setHoodPosition(1);
         }
     }
+     */
+    public void updateShooterSystem(Vector2d ballExitPosition, Pose2d targetPose) {
+        double deltaX = targetPose.position.x - ballExitPosition.x;
+        double deltaY = targetPose.position.y - ballExitPosition.y;
+        double inchesFromGoal = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
-    public static double ticksPerSecToExitSpeedMps(double ticksPerSec) {
-        double revPerSec = ticksPerSec / SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
-        double angularVel = revPerSec * 2 * Math.PI;
-        return angularVel * SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS * SHOOTER_PARAMS.GRIP_COEFFICIENT;
+        // update FLYWHEEL
+        double flywheelTicksPerSec = SHOOTER_PARAMS.FAR_TARGET_VEL_TICKS;
+        if (ballExitPosition.x < 50) {
+            OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
+            flywheelTicksPerSec = ShootingMath.calculateFlywheelSpeedTicksPerSec(targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
+        }
+        setShooterVelocityPID(flywheelTicksPerSec);
+
+        // update HOOD
+        if (ENABLE_TESTING) {
+            hoodServoPos = ShootingMath.calculateHoodServoPosition(testingBallExitAngleRad, telemetry);
+            setHoodPosition(hoodServoPos);
+        }
+        else {
+            if (ballExitPosition.x < 50) {
+                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
+                OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
+                ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, ballExitSpeedMps, ballExitAngleRad, mostRecentVelocity);
+                hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
+                setHoodPosition(hoodServoPos);
+            }
+            else
+                setHoodPosition(1);
+        }
     }
 
-    public double mpsToTicksPerSec(double mps) {
-        double wheelCircumference = 2 * Math.PI * SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS;
-        double revPerSec = mps / wheelCircumference;
-        double idealTicksPerSec = revPerSec * SHOOTER_PARAMS.FLYWHEEL_TICKS_PER_REV;
-        return idealTicksPerSec  / SHOOTER_PARAMS.GRIP_COEFFICIENT;
-    }
 
     public void setHoodPosition(double position) {
         hoodLeftServo.setPosition(position);
@@ -253,7 +274,8 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
-                updateShooterSystem(ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad), robot.turret.targetPose);
+                Vector2d ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
+                updateShooterSystem(ballExitPosition, robot.turret.targetPose);
                 break;
 
             case FIXED_VELOCITY_IN_AUTO:

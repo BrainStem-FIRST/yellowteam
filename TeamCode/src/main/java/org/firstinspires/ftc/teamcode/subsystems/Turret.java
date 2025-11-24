@@ -131,7 +131,7 @@ public class Turret extends Component {
         // only account for robot velocity if it is significant
         if (ballExitLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityExitSpeedThresholdInchesPerSec && useRelativeVelocityCorrection) {
             // find speed of ball relative to the ground (magnitude only)
-            ballExitSpeedMps = Shooter.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
+            ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
 
             // find velocity of ball relative to the ground (direction and magnitude)
             globalBallExitVelocityMps = ballExitToGoal.mult(ballExitSpeedMps);
@@ -194,7 +194,7 @@ public class Turret extends Component {
                 double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
                 Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
                 Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
-                double ballExitSpeedMps = Shooter.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
+                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
 
                 double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
 
@@ -229,6 +229,6 @@ public class Turret extends Component {
         telemetry.addData("motor power", turretMotor.getPower());
         telemetry.addData("motor position", turretMotor.getCurrentPosition());
         telemetry.addData("motor velocity", turretMotor.getVelocity());
-        telemetry.addData("exit speed (m/s)", Shooter.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity()));
+        telemetry.addData("exit speed (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity()));
     }
 }
