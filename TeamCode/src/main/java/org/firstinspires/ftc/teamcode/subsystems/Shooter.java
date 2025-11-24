@@ -151,7 +151,7 @@ public class Shooter extends Component {
 
         double v = ballExitSpeedMps;
          if (useRelativeVelocity) {
-             double exitPositionSpeedTowardsGoalMps = ShootingMath.computeSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
+             double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
              v -= exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
          }
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
@@ -188,7 +188,7 @@ public class Shooter extends Component {
             if (useRelativeVelocity) {
                 double absoluteExitSpeedMps = ticksPerSecToExitSpeedMps(absoluteExitSpeedTicksPerSec);
                 // SHOULD return positive value
-                double exitPositionSpeedTowardsGoalMps = ShootingMath.computeSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
+                double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
                 double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION);
                 telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(relativeExitSpeedMps));
                 telemetry.addData("BALL EXIT MPS", exitPositionSpeedTowardsGoalMps);

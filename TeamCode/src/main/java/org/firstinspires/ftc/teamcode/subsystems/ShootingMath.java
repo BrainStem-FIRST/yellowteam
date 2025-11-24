@@ -43,7 +43,7 @@ public class ShootingMath {
 
     // calculates the component of robot velocity that is towards the goal
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double computeSpeedTowardGoalMps(Pose2d targetPose, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
+    public static double calculateSpeedTowardGoalMps(Pose2d targetPose, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
         double dx = targetPose.position.x - ballExitPosition.x;
         double dy = targetPose.position.y - ballExitPosition.y;
 
@@ -55,23 +55,6 @@ public class ShootingMath {
         double vy = mostRecentVelocity.y;
 
         return -(vx * ux + vy * uy) * 0.0254;
-    }
-
-
-    // calculates the position to put the linear actuators to on the shooter hood
-    public static double calculateHoodServoPosition(double ballExitAngleRadians, Telemetry telemetry) {
-        double hoodAngleFromXAxisRadians = Math.PI * 0.5 - ballExitAngleRadians;
-        double hoodExitAngleDeg = Range.clip(Math.toDegrees(hoodAngleFromXAxisRadians), Shooter.HoodParams.minAngleDeg, Shooter.HoodParams.maxAngleDeg);
-        double hoodPivotAngleDeg = hoodExitAngleDeg + HOOD_PARAMS.hoodPivotAngleOffsetFromHoodExitAngleDeg;
-        double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
-        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
-        if (telemetry != null) {
-            telemetry.addLine("HOOD SERVO POS CALCULATION");
-            telemetry.addData("ball exit angle rad", ballExitAngleRadians);
-            telemetry.addData("hood Angle from x", hoodAngleFromXAxisRadians);
-            telemetry.addData("total linear distance mm", totalLinearDistanceMm);
-        }
-        return linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
     }
 
     // calculates where the turret should point given a bunch of params
@@ -138,7 +121,7 @@ public class ShootingMath {
 
         double v = ballExitSpeedMps;
         if (enableRelativeVelocity) {
-            double exitPositionSpeedTowardsGoalMps = ShootingMath.computeSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
+            double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
             v -= exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
         }
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
@@ -148,4 +131,21 @@ public class ShootingMath {
         double tanTheta = (v*v - Math.sqrt(discriminant)) / (g * x);
         return Math.atan(tanTheta);
     }
+
+    // calculates the position to put the linear actuators to on the shooter hood
+    public static double calculateHoodServoPosition(double ballExitAngleRadians, Telemetry telemetry) {
+        double hoodAngleFromXAxisRadians = Math.PI * 0.5 - ballExitAngleRadians;
+        double hoodExitAngleDeg = Range.clip(Math.toDegrees(hoodAngleFromXAxisRadians), Shooter.HoodParams.minAngleDeg, Shooter.HoodParams.maxAngleDeg);
+        double hoodPivotAngleDeg = hoodExitAngleDeg + HOOD_PARAMS.hoodPivotAngleOffsetFromHoodExitAngleDeg;
+        double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
+        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
+        if (telemetry != null) {
+            telemetry.addLine("HOOD SERVO POS CALCULATION");
+            telemetry.addData("ball exit angle rad", ballExitAngleRadians);
+            telemetry.addData("hood Angle from x", hoodAngleFromXAxisRadians);
+            telemetry.addData("total linear distance mm", totalLinearDistanceMm);
+        }
+        return linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
+    }
+
 }
