@@ -140,7 +140,8 @@ public class Shooter extends Component {
     public double calculateBallExitAngleRad(Vector2d ballExitPosition, Pose2d targetPose, double distance) {
         double ballExitSpeedMps = ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
 
-        double exitHeightMeters = getExitHeightMeters(ballExitAngleRad);
+        // get the EXACT exit height of the ball (depends on hood position)
+        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(ballExitAngleRad);
         double heightToTargetMeters = (SHOOTER_PARAMS.TARGET_HEIGHT_INCHES * 0.0254 - exitHeightMeters);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
@@ -148,8 +149,11 @@ public class Shooter extends Component {
         double x = distance * 0.0254; // convert inches to meters
         double y = heightToTargetMeters; // convert inches to meters
 
-        double robotVelToGoalMps = computeVelocityTowardGoalMps(ballExitPosition, targetPose);
-        double v = ballExitSpeedMps + robotVelToGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
+        double v = ballExitSpeedMps;
+         if (useRelativeVelocity) {
+             double exitPositionSpeedTowardsGoalMps = ShootingMath.computeSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
+             v -= exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION;
+         }
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
         if (discriminant <= 0)
             return Math.toRadians(40);
@@ -157,7 +161,7 @@ public class Shooter extends Component {
         double tanTheta = (v*v - Math.sqrt(discriminant)) / (g * x);
         return Math.atan(tanTheta);
     }
-    public double computeVelocityTowardGoalMps(Vector2d ballExitPosition, Pose2d targetPose) {
+    public double computeSpeedTowardGoalMps(Vector2d ballExitPosition, Pose2d targetPose) {
         double dx = targetPose.position.x - ballExitPosition.x;
         double dy = targetPose.position.y - ballExitPosition.y;
 
@@ -177,13 +181,14 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - ballExitPosition.y;
         double inchesFromGoal = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
+        // update FLYWHEEL
         double velocityTicks;
-
         if (ballExitPosition.x < 50) {
             double absoluteExitSpeedTicksPerSec = (SHOOTER_PARAMS.SLOPE_CLOSE_VALUE * inchesFromGoal) + SHOOTER_PARAMS.B_CLOSE_VALUE;
             if (useRelativeVelocity) {
                 double absoluteExitSpeedMps = ticksPerSecToExitSpeedMps(absoluteExitSpeedTicksPerSec);
-                double exitPositionSpeedTowardsGoalMps = computeVelocityTowardGoalMps(ballExitPosition, targetPose); // SHOULD return positive value
+                // SHOULD return positive value
+                double exitPositionSpeedTowardsGoalMps = ShootingMath.computeSpeedTowardGoalMps(targetPose, ballExitPosition, robot.drive.pinpoint().getMostRecentVelocity());
                 double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * SHOOTER_PARAMS.RELATIVE_VELOCITY_CORRECTION);
                 telemetry.addData("ADJUSTED POWER", mpsToTicksPerSec(relativeExitSpeedMps));
                 telemetry.addData("BALL EXIT MPS", exitPositionSpeedTowardsGoalMps);
@@ -195,17 +200,21 @@ public class Shooter extends Component {
         }
         else
             velocityTicks = SHOOTER_PARAMS.FAR_TARGET_VEL_TICKS;
-
         setShooterVelocityPID(velocityTicks);
 
+
+        // update HOOD
         if (ENABLE_TESTING) {
-            hoodServoPos = getHoodServoPosition(testingBallExitAngleRad, telemetry);
+            hoodServoPos = ShootingMath.calculateHoodServoPosition(testingBallExitAngleRad, telemetry);
             setHoodPosition(hoodServoPos);
         }
         else {
-            ballExitAngleRad = calculateBallExitAngleRad(ballExitPosition, targetPose, inchesFromGoal);
             if (ballExitPosition.x < 50) {
-                hoodServoPos = getHoodServoPosition(ballExitAngleRad, telemetry);
+                double ballExitSpeedMps = ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
+                OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
+                ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, ballExitSpeedMps, ballExitAngleRad, mostRecentVelocity);
+
+                hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
                 setHoodPosition(hoodServoPos);
             }
             else
@@ -244,7 +253,7 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
-                updateShooterSystem(getExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad), robot.turret.targetPose);
+                updateShooterSystem(ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad), robot.turret.targetPose);
                 break;
 
             case FIXED_VELOCITY_IN_AUTO:
@@ -312,35 +321,5 @@ public class Shooter extends Component {
 
     public double getAvgMotorVelocity() {
         return (getVelHigh() + getVelLow()) * 0.5;
-    }
-
-    public static Vector2d getExitPositionInches(Pose2d robotPose, int turretEncoder, double ballExitAngleRad) {
-        double hoodAngleRad = Math.PI * 0.5 - ballExitAngleRad;
-        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
-        double shooterCombinedRadiusInches = (SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + SHOOTER_PARAMS.BALL_RADIUS_METERS) / 0.0254;
-        double offsetFromTurretInches = SHOOTER_PARAMS.FLYWHEEL_OFFSET_FROM_TURRET_INCHES - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
-
-        return new Vector2d(
-                turretPose.position.x + offsetFromTurretInches * Math.cos(turretPose.heading.toDouble()),
-                turretPose.position.y + offsetFromTurretInches * Math.sin(turretPose.heading.toDouble())
-        );
-    }
-    public static double getExitHeightMeters(double ballExitAngleRad) {
-        double hoodAngleRad = Math.PI * 0.5 - ballExitAngleRad;
-        return SHOOTER_PARAMS.FLYWHEEL_HEIGHT_METERS + (SHOOTER_PARAMS.FLYWHEEL_RADIUS_METERS + SHOOTER_PARAMS.BALL_RADIUS_METERS) * Math.sin(hoodAngleRad);
-    }
-    public static double getHoodServoPosition(double ballExitAngleRadians, Telemetry telemetry) {
-        double hoodAngleFromXAxisRadians = Math.PI * 0.5 - ballExitAngleRadians;
-        double hoodExitAngleDeg = Range.clip(Math.toDegrees(hoodAngleFromXAxisRadians), HoodParams.minAngleDeg, HoodParams.maxAngleDeg);
-        double hoodPivotAngleDeg = hoodExitAngleDeg + HOOD_PARAMS.hoodPivotAngleOffsetFromHoodExitAngleDeg;
-        double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
-        double linearDistanceToExtendMm = totalLinearDistanceMm - HOOD_PARAMS.restingDistanceMm;
-        if (telemetry != null) {
-            telemetry.addLine("HOOD SERVO POS CALCULATION");
-            telemetry.addData("ball exit angle rad", ballExitAngleRadians);
-            telemetry.addData("hood Angle from x", hoodAngleFromXAxisRadians);
-            telemetry.addData("total linear distance mm", totalLinearDistanceMm);
-        }
-        return linearDistanceToExtendMm / HOOD_PARAMS.servoRangeMm;
     }
 }

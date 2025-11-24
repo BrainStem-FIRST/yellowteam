@@ -106,67 +106,6 @@ public class Turret extends Component {
         double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad(turretPosition));
     }
-    // calculates turret angle with turret position
-    /*
-    public void poseTargetToTurretTicks (Pose2d currentRobotPose, Pose2d targetPose) {
-        double turretMax = Math.toRadians(90);
-        double turretMin = Math.toRadians(-90);
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-
-        Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime);
-        Pose2d currentTurretPose = getTurretPose(currentRobotPose, getTurretEncoder());
-        Pose2d futureTurretPose = getTurretPose(futureRobotPose, getTurretEncoder());
-
-//        telemetry.addData("currentRobotPose", currentRobotPose);
-//        telemetry.addData("targetPose", targetPose);
-//        telemetry.addData("futureRobotPose", futureRobotPose);
-//        telemetry.addData("currentTurretPose", currentTurretPose);
-//        telemetry.addData("futureTurretPose", futureTurretPose);
-        ballExitLinearVelocityInchesPerSec = new Vec(futureTurretPose.position.x - currentTurretPose.position.x, futureTurretPose.position.y - currentTurretPose.position.y);
-
-        // predict turret position to account for turret lag
-        Vec turretToGoal = new Vec(targetPose.position.x - futureTurretPose.position.x,
-                targetPose.position.y - futureTurretPose.position.y).normalize();
-
-        double targetAngle;
-        // only account for robot velocity if it is significant
-        if (ballExitLinearVelocityInchesPerSec.mag() > TURRET_PARAMS.predictVelocityExitSpeedThresholdInchesPerSec && useRelativeVelocityCorrection) {
-            // find speed of ball relative to the ground (magnitude only)
-            ballExitSpeedMps = Shooter.ticksPerSecToFlywheelMps(-robot.shooter.shooterMotorHigh.getVelocity());
-
-            // find velocity of ball relative to the ground (direction and magnitude)
-            globalBallExitVelocityMps = turretToGoal.mult(ballExitSpeedMps);
-
-            // find robot velocity in meters and apply empirical multiplier
-            exitVelocityMps = ballExitLinearVelocityInchesPerSec.mult(0.0254 * TURRET_PARAMS.predictVelocityMultiplier);
-
-            // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
-            relativeBallExitVelocityMps = globalBallExitVelocityMps.sub(exitVelocityMps);
-
-            // find angle to shoot at relative velocity
-            targetAngle = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
-        }
-        else
-            // find angle to shoot at normally
-            targetAngle = Math.atan2(turretToGoal.y, turretToGoal.x);
-
-        double turretTargetAngle = targetAngle - currentRobotPose.heading.toDouble();
-        turretTargetAngle = Math.atan2(Math.sin(turretTargetAngle), Math.cos(turretTargetAngle));
-
-        if (turretTargetAngle > turretMax)
-            turretTargetAngle = Math.PI - turretTargetAngle; //mirror angle
-        else if (turretTargetAngle < turretMin)
-            turretTargetAngle = -Math.PI - turretTargetAngle;
-
-        int targetTurretPosition = (int)(turretTargetAngle * turretTicksPerRadian);
-
-        targetTurretPosition += adjustment;
-
-        targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
-        setTurretPosition(targetTurretPosition);
-    }
-
-     */
 
     // calculates turret angle with ball exit position
     public void poseTargetToTurretTicks (Pose2d currentRobotPose, Pose2d targetPose) {
@@ -175,8 +114,8 @@ public class Turret extends Component {
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
 
         Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime);
-        Vector2d currentExitPosition = Shooter.getExitPositionInches(currentRobotPose, getTurretEncoder(), robot.shooter.getBallExitAngleRad());
-        Vector2d futureExitPosition = Shooter.getExitPositionInches(futureRobotPose, getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+        Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+        Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, getTurretEncoder(), robot.shooter.getBallExitAngleRad());
 
 //        telemetry.addData("currentRobotPose", currentRobotPose);
 //        telemetry.addData("targetPose", targetPose);
@@ -210,7 +149,7 @@ public class Turret extends Component {
             // find angle to shoot at normally
             targetAngleRad = Math.atan2(ballExitToGoal.y, ballExitToGoal.x);
 
-        double turretTargetAngleRad = targetAngleRad - currentRobotPose.heading.toDouble();
+        double turretTargetAngleRad = targetAngleRad - futureRobotPose.heading.toDouble();
         turretTargetAngleRad = Math.atan2(Math.sin(turretTargetAngleRad), Math.cos(turretTargetAngleRad)); // wrap between -pi, pi
 
         if (turretTargetAngleRad > turretMax)
@@ -226,30 +165,8 @@ public class Turret extends Component {
         setTurretPosition(targetTurretPosition);
     }
 
-//    private void fineAdjustTurretWithTag(AprilTagDetection tag) {
-//        if (tag == null) return;
-//
-//        double tagX = tag.ftcPose.x;
-//        double tagZ = tag.ftcPose.z;
-//
-//        double angularOffset = Math.atan2(-tagX, tagZ);
-//        int currentTicks = getTurretEncoder();
-//
-//        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-//        int adjustment = (int)(angularOffset * turretTicksPerRadian);
-//
-//        int targetTicks = currentTicks + adjustment;
-//        targetTicks = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTicks, TURRET_PARAMS.LEFT_BOUND));
-//
-//        pidController.setTarget(0);
-//        double power = pidController.update(tagX);
-//        turretMotor.setPower(-power);
-//        setTurretPosition(targetTicks);
-//    }
-
     @Override
-    public void reset() {
-    }
+    public void reset() {}
 
     @Override
     public void update(){
@@ -264,11 +181,30 @@ public class Turret extends Component {
                 break;
 
             case OFF:
-//                turretMotor.setPower(0);
                 break;
-
+                // old tracking code
+//            case TRACKING:
+//                Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
+//                poseTargetToTurretTicks(currentRobotPose, targetPose);
+//                break;
             case TRACKING:
-                poseTargetToTurretTicks(robot.drive.pinpoint().getPose(), targetPose);
+                Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
+                Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(TURRET_PARAMS.lookAheadTime);
+                int turretEncoder = getTurretEncoder();
+                double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
+                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
+                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+                double ballExitSpeedMps = Shooter.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
+
+                double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
+
+                double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+                int targetTurretPosition = (int)(turretTargetAngleRad * turretTicksPerRadian);
+
+                targetTurretPosition += adjustment;
+
+                targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
+                setTurretPosition(targetTurretPosition);
                 break;
 
             case CENTER:

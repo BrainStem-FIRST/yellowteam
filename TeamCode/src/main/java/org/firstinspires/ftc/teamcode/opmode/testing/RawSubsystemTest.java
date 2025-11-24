@@ -20,6 +20,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
@@ -167,7 +168,7 @@ public class RawSubsystemTest extends LinearOpMode {
                 }
             }
             if (setHoodByAngle)
-                hoodPos = Shooter.getHoodServoPosition(Math.toRadians(targetHoodAngleDeg), telemetry);
+                hoodPos = ShootingMath.calculateHoodServoPosition(Math.toRadians(targetHoodAngleDeg), telemetry);
             if (activateLeftServo)
                 hoodLeft.setPosition(hoodPos);
             if (activateRightServo)
@@ -208,7 +209,7 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("target", sParams.targetVelTicksPerSec);
 
             telemetry.addLine();
-            telemetry.addData("ball exit height meters at target hood angle", Shooter.getExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
+            telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
             telemetry.addData("1 vel (ticks/s)", shooter1.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooter2.getVelocity());
             telemetry.addData("ball exit vel (m/s)", Shooter.ticksPerSecToExitSpeedMps(Math.abs(shooter2.getVelocity())));
@@ -235,7 +236,7 @@ public class RawSubsystemTest extends LinearOpMode {
         telemetry.addData("offset from turret inches", offsetFromTurretInches);
         Pose2d robotPose = new Pose2d(0, 0, 0);
         Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
-        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, turretEncoder, hoodAngleRad);
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, hoodAngleRad);
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
         TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, turretPose.heading.toDouble()));

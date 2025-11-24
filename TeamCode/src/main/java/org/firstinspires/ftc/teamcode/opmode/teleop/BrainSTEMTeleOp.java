@@ -17,6 +17,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
@@ -271,7 +272,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
-        Vector2d exitPosition = Shooter.getExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
 
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
