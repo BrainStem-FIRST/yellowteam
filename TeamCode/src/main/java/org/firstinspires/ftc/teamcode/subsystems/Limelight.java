@@ -1,6 +1,7 @@
 
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -74,6 +75,11 @@ public class Limelight extends Component {
     // robot turret offset is distance from center of turret to center of robot
     public Vec getRobotPos() {
         return robotPos;
+    }
+    public Pose2d getRobotPose() {
+        if(robotPos == null)
+            return null;
+        return new Pose2d(robotPos.x, robotPos.y, robotHeading);
     }
     public double getRobotHeading() {
         return robotHeading;

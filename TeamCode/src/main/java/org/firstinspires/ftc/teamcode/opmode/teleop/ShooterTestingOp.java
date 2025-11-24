@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
-import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.Pose2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -28,7 +26,7 @@ public class ShooterTestingOp extends LinearOpMode {
 
         waitForStart();
         while (opModeIsActive()) {
-            robot.shooter.setHoodPosition(Shooter.testingHoodPosition);
+            robot.shooter.setHoodPosition(Shooter.testingBallExitAngleRad);
             if (Shooter.useVelocity)
                 robot.shooter.setShooterVelocityPID(Shooter.testingShootVelocity);
             else

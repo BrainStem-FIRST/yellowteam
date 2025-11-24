@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmode.teleop;
+package org.firstinspires.ftc.teamcode.opmode.testing;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -17,7 +17,6 @@ import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -36,6 +35,7 @@ public class RawSubsystemTest extends LinearOpMode {
     public static double intakePower = 0.99;
     public static double hoodPos = 0.87;
     public static boolean setHoodByAngle = true, activateLeftServo = true, activateRightServo = true;
+    public static boolean activateHighMotor = true, activateLowMotor = true;
     public static double targetHoodAngleDeg = 30;
     public static double hoodInc = 0.03;
     public static class ShooterParams {
@@ -119,25 +119,25 @@ public class RawSubsystemTest extends LinearOpMode {
                     -gamepad1.right_stick_x
             ));
 
-            double shooterVelTicks = (shooter1.getVelocity() + shooter2.getVelocity() * sParams.dirFlip) * 0.5;
-            if(shooterVelTicks > maxShooterVel)
-                maxShooterVel = shooterVelTicks;
-
             if(g1.isFirstY()) {
                 shooting = !shooting;
                 shooterPid.reset();
             }
             if(shooting) {
                 if(sParams.usePid) {
-                    double pidPower = shooterPid.updateWithError(sParams.targetVelTicksPerSec - shooterVelTicks);
+                    double pidPower = shooterPid.updateWithError(sParams.targetVelTicksPerSec - shooter2.getVelocity());
                     double feedForward = sParams.kF * sParams.targetVelTicksPerSec;
                     double power = pidPower + feedForward;
-                    shooter1.setPower(power);
-                    shooter2.setPower(power * sParams.dirFlip);
+                    if(activateLowMotor)
+                        shooter1.setPower(power);
+                    if(activateHighMotor)
+                        shooter2.setPower(power * sParams.dirFlip);
                 }
                 else {
-                    shooter1.setPower(sParams.power);
-                    shooter2.setPower(sParams.power * sParams.dirFlip);
+                    if(activateLowMotor)
+                        shooter1.setPower(sParams.power);
+                    if(activateHighMotor)
+                        shooter2.setPower(sParams.power * sParams.dirFlip);
                 }
             }
             else {
@@ -206,13 +206,12 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("1 power", shooter1.getPower());
             telemetry.addData("2 power", shooter2.getPower());
             telemetry.addData("target", sParams.targetVelTicksPerSec);
-            telemetry.addData("vel (ticks/s)", shooterVelTicks);
 
             telemetry.addLine();
             telemetry.addData("ball exit height meters at target hood angle", Shooter.getExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
             telemetry.addData("1 vel (ticks/s)", shooter1.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooter2.getVelocity());
-            telemetry.addData("flywheel vel (m/s)", Shooter.ticksPerSecToFlywheelMps((Math.abs(shooter1.getVelocity()) + Math.abs(shooter2.getVelocity())) * 0.5));
+            telemetry.addData("flywheel vel (m/s)", Shooter.ticksPerSecToFlywheelMps(Math.abs(shooter2.getVelocity())));
             telemetry.addData("1 encoder", shooter1.getCurrentPosition());
             telemetry.addData("2 encoder", shooter2.getCurrentPosition());
             telemetry.addLine();
