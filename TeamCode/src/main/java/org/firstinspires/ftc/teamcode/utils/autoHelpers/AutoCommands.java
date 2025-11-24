@@ -57,13 +57,12 @@ public class AutoCommands {
         };
     }
 
-    public Action setShooterVelocity() {
+    public Action speedUpShooter() {
         return packet -> {
             robot.shooter.shooterState = Shooter.ShooterState.AUTO_VELOCITY;
             return -robot.shooter.shooterMotorHigh.getVelocity() < 1050;
         };
     }
-
 
     public Action maxShooterSpeed() {
         return packet -> {
