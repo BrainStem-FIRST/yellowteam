@@ -24,6 +24,17 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
     public static class CustomizableParams {
         public int numSpikeMarksToCollect = 3;
         public boolean collectFromHumanPlayer = false;
+        public boolean shootFirstLineClose = true;
+        public boolean shootSecondLineClose = true;
+        public boolean shootThirdLineClose = true;
+        public boolean shootHumanPlayerClose = false;
+        // if minTimeToShootFirstLine = 7 & the robot reaches the 1st line shooting position before 7 seconds, it will wait until 7 to shoot
+        // if minTimeToShootFirstLine = -1, it will ignore the min time
+        public double minTimeToShootPreload = -1;
+        public double minTimeToShootFirstLine = -1;
+        public double minTimeToShootSecondLine = -1;
+        public double minTimeToShootThirdLine = -1;
+        public double minTimeToShootHumanPlayer = -1;
         public boolean releaseGateAfterFirstLineCollect = false;
         public boolean releaseGateAfterSecondLineCollect = false;
         public boolean releaseGateAfterThirdLineCollect = false;
@@ -32,8 +43,9 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
         public double timeLeftToAbort = 1;
     }
     public static CustomizableParams customParams = new CustomizableParams();
-    public static AutoParams params = new AutoParams();
+    public static AutoParams autoParams = new AutoParams();
     public final Alliance alliance;
+    private double startTime;
     public ClosePartnerAuto(Alliance alliance) {
         this.alliance = alliance;
     }
@@ -56,30 +68,30 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
 
         // drive to spike marks, collect, then drive to shooting pose
         Action collectAndShootFirstLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootFirstLine(true, customParams.releaseGateAfterFirstLineCollect) :
-                autoPositions.blueCollectAndShootFirstLine(true, customParams.releaseGateAfterFirstLineCollect);
+                autoPositions.redCollectAndShootFirstLine(true, customParams.shootFirstLineClose, customParams.releaseGateAfterFirstLineCollect) :
+                autoPositions.blueCollectAndShootFirstLine(true, customParams.shootFirstLineClose, customParams.releaseGateAfterFirstLineCollect);
 
         Action collectAndShootSecondLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootSecondLine(true, customParams.releaseGateAfterSecondLineCollect) :
-                autoPositions.blueCollectAndShootSecondLine(true, customParams.releaseGateAfterSecondLineCollect);
+                autoPositions.redCollectAndShootSecondLine(true, customParams.shootSecondLineClose, customParams.releaseGateAfterSecondLineCollect) :
+                autoPositions.blueCollectAndShootSecondLine(true, customParams.shootSecondLineClose, customParams.releaseGateAfterSecondLineCollect);
 
         Action collectAndShootThirdLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootThirdLine(true, customParams.releaseGateAfterThirdLineCollect) :
-                autoPositions.blueCollectAndShootThirdLine(true, customParams.releaseGateAfterThirdLineCollect);
+                autoPositions.redCollectAndShootThirdLine(true, customParams.shootThirdLineClose, customParams.releaseGateAfterThirdLineCollect) :
+                autoPositions.blueCollectAndShootThirdLine(true, customParams.shootThirdLineClose, customParams.releaseGateAfterThirdLineCollect);
+
+        // drive to human player, collect, then drive to shooting pose
+        Action collectAndShootHumanPlayerPath = alliance == Alliance.RED ?
+                autoPositions.redCollectAndShootHumanPlayer(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose) :
+                autoPositions.blueCollectAndShootHumanPlayer(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose);
 
         // move off the line at the end
         Action driveOffLine = alliance == Alliance.RED ?
                 autoPositions.redMoveOffLine(true) :
                 autoPositions.blueMoveOffLine(true);
 
-        telemetry.addLine("Ready");
-        telemetry.setMsTransmissionInterval(20);
-        telemetry.update();
-
-        waitForStart();
-
         Action shootPreloads = new SequentialAction(
                 autoCommands.runIntake(),
+                waitUntilMinTime(customParams.minTimeToShootPreload),
                 new SleepAction(2),
                 autoCommands.flickerUp(),
                 autoCommands.disengageClutch()
@@ -88,6 +100,7 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                 collectAndShootFirstLinePath,
                 autoCommands.speedUpShooter(),
                 autoCommands.engageClutch(),
+                waitUntilMinTime(customParams.minTimeToShootFirstLine),
                 new SleepAction(2),
                 autoCommands.flickerUp(),
                 autoCommands.disengageClutch()
@@ -96,6 +109,7 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                 collectAndShootSecondLinePath,
                 autoCommands.speedUpShooter(),
                 autoCommands.engageClutch(),
+                waitUntilMinTime(customParams.minTimeToShootSecondLine),
                 new SleepAction(2),
                 autoCommands.flickerUp(),
                 autoCommands.disengageClutch()
@@ -104,6 +118,15 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                 collectAndShootThirdLinePath,
                 autoCommands.speedUpShooter(),
                 autoCommands.engageClutch(),
+                waitUntilMinTime(customParams.minTimeToShootThirdLine),
+                new SleepAction(2),
+                autoCommands.flickerUp()
+        );
+        Action collectAndShootHumanPlayer = new SequentialAction(
+                collectAndShootHumanPlayerPath,
+                autoCommands.speedUpShooter(),
+                autoCommands.engageClutch(),
+                waitUntilMinTime(customParams.minTimeToShootHumanPlayer),
                 new SleepAction(2),
                 autoCommands.flickerUp()
         );
@@ -111,6 +134,7 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
         Action autoAction = new ParallelAction(
                 autoCommands.updateRobot,
                 autoCommands.savePoseContinuously,
+                autoCommands.saveTurretContinuously,
 
                 new SequentialAction(
                         new ParallelAction(
@@ -123,17 +147,24 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                         shootPreloads,
                         decideToAddLine(collectAndShootFirstLine, 1),
                         decideToAddLine(collectAndShootSecondLine, 2),
-                        decideToAddLine(collectAndShootThirdLine, 3)
+                        decideToAddLine(collectAndShootThirdLine, 3),
+                        customParams.collectFromHumanPlayer ? collectAndShootHumanPlayer : packet -> false
                 )
         );
 
         Action timedAutoAction = new SequentialAction(
-                new TimedAction(autoAction, params.timeLeftToAbort),
+                new TimedAction(autoAction, autoParams.timeLeftToAbort),
 
                 autoCommands.turretCenter(),
                 driveOffLine
         );
 
+        telemetry.setMsTransmissionInterval(20);
+        addCustomizableAutoTelemetry();
+        telemetry.update();
+
+        waitForStart();
+        startTime = System.currentTimeMillis() * 0.001;
         Actions.runBlocking(timedAutoAction);
     }
 
@@ -141,5 +172,38 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
     // this function allows us to customize how much of our auto we want to run
     private Action decideToAddLine(Action action, int lineToCollectAndShoot) {
         return lineToCollectAndShoot <= customParams.numSpikeMarksToCollect ? action : packet -> false;
+    }
+
+    private Action waitUntilMinTime(double minTime) {
+        return packet -> minTime > 0 && System.currentTimeMillis() * 0.001 - startTime < minTime;
+    }
+
+    private void addCustomizableAutoTelemetry() {
+        telemetry.addLine("AUTO SPECS");
+        int numBalls = customParams.numSpikeMarksToCollect * 3 + (customParams.collectFromHumanPlayer ? 3 : 0);
+        int numGateOpens = getGateBoolAsInt(customParams.releaseGateAfterFirstLineCollect) +
+                getGateBoolAsInt(customParams.releaseGateAfterSecondLineCollect) +
+                getGateBoolAsInt(customParams.releaseGateAfterThirdLineCollect);
+
+        telemetry.addLine(numBalls + " ball auto");
+        telemetry.addLine();
+        telemetry.addLine(customParams.numSpikeMarksToCollect + " spike marks | " + (customParams.collectFromHumanPlayer ? "collecting from human player" : ""));
+        telemetry.addLine("opening gate " + numGateOpens + " times | " +
+                customParams.releaseGateAfterFirstLineCollect + ", " +
+                customParams.releaseGateAfterSecondLineCollect + ", " +
+                customParams.releaseGateAfterThirdLineCollect);
+        telemetry.addLine();
+        telemetry.addLine(minTimeString("preload", customParams.minTimeToShootPreload));
+        telemetry.addLine(minTimeString("first spike", customParams.minTimeToShootFirstLine));
+        telemetry.addLine(minTimeString("second spike", customParams.minTimeToShootSecondLine));
+        telemetry.addLine(minTimeString("third spike", customParams.minTimeToShootThirdLine));
+        telemetry.addLine(minTimeString("human player", customParams.minTimeToShootPreload));
+    }
+
+    private int getGateBoolAsInt(boolean openGate) {
+        return openGate ? 1 : 0;
+    }
+    private String minTimeString(String name, double minTime) {
+        return minTime < 0 ? "" : name + " min time: " + minTime;
     }
 }
