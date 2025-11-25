@@ -50,6 +50,49 @@ public class AutoPositions {
                 .lineToXLinearHeading(-35, Math.toRadians(55));
         return moveOffWall.build();
     }
+    public Action collectAndShoot(boolean onRedAlliance, int lineToCollect, boolean releaseGate, Pose2d shootPose, double shootToCollectTangent, Pose2d lineApproachPose, double lineApproachTangent, double collectToShootTangent, double shootApproachTangent) {
+        double driveThroughY = 55;
+        Action driveToLine = drive.actionBuilder(shootPose)
+                .setTangent(shootToCollectTangent)
+                .splineToLinearHeading(lineApproachPose, lineApproachTangent)
+                .build();
+        Action driveThroughLine = drive.actionBuilder(lineApproachPose)
+                .lineToY(driveThroughY)
+                .build();
+
+        Action possiblyOpenGate;
+        Pose2d gateEndPose;
+        if(releaseGate) {
+            if (onRedAlliance) {
+                possiblyOpenGate = openRedGateFromLine(new Pose2d(lineApproachPose.position.x, driveThroughY, lineApproachPose.heading.toDouble()), lineToCollect);
+                gateEndPose = redGate2;
+            }
+            else {
+                possiblyOpenGate = openBlueGateFromLine(new Pose2d(lineApproachPose.position.x, driveThroughY, lineApproachPose.heading.toDouble()), lineToCollect);
+                gateEndPose = blueGate2;
+            }
+        }
+        else {
+            possiblyOpenGate = packet -> false;
+            gateEndPose = lineApproachPose;
+        }
+
+        Action driveToShoot = drive.actionBuilder(gateEndPose)
+                .setTangent(collectToShootTangent)
+                .splineToLinearHeading(
+                        shootPose,
+                        shootApproachTangent
+                )
+                .build();
+
+        return new SequentialAction(
+                new TimedAction(driveToLine, 1.5),
+                new TimedAction(driveThroughLine, 1),
+                new TimedAction(possiblyOpenGate, 2.5),
+                new TimedAction(driveToShoot, 2)
+        );
+    }
+
     public Action redCollectAndShootFirstLine(boolean startingClose, boolean shootingClose, boolean releaseGate) {
         double driveThroughY = 55;
         Action driveToFirstLine = drive.actionBuilder(startingClose ? redCloseShootingPosition : redFarShootingPosition)
