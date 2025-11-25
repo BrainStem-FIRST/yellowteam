@@ -26,18 +26,20 @@ public class AutoPositions {
     public static Pose2d redFarEnd = new Pose2d(20, 45, Math.toRadians(180));
 
     // blue positions
-    public final Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
-    public final Pose2d blueCloseShootingPosition = new Pose2d(-34, -34, Math.toRadians(-135));
-    public final Pose2d blueFirstLine = new Pose2d(-13, -24, Math.toRadians(-90));
-    public final Pose2d blueSecondLine = new Pose2d(12, -24, Math.toRadians(-90));
-    public final Pose2d blueThirdLine = new Pose2d(34.5, -24, Math.toRadians(-90));
-    public final Pose2d blueApproachHP = new Pose2d(44, -68, Math.toRadians(-45));
+    public Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
+    public Pose2d blueCloseShootingPosition = new Pose2d(-34, -34, Math.toRadians(-135));
+    public Pose2d blueFirstLine = new Pose2d(-13, -24, Math.toRadians(-90));
+    public Pose2d blueSecondLine = new Pose2d(12, -24, Math.toRadians(-90));
+    public Pose2d blueThirdLine = new Pose2d(34.5, -24, Math.toRadians(-90));
+    public Pose2d blueApproachHP = new Pose2d(44, -68, Math.toRadians(-45));
 
     public static Pose2d blueGate1Left = new Pose2d(-8, -50, Math.toRadians(90));
     public static Pose2d blueGate1Right = new Pose2d(0, 50, Math.toRadians(90));
     public static Pose2d blueGate2 = new Pose2d(-4, 56, Math.toRadians(90));
-    public final Pose2d blueCloseEnd = new Pose2d(0, -45, Math.toRadians(0));
-    public final Pose2d blueFarEnd = new Pose2d(20, -45, Math.toRadians(180));
+    public Pose2d blueCloseEnd = new Pose2d(0, -45, Math.toRadians(0));
+
+    public static Pose2d blueFarStart = new Pose2d(0, 0, 0);
+    public static Pose2d blueFarEnd = new Pose2d(20, -45, Math.toRadians(180));
 
     public AutoPositions(MecanumDrive drive) {
         this.drive = drive;
@@ -51,18 +53,18 @@ public class AutoPositions {
     public Action redCollectAndShootFirstLine(boolean startingClose, boolean shootingClose, boolean releaseGate) {
         double driveThroughY = 55;
         Action driveToFirstLine = drive.actionBuilder(startingClose ? redCloseShootingPosition : redFarShootingPosition)
-                .setTangent(Math.toRadians(-90))
-                .splineToLinearHeading(redFirstLine, Math.toRadians(90)).build();
+                .setTangent(startingClose ? Math.toRadians(-90) : Math.toRadians(90))
+                .splineToLinearHeading(redFirstLine, startingClose ? Math.toRadians(90) : Math.toRadians(-90)).build();
         Action driveThroughFirstLine = drive.actionBuilder(redFirstLine)
                 .lineToY(driveThroughY).build();
         Action possiblyOpenGate = releaseGate ?
                 openRedGateFromLine(new Pose2d(redFirstLine.position.x, driveThroughY, redFirstLine.heading.toDouble()), 1) :
                 packet -> false;
-        Action driveToShoot = drive.actionBuilder(redFirstLine)
-                .setTangent(Math.toRadians(-135))
+        Action driveToShoot = drive.actionBuilder(releaseGate ? redGate2 : redFirstLine)
+                .setTangent(shootingClose ? Math.toRadians(-135) : Math.toRadians(-45))
                 .splineToLinearHeading(
                         shootingClose ? redCloseShootingPosition : redFarShootingPosition,
-                        shootingClose ? Math.toRadians(180) : Math.toRadians(0)
+                        shootingClose ? Math.toRadians(0) : Math.toRadians(180)
                 ).build();
 
         return new SequentialAction(
