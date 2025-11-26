@@ -81,8 +81,8 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
 
         // drive to human player, collect, then drive to shooting pose
         Action collectAndShootHumanPlayerPath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootHumanPlayer(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose) :
-                autoPositions.blueCollectAndShootHumanPlayer(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose);
+                autoPositions.redCollectAndShootLoadingZone(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose) :
+                autoPositions.blueCollectAndShootLoadingZone(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose);
 
         // move off the line at the end
         Action driveOffLine = alliance == Alliance.RED ?

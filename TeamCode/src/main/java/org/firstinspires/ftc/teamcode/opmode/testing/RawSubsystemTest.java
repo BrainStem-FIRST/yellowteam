@@ -17,6 +17,8 @@ import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.internal.system.Misc;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -31,17 +33,20 @@ import java.util.List;
 @Config
 @TeleOp(name="Raw subsystem test")
 public class RawSubsystemTest extends LinearOpMode {
-    public static int updateIntervalMs = 20;
-    public static boolean bulkCaching = true;
-    public static double intakePower = 0.99;
-    public static double hoodPos = 0.87;
-    public static boolean setHoodByAngle = true, activateLeftServo = true, activateRightServo = true;
-    public static boolean activateHighMotor = true, activateLowMotor = true;
-    public static double targetHoodAngleDeg = 30;
-    public static double hoodInc = 0.03;
+    public static class MiscParams {
+        public int updateIntervalMs = 20;
+        public boolean bulkCaching = true;
+        public double intakePower = 0.99;
+        public double hoodPos = 0.99;
+        public boolean setHoodByAngle = true, activateLeftServo = true, activateRightServo = true;
+        public boolean activateHighMotor = true, activateLowMotor = true;
+        public double ballExitAngleDeg = 30;
+        public double hoodInc = 0.03;
+    }
+    public static MiscParams miscParams = new MiscParams();
     public static class ShooterParams {
         public boolean usePid = true;
-        public double power = 0.9, targetVelTicksPerSec = 1700;
+        public double power = 0.9, targetVelTicksPerSec = 1000;
         public int dirFlip = -1;
         public double kP = 0.005;
         public double kI = 0.0;
@@ -59,15 +64,17 @@ public class RawSubsystemTest extends LinearOpMode {
         telemetry.setMsTransmissionInterval(11);
 
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
-        if(bulkCaching) {
+        if(miscParams.bulkCaching) {
             for (LynxModule hub : allHubs)
                 hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
 
         MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
 
-        DcMotorEx shooter1 = hardwareMap.get(DcMotorEx.class, "lowShoot");
-        DcMotorEx shooter2 = hardwareMap.get(DcMotorEx.class, "highShoot");
+        DcMotorEx shooterLow = hardwareMap.get(DcMotorEx.class, "lowShoot");
+        shooterLow.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        DcMotorEx shooterHigh = hardwareMap.get(DcMotorEx.class, "highShoot");
+        shooterHigh.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         PIDController shooterPid = new PIDController(sParams.kP, sParams.kI, sParams.kD);
 
         DcMotorEx turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
@@ -79,10 +86,10 @@ public class RawSubsystemTest extends LinearOpMode {
         ServoImplEx hoodRight = hardwareMap.get(ServoImplEx.class, "hoodRight");
         hoodRight.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
 
-        shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooter1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterLow.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterHigh.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
 
         DcMotorEx collectorMotor = hardwareMap.get(DcMotorEx.class, "intake");
@@ -105,7 +112,8 @@ public class RawSubsystemTest extends LinearOpMode {
         waitForStart();
         while(opModeIsActive()) {
             dtTimer.reset();
-            if(bulkCaching) {
+
+            if(miscParams.bulkCaching) {
                 for (LynxModule hub : allHubs)
                     hub.clearBulkCache();
             }
@@ -126,36 +134,36 @@ public class RawSubsystemTest extends LinearOpMode {
             }
             if(shooting) {
                 if(sParams.usePid) {
-                    double pidPower = shooterPid.updateWithError(sParams.targetVelTicksPerSec - shooter2.getVelocity());
+                    double pidPower = shooterPid.updateWithError(sParams.targetVelTicksPerSec - Math.abs(shooterHigh.getVelocity()));
                     double feedForward = sParams.kF * sParams.targetVelTicksPerSec;
                     double power = pidPower + feedForward;
-                    if(activateLowMotor)
-                        shooter1.setPower(power);
-                    if(activateHighMotor)
-                        shooter2.setPower(power * sParams.dirFlip);
+                    if(miscParams.activateLowMotor)
+                        shooterLow.setPower(power);
+                    if(miscParams.activateHighMotor)
+                        shooterHigh.setPower(power * sParams.dirFlip);
                 }
                 else {
-                    if(activateLowMotor)
-                        shooter1.setPower(sParams.power);
-                    if(activateHighMotor)
-                        shooter2.setPower(sParams.power * sParams.dirFlip);
+                    if (miscParams.activateLowMotor)
+                        shooterLow.setPower(sParams.power);
+                    if (miscParams.activateHighMotor)
+                        shooterHigh.setPower(sParams.power * sParams.dirFlip);
                 }
             }
             else {
-                shooter1.setPower(0);
-                shooter2.setPower(0);
+                shooterLow.setPower(0);
+                shooterHigh.setPower(0);
             }
 
             if(g1.isFirstDpadUp())
-                hoodPos += hoodInc;
+                miscParams.hoodPos += miscParams.hoodInc;
             else if(g1.isFirstDpadDown())
-                hoodPos -= hoodInc;
+                miscParams.hoodPos -= miscParams.hoodInc;
 
             if(g1.isFirstA())
                 if(Math.abs(collectorMotor.getPower()) > 0.5)
                     collectorMotor.setPower(0);
                 else
-                    collectorMotor.setPower(intakePower);
+                    collectorMotor.setPower(miscParams.intakePower);
 
             else if(g1.isFirstB()) {
                 if (clutchLeft.getPosition() > 0.5) {
@@ -167,57 +175,76 @@ public class RawSubsystemTest extends LinearOpMode {
 
                 }
             }
-            if (setHoodByAngle)
-                hoodPos = ShootingMath.calculateHoodServoPosition(Math.toRadians(targetHoodAngleDeg), telemetry);
-            if (activateLeftServo)
-                hoodLeft.setPosition(hoodPos);
-            if (activateRightServo)
-                hoodRight.setPosition(hoodPos);
+            if (miscParams.setHoodByAngle)
+                miscParams.hoodPos = ShootingMath.calculateHoodServoPosition(Math.toRadians(miscParams.ballExitAngleDeg), telemetry);
+            if (miscParams.activateLeftServo)
+                hoodLeft.setPosition(miscParams.hoodPos);
+            if (miscParams.activateRightServo)
+                hoodRight.setPosition(miscParams.hoodPos);
 
             if (g1.isFirstLeftBumper()) {
                 shotRecordNum = 0;
             }
             if (gamepad1.left_bumper) {
                 long currentTime = System.nanoTime();
-                if ((currentTime - lastRecordTimeNano) * 1e-6 > updateIntervalMs) {
+                if ((currentTime - lastRecordTimeNano) * 1e-6 > miscParams.updateIntervalMs) {
                     lastRecordTimeNano = currentTime;
 
                     ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][1] = shooterPid.getTarget();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][2] = Math.abs(shooter1.getVelocity());
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][3] = shooter1.getPower();
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][2] = Math.abs(shooterLow.getVelocity());
+                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][3] = shooterLow.getPower();
                     shotRecordNum++;
                 }
             }
             if (gamepad1.leftBumperWasReleased())
                 ShooterSpeedRecorder.incrementCurrentShot();
 
-//            if(g1.isFirstLeftBumper())
-//                shootVelocities.clear();
-//            if(shooterVelTicks < sParams.targetVelTicksPerSec - sParams.shootVelDropThreshold && shooterVelocityTimer.seconds() > sParams.shootResetTime) {
-//                shooterVelocityTimer.reset();
-//                shootVelocities.add(maxShooterVel);
-//            }
 
-
-            telemetry.addData("bulk caching", bulkCaching);
-            telemetry.addData("using pid", sParams.usePid);
-            telemetry.addData("dt", dtTimer.seconds());
-            telemetry.addData("fps", 1/dtTimer.seconds());
+//            telemetry.addData("bulk caching", bulkCaching);
+//            telemetry.addData("using pid", sParams.usePid);
+//            telemetry.addData("dt", dtTimer.seconds());
+//            telemetry.addData("fps", 1/dtTimer.seconds());
             telemetry.addLine();
-            telemetry.addData("1 power", shooter1.getPower());
-            telemetry.addData("2 power", shooter2.getPower());
+
+            double lowShootC = shooterLow.getCurrent(CurrentUnit.AMPS);
+            double rbC = drive.rightBack.getCurrent(CurrentUnit.AMPS);
+            double rfC = drive.rightFront.getCurrent(CurrentUnit.AMPS);
+            double intakeC = collectorMotor.getCurrent(CurrentUnit.AMPS);
+            double controlC = lowShootC + rbC + rfC + intakeC;
+            telemetry.addData("lowShootC", lowShootC);
+            telemetry.addData("rbC", rbC);
+            telemetry.addData("rfC", rfC);
+            telemetry.addData("intakeC", intakeC);
+            telemetry.addData("control hub current", controlC);
+
+            double highShootC = shooterHigh.getCurrent(CurrentUnit.AMPS);
+            double lbC = drive.leftBack.getCurrent(CurrentUnit.AMPS);
+            double lfC = drive.leftFront.getCurrent(CurrentUnit.AMPS);
+            double turretC = turretMotor.getCurrent(CurrentUnit.AMPS);
+            double expansC = highShootC + lbC + lfC + turretC;
+            telemetry.addData("shootHighC", highShootC);
+            telemetry.addData("lbC", lbC);
+            telemetry.addData("lfC", lfC);
+            telemetry.addData("turretC", turretC);
+            telemetry.addData("expansion current", expansC);
+            telemetry.addData("total c", controlC + expansC);
+            telemetry.addLine();
+            telemetry.addData("1 power", shooterLow.getPower());
+            telemetry.addData("2 power", shooterHigh.getPower());
+            telemetry.addData("1 encoder", shooterLow.getCurrentPosition());
+            telemetry.addData("2 encoder", shooterHigh.getCurrentPosition());
+            telemetry.addLine();
+            telemetry.addData("shooter current", lowShootC + highShootC);
+
+            telemetry.addLine();
+            telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(Math.toRadians(miscParams.ballExitAngleDeg)));
+            telemetry.addData("1 vel (ticks/s)", shooterLow.getVelocity());
+            telemetry.addData("2 vel (ticks/s)", shooterHigh.getVelocity());
             telemetry.addData("target", sParams.targetVelTicksPerSec);
-
+            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity())));
             telemetry.addLine();
-            telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(Math.toRadians(targetHoodAngleDeg)));
-            telemetry.addData("1 vel (ticks/s)", shooter1.getVelocity());
-            telemetry.addData("2 vel (ticks/s)", shooter2.getVelocity());
-            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooter2.getVelocity())));
-            telemetry.addData("1 encoder", shooter1.getCurrentPosition());
-            telemetry.addData("2 encoder", shooter2.getCurrentPosition());
-            telemetry.addLine();
-            telemetry.addData("setting hood by angle", setHoodByAngle);
-            telemetry.addData("target hood pos", hoodPos);
+            telemetry.addData("setting hood by angle", miscParams.setHoodByAngle);
+            telemetry.addData("target hood pos", miscParams.hoodPos);
             telemetry.addData("hoodL pos", hoodLeft.getPosition());
             telemetry.addData("hoodR pos", hoodRight.getPosition());
             telemetry.addLine();
@@ -225,7 +252,7 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("left clutch pos", clutchLeft.getPosition());
             telemetry.addData("right clutch pos", clutchRight.getPosition());
 
-            updateDashboardField(turretMotor.getCurrentPosition(), Math.toRadians(targetHoodAngleDeg));
+            updateDashboardField(turretMotor.getCurrentPosition(), Math.toRadians(miscParams.ballExitAngleDeg));
             telemetry.update();
         }
     }

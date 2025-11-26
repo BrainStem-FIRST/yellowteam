@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import static org.firstinspires.ftc.teamcode.subsystems.Turret.TURRET_PARAMS;
-
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -20,9 +18,9 @@ public class ShootingMath {
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.05;
         public double ballRadiusMeters = 0.064;
-        public double gripCoefficient = 1; // actual exit velocity / theoretical exit velocity
+        public double gripCoefficient = 0.282255168094; // actual exit velocity / theoretical exit velocity
         public double shooterMotorTicksPerRev = 28;
-        public double flywheelTicksPerRev = shooterMotorTicksPerRev * 30 / 22; // pulley ratio is 30:22
+        public double flywheelTicksPerRev = shooterMotorTicksPerRev * 30 / 18; // pulley ratio is 30:22
 
         // slope and y intercept of distance-exit speed regression
         public double exitSpeedSlope = 4.53882;
@@ -79,7 +77,7 @@ public class ShootingMath {
     }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
-    public static double mpsToTicksPerSec(double mps) {
+    public static double exitMpsToTicksPerSec(double mps) {
         double wheelCircumference = 2 * Math.PI * shooterSystemParams.flywheelRadiusMeters;
         double revPerSec = mps / wheelCircumference;
         double idealTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
@@ -114,7 +112,7 @@ public class ShootingMath {
         // SHOULD return positive value
         double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
         double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
-        return mpsToTicksPerSec(relativeExitSpeedMps);
+        return exitMpsToTicksPerSec(relativeExitSpeedMps);
     }
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above

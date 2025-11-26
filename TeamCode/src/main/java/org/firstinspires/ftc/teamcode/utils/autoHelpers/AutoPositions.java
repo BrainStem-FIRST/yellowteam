@@ -37,8 +37,6 @@ public class AutoPositions {
     public static Pose2d blueGate1Right = new Pose2d(0, 50, Math.toRadians(90));
     public static Pose2d blueGate2 = new Pose2d(-4, 56, Math.toRadians(90));
     public Pose2d blueCloseEnd = new Pose2d(0, -45, Math.toRadians(0));
-
-    public static Pose2d blueFarStart = new Pose2d(0, 0, 0);
     public static Pose2d blueFarEnd = new Pose2d(20, -45, Math.toRadians(180));
 
     public AutoPositions(MecanumDrive drive) {
@@ -50,7 +48,12 @@ public class AutoPositions {
                 .lineToXLinearHeading(-35, Math.toRadians(55));
         return moveOffWall.build();
     }
-    public Action collectAndShoot(boolean onRedAlliance, int lineToCollect, boolean releaseGate, Pose2d shootPose, double shootToCollectTangent, Pose2d lineApproachPose, double lineApproachTangent, double collectToShootTangent, double shootApproachTangent) {
+    public Action redDriveFarShootingPose(Pose2d startPose) {
+        return drive.actionBuilder(startPose)
+                .lineToXLinearHeading(55, Math.toRadians(140))
+                .build();
+    }
+    public Action collectAndShoot(boolean onRedAlliance, int lineToCollect, boolean releaseGate, Pose2d shootPose, double shootToCollectTangent, Pose2d lineApproachPose, double lineApproachTangent, double collectToShootTangent, double shootApproachTangent, AutoRobotStatus robotStatus) {
         double driveThroughY = 55;
         Action driveToLine = drive.actionBuilder(shootPose)
                 .setTangent(shootToCollectTangent)
@@ -85,11 +88,15 @@ public class AutoPositions {
                 )
                 .build();
 
+        robotStatus.preCollecting = true;
         return new SequentialAction(
                 new TimedAction(driveToLine, 1.5),
+                telemetryPacket -> {robotStatus.cycle(); return false;},
                 new TimedAction(driveThroughLine, 1),
+                telemetryPacket -> {robotStatus.cycle(); return false;},
                 new TimedAction(possiblyOpenGate, 2.5),
-                new TimedAction(driveToShoot, 2)
+                new TimedAction(driveToShoot, 2),
+                telemetryPacket -> {robotStatus.cycle(); return false;}
         );
     }
 
@@ -187,7 +194,7 @@ public class AutoPositions {
         return moveOffLine.build();
     }
 
-    public Action redCollectAndShootHumanPlayer(boolean startingClose, boolean shootingClose) {
+    public Action redCollectAndShootLoadingZone(boolean startingClose, boolean shootingClose) {
         return drive.actionBuilder(startingClose ? redCloseShootingPosition : redFarShootingPosition)
                 .splineTo(redApproachHP.position, redApproachHP.heading)
                 .lineToX(65)
@@ -204,6 +211,11 @@ public class AutoPositions {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
                 .lineToXLinearHeading(-35, Math.toRadians(-125));
         return moveOffWall.build();
+    }
+    public Action blueDriveFarShootingPose(Pose2d startPose) {
+        return drive.actionBuilder(startPose)
+                .lineToXLinearHeading(55, Math.toRadians(-140))
+                .build();
     }
     public Action blueCollectAndShootFirstLine(boolean startingClose, boolean shootingClose, boolean releaseGate) {
         double driveThroughY = -55;
@@ -301,7 +313,7 @@ public class AutoPositions {
 
         return moveOffLine.build();
     }
-    public Action blueCollectAndShootHumanPlayer(boolean startingClose, boolean shootingClose) {
+    public Action blueCollectAndShootLoadingZone(boolean startingClose, boolean shootingClose) {
         TrajectoryActionBuilder hpShot = drive.actionBuilder(startingClose ? blueCloseShootingPosition : blueFarShootingPosition)
                 .splineTo(blueApproachHP.position, blueApproachHP.heading)
                 .waitSeconds(0.25)
