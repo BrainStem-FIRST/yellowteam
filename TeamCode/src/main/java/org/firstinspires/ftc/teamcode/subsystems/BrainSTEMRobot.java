@@ -38,6 +38,7 @@ public class BrainSTEMRobot {
     private final List<LynxModule> allHubs;
     private Telemetry telemetry;
     public GamepadTracker g1;
+    public Vector2d ballExitPosition;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;
@@ -79,21 +80,18 @@ public class BrainSTEMRobot {
             c.reset();
         }
     }
-    public void update() {
+    public void update(boolean useTurretLookAhead) {
         for(LynxModule hub : allHubs)
             hub.clearBulkCache();
+
+
+        turret.updateLookAheadTime(useTurretLookAhead);
 
         if(enablePinpoint)
             drive.updatePoseEstimate();
         if(enableSubsystems)
             for (Component c : subsystems)
                 c.update();
-        if(enableLimelight) {
-//            Pose2d robotPose = limelight.getRobotPose();
-//            if(robotPose != null)
-//                drive.pinpoint().setPose(robotPose);
-        }
-//        drawRobot(this);
     }
 
     private void drawRobot(BrainSTEMRobot robot) {

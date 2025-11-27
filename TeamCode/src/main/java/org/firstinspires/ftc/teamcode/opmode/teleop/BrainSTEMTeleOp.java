@@ -45,6 +45,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
     private Pose2d lastFrameSimplePrediction, lastFrameAdvancedPrediction;
     private final Alliance alliance;
+    private boolean currentlyMoving;
     public BrainSTEMTeleOp(Alliance alliance) {
         this.alliance = alliance;
     }
@@ -53,6 +54,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     public void runOpMode() {
         lastFrameSimplePrediction = PoseStorage.currentPose;
         lastFrameAdvancedPrediction = PoseStorage.currentPose;
+        currentlyMoving = false;
 
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
         CommandScheduler.getInstance().reset();
@@ -82,10 +84,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             robot.turret.printInfo();
             robot.shooter.printInfo();
 
-            robot.update();
+            robot.update(currentlyMoving);
 
             updateDashboardField();
-//            updatePosePredict();
+
             // print delta time
             framesRunning++;
             double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
@@ -100,6 +102,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDrive() {
+        currentlyMoving = gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
                         -gamepad1.left_stick_y,
@@ -136,63 +139,17 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.turret.turretState = Turret.TurretState.TRACKING;
             else
                 robot.turret.turretState = Turret.TurretState.CENTER;
-//
+
         if (gp1.isFirstDpadUp()) {
             if (robot.collection.collectionState == Collection.CollectionState.EXTAKE)
                 robot.collection.collectionState = Collection.CollectionState.OFF;
             else
                 robot.collection.collectionState = Collection.CollectionState.EXTAKE;
         }
-//
+
         if (gp1.isFirstRightBumper()) {
             robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
         }
-
-//        if (gp1.isFirstDpadDown())
-//            if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE_2)
-//                robot.shooter.shooterState = Shooter.ShooterState.OFF;
-//            else
-//                robot.shooter.shooterState = Shooter.ShooterState.UPDATE_2;
-
-
-//        if (gp1.isFirstDpadLeft()) {
-//            if (parking_position - Parking.PARK_PARAMS.SERVO_INCREMENT >= 0.0)
-//                parking_position -= Parking.PARK_PARAMS.SERVO_INCREMENT;
-//        }
-
-//        if (gp1.isFirstDpadUp()) {
-//            if (hood_position - Shooter.SHOOTER_PARAMS.HOOD_INCREMENT >= 0)
-//                hood_position -= Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
-//        }
-//
-//        if (gp1.isFirstDpadDown()) {
-//            if (hood_position + Shooter.SHOOTER_PARAMS.HOOD_INCREMENT <= 1)
-//                hood_position += Shooter.SHOOTER_PARAMS.HOOD_INCREMENT;
-//        }
-
-//        if (gp1.isFirstDpadRight()) {
-//            if (turret_position - Turret.TURRET_PARAMS.TURRET_INCREMENT >= Turret.TURRET_PARAMS.TURRET_MIN)
-//                turret_position -= Turret.TURRET_PARAMS.TURRET_INCREMENT;
-//        }
-
-//        if (gp1.isFirstDpadLeft()) {
-//            if (turret_position + Turret.TURRET_PARAMS.TURRET_INCREMENT <= Turret.TURRET_PARAMS.TURRET_MAX)
-//                turret_position += Turret.TURRET_PARAMS.TURRET_INCREMENT;
-//        }
-
-//        robot.parking.setParkServoPosition(parking_position);
-//        telemetry.addData("** PARKING SERVO POS **", parking_position);
-
-//        robot.shooter.setHoodPosition(hood_position);
-//        robot.turret.setTurretPosition(turret_position);
-//        telemetry.addData("Turret Increment", turret_position);
-//        telemetry.addData("Hood Increment", hood_position);
-
-//        telemetry.addData("FLICKER POS", robot.collection.flickerRight.getPosition());
-
-//        telemetry.addData("Pose X", robot.drive.localizer.getPose().position.x);
-//        telemetry.addData("Pose Y", robot.drive.localizer.getPose().position.y);
-//        telemetry.addData("Pose Heading", Math.toDegrees(robot.drive.localizer.getPose().heading.toDouble()));
     }
 
     private void updateDriver2() {
@@ -287,8 +244,16 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robotPose.position.y + robot.turret.exitVelocityMps.y);
 
         // draw where turret is pointed
-        fieldOverlay.setStroke("blue");
         double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
+
+        fieldOverlay.setStroke("green");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(robot.turret.currentAngleRad),
+                exitPosition.y + dist * Math.sin(robot.turret.currentAngleRad)
+        );
+        fieldOverlay.setStroke("blue");
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
@@ -298,7 +263,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
         // draw goal
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
+        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 3);
+        Pose2d defaultGoalPose = robot.turret.targetPose;
+        fieldOverlay.strokeCircle(defaultGoalPose.position.x, defaultGoalPose.position.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
 //    private void updateDashboardField() {

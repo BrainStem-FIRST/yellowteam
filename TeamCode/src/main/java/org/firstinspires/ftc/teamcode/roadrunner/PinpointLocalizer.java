@@ -157,12 +157,6 @@ public final class PinpointLocalizer implements Localizer {
         lastUpdateTimeNano = System.nanoTime();
     }
 
-    public boolean canGetNextPoseSimple() {
-        return !previousVelocities.isEmpty();
-    }
-    public boolean canGetNextPoseAdvanced() {
-        return !previousAccelerations.isEmpty();
-    }
     // predicts on most recent velocity
     public Pose2d getNextPoseSimple(double time) {
         if (previousVelocities.isEmpty())

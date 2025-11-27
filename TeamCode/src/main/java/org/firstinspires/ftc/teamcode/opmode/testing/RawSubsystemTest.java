@@ -31,7 +31,7 @@ import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import java.util.List;
 
 @Config
-@TeleOp(name="Raw subsystem test")
+@TeleOp(name="Raw subsystem test", group="Testing")
 public class RawSubsystemTest extends LinearOpMode {
     public static class MiscParams {
         public int updateIntervalMs = 20;

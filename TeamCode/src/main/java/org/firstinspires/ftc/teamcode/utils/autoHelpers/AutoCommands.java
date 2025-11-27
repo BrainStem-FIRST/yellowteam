@@ -20,7 +20,7 @@ public class AutoCommands {
 
     // CONSTANT UPDATES
     public Action updateRobot = packet -> {
-        robot.update();
+        robot.update(true);
         return true;
     };
 
