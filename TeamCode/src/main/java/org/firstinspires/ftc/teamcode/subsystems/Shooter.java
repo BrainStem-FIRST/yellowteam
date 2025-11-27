@@ -25,6 +25,7 @@ import java.util.Set;
 
 @Config
 public class Shooter extends Component {
+    public static double tempTicksPerSec = 1300;
     public static class ShooterParams {
         public double WALL_OFFSET_INCHES = 30;
         public double FAR_TARGET_VEL_TICKS = 1525;
@@ -206,11 +207,9 @@ public class Shooter extends Component {
         double inchesFromGoal = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
 
         // update FLYWHEEL
-        double flywheelTicksPerSec = SHOOTER_PARAMS.FAR_TARGET_VEL_TICKS; // for now, setting to constant velocity for far shots
-        if (ballExitPosition.x < 50) {
-            OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-            flywheelTicksPerSec = ShootingMath.calculateFlywheelSpeedTicksPerSec(targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
-        }
+        OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
+        double flywheelTicksPerSec = ShootingMath.calculateFlywheelSpeedTicksPerSec(telemetry, targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
+
         setShooterVelocityPID(flywheelTicksPerSec);
 
         // update HOOD
@@ -221,8 +220,9 @@ public class Shooter extends Component {
         else {
             if (ballExitPosition.x < 50) {
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(getAvgMotorVelocity());
-                OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-                ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, ballExitSpeedMps, ballExitAngleRad, mostRecentVelocity);
+                telemetry.addData("avg motor vel ticks/s", getAvgMotorVelocity());
+                telemetry.addData("exit speed mps", ballExitSpeedMps);
+                ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, ballExitSpeedMps, ballExitAngleRad, mostRecentVelocity, telemetry);
                 hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
                 setHoodPosition(hoodServoPos);
             }

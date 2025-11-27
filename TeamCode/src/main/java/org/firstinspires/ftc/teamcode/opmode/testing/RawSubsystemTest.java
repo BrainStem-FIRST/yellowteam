@@ -128,6 +128,8 @@ public class RawSubsystemTest extends LinearOpMode {
                     -gamepad1.right_stick_x
             ));
 
+            turretMotor.setPower(0);
+
             if(g1.isFirstY()) {
                 shooting = !shooting;
                 shooterPid.reset();
@@ -238,10 +240,10 @@ public class RawSubsystemTest extends LinearOpMode {
 
             telemetry.addLine();
             telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(Math.toRadians(miscParams.ballExitAngleDeg)));
+            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity())));
             telemetry.addData("1 vel (ticks/s)", shooterLow.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooterHigh.getVelocity());
             telemetry.addData("target", sParams.targetVelTicksPerSec);
-            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity())));
             telemetry.addLine();
             telemetry.addData("setting hood by angle", miscParams.setHoodByAngle);
             telemetry.addData("target hood pos", miscParams.hoodPos);

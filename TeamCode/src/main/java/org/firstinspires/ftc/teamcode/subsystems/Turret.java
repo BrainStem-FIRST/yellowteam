@@ -220,9 +220,9 @@ public class Turret extends Component {
         }
 
         if (robot.alliance == Alliance.RED)
-            targetPose = new Pose2d(-62, 62, 0);
+            targetPose = new Pose2d(-64, 64, 0);
         else
-            targetPose = new Pose2d(-62, -62, 0);
+            targetPose = new Pose2d(-64, -64, 0);
     }
 
     public void printInfo(Telemetry telemetry) {

@@ -14,18 +14,24 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double targetHeightInches = 48;
+        public double targetHeightInches = 45;
         public double flywheelOffsetFromTurretInches = 2.4783465;
-        public double flywheelRadiusMeters = 0.05;
+        public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
-        public double gripCoefficient = 0.282255168094; // actual exit velocity / theoretical exit velocity
+        public double powerLossCoefficient = 1; // actual exit velocity / theoretical exit velocity
         public double shooterMotorTicksPerRev = 28;
-        public double flywheelTicksPerRev = shooterMotorTicksPerRev * 30 / 18; // pulley ratio is 30:22
+        public double flywheelTicksPerMotorTick = 28 / 38.5;
+        // 28 motor ticks = one revolution
+        // 38.5 flywheel ticks = one revolution
+        public double flywheelTicksPerRev = 38.5; // pulley ratio is 30:22
 
         // slope and y intercept of distance-exit speed regression
-        public double exitSpeedSlope = 4.53882;
-        public double exitSpeedYIntercept = 800.29968;
+        public double exitSpeedSlope = 0.264287;
+        public double exitSpeedYIntercept = 5.34;
+        public double speedFarRegressA = 0.0744048, speedFarRegressB = 0.648214, speedFarRegressC = 4.27024; // s_far=0.0744048d^2+0.648214d+4.27024
+        public double speedNearRegressA = 0.123834, speedNearRegressB = 0.384569, speedNearRegressC = 5.40483; // s_near=0.123834d^2+0.0384569d+5.40483
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
+        public double solutionSwitchDistInches = 2.5 / 0.0254;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
@@ -70,19 +76,37 @@ public class ShootingMath {
     }
 
     // finds exit speed of ball (meters per sec) if flywheel is spinning at ticksPerSec
-    public static double ticksPerSecToExitSpeedMps(double ticksPerSec) {
-        double revPerSec = ticksPerSec / shooterSystemParams.flywheelTicksPerRev;
-        double angularVel = revPerSec * 2 * Math.PI;
-        return angularVel * shooterSystemParams.flywheelRadiusMeters * shooterSystemParams.gripCoefficient;
+    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec) {
+        double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
+        double motorAngularVel = motorRevPerSec * 2 * Math.PI;
+        double flywheelAngularVel = motorAngularVel * 28 / 38.5;
+        double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
+        return flywheelTangentialVel * shooterSystemParams.powerLossCoefficient;
     }
+//    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec) {
+//        double revPerSec = motorTicksPerSec / shooterSystemParams.flywheelTicksPerRev;
+//        double angularVel = revPerSec * 2 * Math.PI;
+//        return angularVel * shooterSystemParams.flywheelRadiusMeters * shooterSystemParams.powerLossCoefficient;
+//    }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
-    public static double exitMpsToTicksPerSec(double mps) {
-        double wheelCircumference = 2 * Math.PI * shooterSystemParams.flywheelRadiusMeters;
-        double revPerSec = mps / wheelCircumference;
-        double idealTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
-        return idealTicksPerSec  / shooterSystemParams.gripCoefficient;
+    public static double exitMpsToMotorTicksPerSec(double ballExitMps) {
+        double flywheelMps = ballExitMps / shooterSystemParams.powerLossCoefficient;
+        double flywheelAngularVel = flywheelMps / shooterSystemParams.flywheelRadiusMeters;
+        double revPerSec = flywheelAngularVel / (2 * Math.PI);
+        double flywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
+        double motorTicksPerSec = flywheelTicksPerSec * 38.5 / 28;
+        return motorTicksPerSec;
     }
+    /*
+    public static double exitMpsToTicksPerSec(double exitMps) {
+        double angularVel = exitMps / shooterSystemParams.flywheelRadiusMeters;
+        double revPerSec = angularVel / (2 * Math.PI);
+        double idealFlywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
+        double idealMotorTicksPerSec = idealFlywheelTicksPerSec * 38.5 / 28;
+        return idealMotorTicksPerSec / shooterSystemParams.powerLossCoefficient;
+    }
+     */
 
     // calculates the component of robot velocity that is towards the goal
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
@@ -103,16 +127,24 @@ public class ShootingMath {
     // calculate flywheel speed (encoder ticks per sec) given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateFlywheelSpeedTicksPerSec(Pose2d targetPose, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
-        double absoluteExitSpeedTicksPerSec = (shooterSystemParams.exitSpeedSlope * inchesFromGoal) + shooterSystemParams.exitSpeedYIntercept;
-        if (!enableRelativeVelocity)
-            return absoluteExitSpeedTicksPerSec;
+    public static double calculateFlywheelSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
 
-        double absoluteExitSpeedMps = ticksPerSecToExitSpeedMps(absoluteExitSpeedTicksPerSec);
+        double metersFromGoal = inchesFromGoal * 0.0254;
+        boolean useCloseRegression = inchesFromGoal < shooterSystemParams.solutionSwitchDistInches;
+
+        telemetry.addData("use close regression", useCloseRegression);
+        double absoluteExitSpeedMps = shooterSystemParams.exitSpeedSlope * metersFromGoal + shooterSystemParams.exitSpeedYIntercept;
+        telemetry.addData("absolute speed mps", absoluteExitSpeedMps);
+
+        if (!enableRelativeVelocity) {
+            double exitTicksPerSec = exitMpsToMotorTicksPerSec(absoluteExitSpeedMps);
+            telemetry.addData("exit ticks per sec", exitTicksPerSec);
+            return exitTicksPerSec;
+        }
         // SHOULD return positive value
         double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
         double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
-        return exitMpsToTicksPerSec(relativeExitSpeedMps);
+        return exitMpsToMotorTicksPerSec(relativeExitSpeedMps);
     }
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
@@ -160,26 +192,33 @@ public class ShootingMath {
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, double distance, double ballExitSpeedMps, double prevBallExitAngleRad, OdoInfo mostRecentVelocity) {
+    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, double distanceInches, double ballExitSpeedMps, double prevBallExitAngleRad, OdoInfo mostRecentVelocity, Telemetry telemetry) {
         // get the EXACT exit height of the ball (depends on hood position)
         double exitHeightMeters = ShootingMath.calculateExitHeightMeters(prevBallExitAngleRad);
         double heightToTargetMeters = (shooterSystemParams.targetHeightInches * 0.0254 - exitHeightMeters);
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
         double g = 9.81;
-        double x = distance * 0.0254; // convert inches to meters
-        double y = heightToTargetMeters; // convert inches to meters
+        double x = distanceInches * 0.0254; // convert inches to meters
+        double y = heightToTargetMeters;
 
         double v = ballExitSpeedMps;
         if (enableRelativeVelocity) {
             double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
             v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
         }
+        double sign = distanceInches < shooterSystemParams.solutionSwitchDistInches ? 1 : -1;
+
+        telemetry.addData("ball exit height meters", exitHeightMeters);
+        telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
+        telemetry.addData("distance from goal inches", distanceInches);
+        telemetry.addData("pos solution", sign > 0);
+
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
         if (discriminant <= 0)
             return Math.toRadians(40);
 
-        double tanTheta = (v*v - Math.sqrt(discriminant)) / (g * x);
+        double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
         return Math.atan(tanTheta);
     }
 
