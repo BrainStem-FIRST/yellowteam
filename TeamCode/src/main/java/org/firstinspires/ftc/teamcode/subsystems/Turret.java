@@ -37,7 +37,7 @@ public class Turret extends Component {
     private final PIDController pidController;
     public TurretState turretState;
     public int adjustment = 0;
-    public Pose2d targetPose = new Pose2d(-62, 62, 0);
+    public Pose2d targetPose = new Pose2d(-64, 64, 0);
     public Vec exitVelocityMps, relativeBallExitVelocityMps, globalBallExitVelocityMps, ballExitLinearVelocityInchesPerSec;
     public double ballExitSpeedMps;
     public double targetAngleRad;

@@ -16,7 +16,7 @@ public class ShootingMath {
         LOW_ARC,
         DYNAMIC_ARC
     }
-    public static ShotType shotType = ShotType.HIGH_ARC;
+    public static ShotType shotType = ShotType.DYNAMIC_ARC;
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
@@ -24,20 +24,20 @@ public class ShootingMath {
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
-        public double powerLossCoefficient = 0.85; // actual exit velocity / theoretical exit velocity
-        public double hoodPowerLossCoefficient = 0.8; // what the hood thinks the power loss coefficient is
+        public double powerLossCoefficient = 0.572; // actual exit velocity / theoretical exit velocity
+        public double hoodPowerLossCoefficient = 0.572; // what the hood thinks the power loss coefficient is
         public double shooterMotorTicksPerRev = 28;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
         public double flywheelTicksPerRev = 38.5; // pulley ratio is 30:22
 
         // slope and y intercept of distance-exit speed regression
-        public double exitSpeedSlope = 0.27;
-        public double exitSpeedYIntercept = 5.45;
-        public double speedFarRegressA = 0.0744048, speedFarRegressB = 0.648214, speedFarRegressC = 4.27024; // s_far=0.0744048d^2+0.648214d+4.27024
-        public double speedNearRegressA = 0.123834, speedNearRegressB = 0.384569, speedNearRegressC = 5.40483; // s_near=0.123834d^2+0.0384569d+5.40483
+        public double highShotTicksPerSecondSlope = 2, highShotTicksPerSecondYInt = 1125;
+        public double lowShotTicksPerSecondSlope = 6.5, lowShotTicksPerSecondYInt = 900;
+//        public double speedFarRegressA = 0.0744048, speedFarRegressB = 0.648214, speedFarRegressC = 4.27024; // s_far=0.0744048d^2+0.648214d+4.27024
+//        public double speedNearRegressA = 0.123834, speedNearRegressB = 0.384569, speedNearRegressC = 5.40483; // s_near=0.123834d^2+0.0384569d+5.40483
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
-        public double solutionSwitchDistInches = 2.5 / 0.0254;
+        public double solutionSwitchDistInches = 1.2 / 0.0254;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
@@ -126,23 +126,24 @@ public class ShootingMath {
     // calculate flywheel speed (encoder ticks per sec) given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateFlywheelSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
+    public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
 
-        double metersFromGoal = inchesFromGoal * 0.0254;
         boolean useCloseRegression = inchesFromGoal < shooterSystemParams.solutionSwitchDistInches;
 
         telemetry.addData("use close regression", useCloseRegression);
-        double absoluteExitSpeedMps = shooterSystemParams.exitSpeedSlope * metersFromGoal + shooterSystemParams.exitSpeedYIntercept;
-        telemetry.addData("absolute speed mps", absoluteExitSpeedMps);
+        double ticksPerSecond;
+        if (useCloseRegression)
+            ticksPerSecond = shooterSystemParams.highShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecondYInt;
+        else
+            ticksPerSecond = shooterSystemParams.lowShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.lowShotTicksPerSecondYInt;
+        telemetry.addData("ticks per second motor speed", ticksPerSecond);
 
         if (!enableRelativeVelocity) {
-            double exitTicksPerSec = exitMpsToMotorTicksPerSec(absoluteExitSpeedMps);
-            telemetry.addData("exit ticks per sec", exitTicksPerSec);
-            return exitTicksPerSec;
+            return ticksPerSecond;
         }
         // SHOULD return positive value
         double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
-        double relativeExitSpeedMps = absoluteExitSpeedMps - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
+        double relativeExitSpeedMps = ticksPerSecond - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
         return exitMpsToMotorTicksPerSec(relativeExitSpeedMps);
     }
     // calculates where the turret should point given a bunch of shooterSystemParams
@@ -194,7 +195,7 @@ public class ShootingMath {
     public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, double distanceInches, double ballExitSpeedMps, double prevBallExitAngleRad, OdoInfo mostRecentVelocity, Telemetry telemetry) {
         // get the EXACT exit height of the ball (depends on hood position)
         double exitHeightMeters = ShootingMath.calculateExitHeightMeters(prevBallExitAngleRad);
-        double heightToTargetMeters = (shooterSystemParams.targetHeightInches * 0.0254 - exitHeightMeters);
+        double heightToTargetMeters = (shooterSystemParams.targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
         double g = 9.81;
@@ -233,8 +234,8 @@ public class ShootingMath {
         double linearDistanceToExtendMm = totalLinearDistanceMm - hoodSystemParams.restingDistanceMm;
         if (telemetry != null) {
             telemetry.addLine("HOOD SERVO POS CALCULATION");
-            telemetry.addData("ball exit angle rad", ballExitAngleRadians);
-            telemetry.addData("hood Angle from x", hoodAngleFromXAxisRadians);
+            telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRadians));
+            telemetry.addData("hood Angle from x deg", Math.toDegrees(hoodAngleFromXAxisRadians));
             telemetry.addData("total linear distance mm", totalLinearDistanceMm);
         }
         return linearDistanceToExtendMm / hoodSystemParams.servoRangeMm;

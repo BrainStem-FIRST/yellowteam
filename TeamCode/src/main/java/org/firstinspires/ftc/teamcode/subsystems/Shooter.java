@@ -25,10 +25,8 @@ import java.util.Set;
 
 @Config
 public class Shooter extends Component {
-    public static double tempTicksPerSec = 1300;
+    public static boolean actuallyPowerShooter = false;
     public static class ShooterParams {
-        public double WALL_OFFSET_INCHES = 30;
-        public double FAR_TARGET_VEL_TICKS = 1525;
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
@@ -206,13 +204,14 @@ public class Shooter extends Component {
     public void updateShooterSystem(Vector2d ballExitPosition, Pose2d targetPose) {
         double deltaX = targetPose.position.x - ballExitPosition.x;
         double deltaY = targetPose.position.y - ballExitPosition.y;
-        double inchesFromGoal = Math.hypot(deltaX, deltaY) + SHOOTER_PARAMS.WALL_OFFSET_INCHES;
+        double inchesFromGoal = Math.hypot(deltaX, deltaY);
 
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-        double flywheelTicksPerSec = ShootingMath.calculateFlywheelSpeedTicksPerSec(telemetry, targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
+        double motorTicksPerSecond = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, inchesFromGoal, ballExitPosition, mostRecentVelocity);
 
-        setShooterVelocityPID(flywheelTicksPerSec);
+        if (actuallyPowerShooter)
+            setShooterVelocityPID(motorTicksPerSecond);
 
         double curTimeMs = System.currentTimeMillis();
         double vel = (Math.abs(shooterMotorHigh.getCurrentPosition()) - prevHighEncoder) / (curTimeMs - prevTimeMs);
@@ -227,7 +226,9 @@ public class Shooter extends Component {
         }
         else {
             if (ballExitPosition.x < 50) {
-                double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMpsForHood(getAvgMotorVelocity());
+//                double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMpsForHood(getAvgMotorVelocity());
+                double shooterSpeed = actuallyPowerShooter ? getAvgMotorVelocity() : motorTicksPerSecond;
+                double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMpsForHood(shooterSpeed);
                 telemetry.addData("avg motor vel ticks/s", getAvgMotorVelocity());
                 telemetry.addData("exit speed mps", currentBallExitSpeedMps);
                 ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, inchesFromGoal, currentBallExitSpeedMps, ballExitAngleRad, mostRecentVelocity, telemetry);
