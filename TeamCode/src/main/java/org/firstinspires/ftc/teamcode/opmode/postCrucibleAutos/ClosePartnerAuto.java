@@ -17,6 +17,7 @@ import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoPositions;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoRobotStatus;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.TimedAction;
 
 @Config
@@ -67,31 +68,18 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
         Action driveToShootingPose = alliance == Alliance.RED ? autoPositions.redDriveCloseShootingPose(startPose) : autoPositions.blueDriveCloseShootingPose(startPose);
 
         // drive to spike marks, collect, then drive to shooting pose
-        Action collectAndShootFirstLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootFirstLine(true, customParams.shootFirstLineClose, customParams.releaseGateAfterFirstLineCollect) :
-                autoPositions.blueCollectAndShootFirstLine(true, customParams.shootFirstLineClose, customParams.releaseGateAfterFirstLineCollect);
-
-        Action collectAndShootSecondLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootSecondLine(true, customParams.shootSecondLineClose, customParams.releaseGateAfterSecondLineCollect) :
-                autoPositions.blueCollectAndShootSecondLine(true, customParams.shootSecondLineClose, customParams.releaseGateAfterSecondLineCollect);
-
-        Action collectAndShootThirdLinePath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootThirdLine(true, customParams.shootThirdLineClose, customParams.releaseGateAfterThirdLineCollect) :
-                autoPositions.blueCollectAndShootThirdLine(true, customParams.shootThirdLineClose, customParams.releaseGateAfterThirdLineCollect);
-
-        // drive to human player, collect, then drive to shooting pose
-        Action collectAndShootHumanPlayerPath = alliance == Alliance.RED ?
-                autoPositions.redCollectAndShootLoadingZone(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose) :
-                autoPositions.blueCollectAndShootLoadingZone(customParams.shootThirdLineClose, customParams.shootHumanPlayerClose);
-
-        // move off the line at the end
-        Action driveOffLine = alliance == Alliance.RED ?
-                autoPositions.redMoveOffLine(true) :
-                autoPositions.blueMoveOffLine(true);
+        Action collectAndShootFirstLinePath = autoPositions.collectAndShoot(
+                alliance,
+                1, customParams.releaseGateAfterFirstLineCollect,
+                AutoPositions.redCloseShootPose, 0,
+                AutoPositions.redFirstLine, 55, Math.PI * 0.5,
+                -Math.PI * 0.75, Math.PI, new AutoRobotStatus()
+        );
 
         Action shootPreloads = new SequentialAction(
-                autoCommands.runIntake(),
+                driveToShootingPose,
                 waitUntilMinTime(customParams.minTimeToShootPreload),
+                autoCommands.engageClutch(),
                 new SleepAction(2),
                 autoCommands.flickerUp(),
                 autoCommands.disengageClutch()
@@ -99,36 +87,11 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
         Action collectAndShootFirstLine = new SequentialAction(
                 collectAndShootFirstLinePath,
                 autoCommands.speedUpShooter(),
-                autoCommands.engageClutch(),
                 waitUntilMinTime(customParams.minTimeToShootFirstLine),
+                autoCommands.engageClutch(),
                 new SleepAction(2),
                 autoCommands.flickerUp(),
                 autoCommands.disengageClutch()
-        );
-        Action collectAndShootSecondLine = new SequentialAction(
-                collectAndShootSecondLinePath,
-                autoCommands.speedUpShooter(),
-                autoCommands.engageClutch(),
-                waitUntilMinTime(customParams.minTimeToShootSecondLine),
-                new SleepAction(2),
-                autoCommands.flickerUp(),
-                autoCommands.disengageClutch()
-        );
-        Action collectAndShootThirdLine = new SequentialAction(
-                collectAndShootThirdLinePath,
-                autoCommands.speedUpShooter(),
-                autoCommands.engageClutch(),
-                waitUntilMinTime(customParams.minTimeToShootThirdLine),
-                new SleepAction(2),
-                autoCommands.flickerUp()
-        );
-        Action collectAndShootHumanPlayer = new SequentialAction(
-                collectAndShootHumanPlayerPath,
-                autoCommands.speedUpShooter(),
-                autoCommands.engageClutch(),
-                waitUntilMinTime(customParams.minTimeToShootHumanPlayer),
-                new SleepAction(2),
-                autoCommands.flickerUp()
         );
 
         Action autoAction = new ParallelAction(
@@ -139,24 +102,20 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                 new SequentialAction(
                         new ParallelAction(
                                 autoCommands.enableTurretTracking(),
-                                autoCommands.engageClutch(),
                                 autoCommands.speedUpShooter(),
-                                driveToShootingPose
+                                autoCommands.runIntake()
+
                         ),
 
                         shootPreloads,
-                        decideToAddLine(collectAndShootFirstLine, 1),
-                        decideToAddLine(collectAndShootSecondLine, 2),
-                        decideToAddLine(collectAndShootThirdLine, 3),
-                        customParams.collectFromHumanPlayer ? collectAndShootHumanPlayer : packet -> false
+                        decideToAddLine(collectAndShootFirstLine, 1)
                 )
         );
 
         Action timedAutoAction = new SequentialAction(
                 new TimedAction(autoAction, autoParams.timeLeftToAbort),
 
-                autoCommands.turretCenter(),
-                driveOffLine
+                autoCommands.turretCenter()
         );
 
         telemetry.setMsTransmissionInterval(20);

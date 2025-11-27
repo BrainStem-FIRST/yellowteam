@@ -16,7 +16,7 @@ public class ShooterSpeedRecorder extends OpMode {
     public static double recordIntervalMs = 50;
     public static int numDataEntries = 5;
     public static int numShotsToRecord = 30; // if you shoot 3 consecutively, it only counts as 1 shot - so this is 45 balls if you collect and shoot 3 everytime
-    public static int recordAmountForEachShot = 100;
+    public static int recordAmountForEachShot = 80;
     public static double waitToDisplayTime = 0.2;
     public static double[][][] data = new double[numShotsToRecord][recordAmountForEachShot][numDataEntries];
 

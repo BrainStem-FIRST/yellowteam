@@ -80,28 +80,28 @@ public abstract class FarAuto extends LinearOpMode {
                 )
         );
 
-        Action driveToCollectAndShootFirst = autoPositions.collectAndShoot(true, 1,
+        Action driveToCollectAndShootFirst = autoPositions.collectAndShoot(Alliance.RED, 1,
                 false,
                 isRed ? AutoPositions.redFarShootingPosition : autoPositions.blueFarShootingPosition,
                 0,
                 isRed ? AutoPositions.redFirstLine : autoPositions.blueFirstLine,
-                0, 0, 0,
+                0, 0, 0, 0,
                 robotStatus);
-        Action driveToCollectAndShootSecond = autoPositions.collectAndShoot(true, 2,
+        Action driveToCollectAndShootSecond = autoPositions.collectAndShoot(Alliance.RED, 2,
                 customizableParams.openGateOnSecond,
                 isRed ? AutoPositions.redFarShootingPosition : autoPositions.blueFarShootingPosition,
                 0,
                 isRed ? AutoPositions.redSecondLine : autoPositions.blueSecondLine,
-                0, 0, 0,
+                0, 0, 0, 0,
                 robotStatus);
         Action driveToCollectAndShootLoadingZone = isRed ? autoPositions.redCollectAndShootLoadingZone(false, false)
                 : autoPositions.blueCollectAndShootLoadingZone(false, false);
-        Action driveToCollectAndShootThird = autoPositions.collectAndShoot(true,3,
+        Action driveToCollectAndShootThird = autoPositions.collectAndShoot(Alliance.RED,3,
                 customizableParams.openGateOnThird,
                 isRed ? AutoPositions.redFarShootingPosition : autoPositions.blueFarShootingPosition,
                 0,
                 isRed ? AutoPositions.redThirdLine : autoPositions.blueThirdLine,
-                0, 0, 0,
+                0, 0, 0, 0,
                 robotStatus);
 
         Action firstCollectAndShoot = new SequentialAction(
