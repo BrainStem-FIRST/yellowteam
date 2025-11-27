@@ -11,6 +11,12 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public class ShootingMath {
+    public enum ShotType {
+        HIGH_ARC,
+        LOW_ARC,
+        DYNAMIC_ARC
+    }
+    public static ShotType shotType = ShotType.HIGH_ARC;
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
@@ -18,16 +24,16 @@ public class ShootingMath {
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
-        public double powerLossCoefficient = 1; // actual exit velocity / theoretical exit velocity
+        public double powerLossCoefficient = 0.85; // actual exit velocity / theoretical exit velocity
+        public double hoodPowerLossCoefficient = 0.8; // what the hood thinks the power loss coefficient is
         public double shooterMotorTicksPerRev = 28;
-        public double flywheelTicksPerMotorTick = 28 / 38.5;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
         public double flywheelTicksPerRev = 38.5; // pulley ratio is 30:22
 
         // slope and y intercept of distance-exit speed regression
-        public double exitSpeedSlope = 0.264287;
-        public double exitSpeedYIntercept = 5.34;
+        public double exitSpeedSlope = 0.27;
+        public double exitSpeedYIntercept = 5.45;
         public double speedFarRegressA = 0.0744048, speedFarRegressB = 0.648214, speedFarRegressC = 4.27024; // s_far=0.0744048d^2+0.648214d+4.27024
         public double speedNearRegressA = 0.123834, speedNearRegressB = 0.384569, speedNearRegressC = 5.40483; // s_near=0.123834d^2+0.0384569d+5.40483
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
@@ -83,11 +89,13 @@ public class ShootingMath {
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
         return flywheelTangentialVel * shooterSystemParams.powerLossCoefficient;
     }
-//    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec) {
-//        double revPerSec = motorTicksPerSec / shooterSystemParams.flywheelTicksPerRev;
-//        double angularVel = revPerSec * 2 * Math.PI;
-//        return angularVel * shooterSystemParams.flywheelRadiusMeters * shooterSystemParams.powerLossCoefficient;
-//    }
+    public static double ticksPerSecToExitSpeedMpsForHood(double motorTicksPerSec) {
+        double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
+        double motorAngularVel = motorRevPerSec * 2 * Math.PI;
+        double flywheelAngularVel = motorAngularVel * 28 / 38.5;
+        double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
+        return flywheelTangentialVel * shooterSystemParams.hoodPowerLossCoefficient;
+    }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
     public static double exitMpsToMotorTicksPerSec(double ballExitMps) {
@@ -98,15 +106,6 @@ public class ShootingMath {
         double motorTicksPerSec = flywheelTicksPerSec * 38.5 / 28;
         return motorTicksPerSec;
     }
-    /*
-    public static double exitMpsToTicksPerSec(double exitMps) {
-        double angularVel = exitMps / shooterSystemParams.flywheelRadiusMeters;
-        double revPerSec = angularVel / (2 * Math.PI);
-        double idealFlywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
-        double idealMotorTicksPerSec = idealFlywheelTicksPerSec * 38.5 / 28;
-        return idealMotorTicksPerSec / shooterSystemParams.powerLossCoefficient;
-    }
-     */
 
     // calculates the component of robot velocity that is towards the goal
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
@@ -207,8 +206,11 @@ public class ShootingMath {
             double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
             v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
         }
-        double sign = distanceInches < shooterSystemParams.solutionSwitchDistInches ? 1 : -1;
-
+        double sign;
+        if (shotType == ShotType.DYNAMIC_ARC)
+            sign = distanceInches < shooterSystemParams.solutionSwitchDistInches ? 1 : -1;
+        else
+            sign = shotType == ShotType.HIGH_ARC ? 1 : -1;
         telemetry.addData("ball exit height meters", exitHeightMeters);
         telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
         telemetry.addData("distance from goal inches", distanceInches);
