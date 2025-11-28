@@ -25,7 +25,6 @@ public class Turret extends Component {
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;
-        public double smoothPowerLerpValue = 1, useSmoothLerpValuePowerDiffThreshold = 0.6;
         public int TICKS_PER_REV = 1212;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
@@ -94,13 +93,8 @@ public class Turret extends Component {
         else
             pidController.setPIDValues(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
 
-        double oldPower = turretMotor.getPower();
         double newPower = -pidController.updateWithError(error);
-        double smoothPower = newPower;
-        if (oldPower!= 0 && Math.abs(newPower - oldPower) > TURRET_PARAMS.useSmoothLerpValuePowerDiffThreshold)
-            smoothPower = MathUtils.lerp(oldPower, newPower, TURRET_PARAMS.smoothPowerLerpValue);
-
-        turretMotor.setPower(smoothPower);
+        turretMotor.setPower(newPower);
     }
 
     public void resetEncoders() {

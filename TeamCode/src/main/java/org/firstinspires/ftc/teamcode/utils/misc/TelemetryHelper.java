@@ -21,7 +21,7 @@ public class TelemetryHelper {
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
     public static void addRobotPoseToCanvas(Canvas fieldOverlay, Pose2d...poses) {
-        fieldOverlay.setRotation(Math.toRadians(fieldRotation)); // rotate 90deg clockwise
+        fieldOverlay.setRotation(Math.toRadians(fieldRotation));
 
         for (int i=0; i<Math.min(numPosesToShow, poses.length); i++) {
             Pose2d pose = poses[i];

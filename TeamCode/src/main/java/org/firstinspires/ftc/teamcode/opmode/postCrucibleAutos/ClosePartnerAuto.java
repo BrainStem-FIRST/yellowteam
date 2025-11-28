@@ -59,25 +59,40 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
 
         BrainSTEMRobot robot = new BrainSTEMRobot(alliance, telemetry, hardwareMap, startPose);
         robot.turret.resetEncoders();
-
         MecanumDrive drive = robot.drive;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         AutoPositions autoPositions = new AutoPositions(drive);
 
-        // drive to shoot preloads
-        Action driveToShootingPose = alliance == Alliance.RED ? autoPositions.redDriveCloseShootingPose(startPose) : autoPositions.blueDriveCloseShootingPose(startPose);
+        Pose2d shootPose = alliance == Alliance.RED ? AutoPositions.redCloseShootPose : AutoPositions.blueCloseShootPose;
+        Pose2d firstLinePose = alliance == Alliance.RED ? AutoPositions.redFirstLine : AutoPositions.blueFirstLine;
+        Pose2d secondLinePose = alliance == Alliance.RED ? AutoPositions.redSecondLine : AutoPositions.blueSecondLine;
+        Pose2d thirdLinePose = alliance == Alliance.RED ? AutoPositions.redThirdLine : AutoPositions.blueThirdLine;
 
-        // drive to spike marks, collect, then drive to shooting pose
+        double[] preloadShootToFirstLineTangents = new double[] { 0, Math.PI * 0.5 };
+        double driveThroughFirstLineY = 55;
+        double[] firstLineToShootTangents = new double[]{ -Math.PI * 0.75,  Math.PI };
+
+        // mirror tangents and positions
+        if (alliance == Alliance.BLUE) {
+            mirrorTangents(preloadShootToFirstLineTangents);
+            driveThroughFirstLineY = -driveThroughFirstLineY;
+            mirrorTangents(firstLineToShootTangents);
+        }
+
+        // declare drive paths
+        Action driveToShootPreloads = alliance == Alliance.RED ? autoPositions.redDriveCloseShootingPose(startPose) : autoPositions.blueDriveCloseShootingPose(startPose);
         Action collectAndShootFirstLinePath = autoPositions.collectAndShoot(
                 alliance,
                 1, customParams.releaseGateAfterFirstLineCollect,
-                AutoPositions.redCloseShootPose, 0,
-                AutoPositions.redFirstLine, 55, Math.PI * 0.5,
-                -Math.PI * 0.75, Math.PI, new AutoRobotStatus()
+                shootPose, preloadShootToFirstLineTangents[0], preloadShootToFirstLineTangents[1],
+                firstLinePose, driveThroughFirstLineY,
+                firstLineToShootTangents[0], firstLineToShootTangents[1],
+                new AutoRobotStatus()
         );
 
+        // declare actions
         Action shootPreloads = new SequentialAction(
-                driveToShootingPose,
+                driveToShootPreloads,
                 waitUntilMinTime(customParams.minTimeToShootPreload),
                 autoCommands.engageClutch(),
                 new SleepAction(2),
@@ -164,5 +179,10 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
     }
     private String minTimeString(String name, double minTime) {
         return minTime < 0 ? "" : name + " min time: " + minTime;
+    }
+
+    public void mirrorTangents(double[] tangents) {
+        for (int i=0; i<tangents.length; i++)
+            tangents[i] = -tangents[i];
     }
 }

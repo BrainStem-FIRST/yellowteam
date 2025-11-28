@@ -29,13 +29,11 @@ public class ShootingMath {
         public double shooterMotorTicksPerRev = 28;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
-        public double flywheelTicksPerRev = 38.5; // pulley ratio is 30:22
+        public double flywheelTicksPerRev = 38.5;
 
         // slope and y intercept of distance-exit speed regression
         public double highShotTicksPerSecondSlope = 2.7, highShotTicksPerSecondYInt = 1150;
         public double lowShotTicksPerSecondSlope = 6.5, lowShotTicksPerSecondYInt = 950;
-//        public double speedFarRegressA = 0.0744048, speedFarRegressB = 0.648214, speedFarRegressC = 4.27024; // s_far=0.0744048d^2+0.648214d+4.27024
-//        public double speedNearRegressA = 0.123834, speedNearRegressB = 0.384569, speedNearRegressC = 5.40483; // s_near=0.123834d^2+0.0384569d+5.40483
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double solutionSwitchDistInches = 62;
         public double highArcGoalOffsetInches = 15, lowArcGoalOffsetInches = 2;
