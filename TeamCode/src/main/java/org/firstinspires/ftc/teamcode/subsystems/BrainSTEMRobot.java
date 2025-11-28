@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
@@ -89,6 +90,9 @@ public class BrainSTEMRobot {
 
         if(enablePinpoint)
             drive.updatePoseEstimate();
+
+        Pose2d pose = drive.localizer.getPose();
+        telemetry.addData("pose", MathUtils.format3(pose.position.x) + ", " + MathUtils.format3(pose.position.y) + " | " + MathUtils.format3(pose.heading.toDouble()));
         if(enableSubsystems)
             for (Component c : subsystems)
                 c.update();

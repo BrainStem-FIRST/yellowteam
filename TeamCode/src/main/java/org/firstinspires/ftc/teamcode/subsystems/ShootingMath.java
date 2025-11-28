@@ -20,7 +20,7 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double targetHeightInches = 46;
+        public double highArcTargetHeightInches = 46, lowArcTargetHeightInches = 43.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
@@ -31,18 +31,18 @@ public class ShootingMath {
         // 38.5 flywheel ticks = one revolution
         public double flywheelTicksPerRev = 38.5;
 
-        // slope and y intercept of distance-exit speed regression
-        public double highShotTicksPerSecondSlope = 2.7, highShotTicksPerSecondYInt = 1150;
-        public double lowShotTicksPerSecondSlope = 6.5, lowShotTicksPerSecondYInt = 950;
+        // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
+        public double highShotTicksPerSecondSlope = 2.8, highShotTicksPerSecondYInt = 1145;
+        public double lowShotTicksPerSecondSlope = 5.7, lowShotTicksPerSecondYInt = 940;
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
-        public double solutionSwitchDistInches = 62;
-        public double highArcGoalOffsetInches = 15, lowArcGoalOffsetInches = 2;
+        public double highToLowArcThresholdInches = 50; // old: 62
+        public double highArcGoalOffsetInches = 16, lowArcGoalOffsetInches = 2;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
         public double hoodPivotAngleOffsetFromHoodExitAngleDeg = 7.8;
         public double servoRangeMm = 30;
-        public double minAngleDeg = 20, maxAngleDeg = 50;
+        public double minAngleDeg = 15, maxAngleDeg = 55;
         public double hoodAngleRelativeVelocityMultiplier = 1;
     }
     public static class TurretSystemParams {
@@ -127,11 +127,9 @@ public class ShootingMath {
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
     public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, boolean useHighArc, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
 
-        double ticksPerSecond;
-        if (useHighArc)
-            ticksPerSecond = shooterSystemParams.highShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecondYInt;
-        else
-            ticksPerSecond = shooterSystemParams.lowShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.lowShotTicksPerSecondYInt;
+        double highTicksPerSecond = shooterSystemParams.highShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecondYInt;
+        double lowTicksPerSecond = shooterSystemParams.lowShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.lowShotTicksPerSecondYInt;
+        double ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
         telemetry.addData("ticks per second motor speed", ticksPerSecond);
 
         if (!enableRelativeVelocity) {
@@ -191,7 +189,8 @@ public class ShootingMath {
     public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, double distanceInches, double ballExitSpeedMps, double prevBallExitAngleRad, OdoInfo mostRecentVelocity, Telemetry telemetry) {
         // get the EXACT exit height of the ball (depends on hood position)
         double exitHeightMeters = ShootingMath.calculateExitHeightMeters(prevBallExitAngleRad);
-        double heightToTargetMeters = (shooterSystemParams.targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
+        double targetHeightInches = useHighArc ? shooterSystemParams.highArcTargetHeightInches : shooterSystemParams.lowArcTargetHeightInches;
+        double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
         double g = 9.81;
@@ -205,8 +204,6 @@ public class ShootingMath {
         }
         double sign = useHighArc ? 1 : -1;
         telemetry.addData("ball exit height meters", exitHeightMeters);
-        telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
-        telemetry.addData("distance from goal inches", distanceInches);
 
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
         if (discriminant <= 0) {
@@ -227,7 +224,6 @@ public class ShootingMath {
         double linearDistanceToExtendMm = totalLinearDistanceMm - hoodSystemParams.restingDistanceMm;
         if (telemetry != null) {
             telemetry.addLine("HOOD SERVO POS CALCULATION");
-            telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRadians));
             telemetry.addData("hood Angle from x deg", Math.toDegrees(hoodAngleFromXAxisRadians));
             telemetry.addData("total linear distance mm", totalLinearDistanceMm);
         }

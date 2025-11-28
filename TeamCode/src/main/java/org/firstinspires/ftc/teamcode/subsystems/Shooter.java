@@ -30,6 +30,7 @@ public class Shooter extends Component {
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.0005;
+        public double shootBallDeceleration = -40;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
@@ -40,7 +41,6 @@ public class Shooter extends Component {
     public enum ShooterState {
         OFF, UPDATE, FIXED_VELOCITY_IN_AUTO
     }
-    public static double testingShootPower = 0.99, testingBallExitAngleRad = 0.7;
     public DcMotorEx shooterMotorLow;
     public DcMotorEx shooterMotorHigh;
     public ServoImplEx hoodLeftServo;
@@ -52,6 +52,8 @@ public class Shooter extends Component {
     public double adjustment;
     private final ElapsedTime recordTimer;
     public Vector2d ballExitPosition;
+    private double previousVelocityTicksPerSec;
+    private int numBallsShot;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
@@ -108,7 +110,7 @@ public class Shooter extends Component {
         double deltaY = targetPose.position.y - ballExitPosition.y;
         double ballExitPosInchesFromGoal = Math.hypot(deltaX, deltaY);
 
-        boolean shootHighArc = ballExitPosInchesFromGoal < ShootingMath.shooterSystemParams.solutionSwitchDistInches;
+        boolean shootHighArc = ballExitPosInchesFromGoal < ShootingMath.shooterSystemParams.highToLowArcThresholdInches;
         telemetry.addData("use high arc", shootHighArc);
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
@@ -134,12 +136,16 @@ public class Shooter extends Component {
         double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMpsForHood(shooterSpeed);
         telemetry.addData("avg motor vel ticks/s", getAvgMotorVelocity());
         telemetry.addData("exit speed mps", currentBallExitSpeedMps);
+        telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
+        telemetry.addData("actual distance from goal inches", ballExitPosInchesFromGoal);
+        telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
         double oldBallExitAngleRad = ballExitAngleRad;
         ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, ballExitAngleRad, mostRecentVelocity, telemetry);
-        if (ballExitAngleRad != -1 && Math.abs(ballExitAngleRad - oldBallExitAngleRad) >= Math.toRadians(HOOD_PARAMS.moveThresholdAngleDeg)) {
-            double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
+        telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
+        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
+        if (ballExitAngleRad != -1 && Math.abs(ballExitAngleRad - oldBallExitAngleRad) >= Math.toRadians(HOOD_PARAMS.moveThresholdAngleDeg))
             setHoodPosition(hoodServoPos);
-        }
+
     }
 
     public void setHoodPosition(double position) {
@@ -151,6 +157,9 @@ public class Shooter extends Component {
     public void reset() {
     }
 
+    public void resetNumBallsShot() {
+        numBallsShot = 0;
+    }
     @Override
     public void update(){
         switch (shooterState) {
@@ -160,6 +169,10 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
+                double acceleration = getAvgMotorVelocity() - previousVelocityTicksPerSec;
+                if (acceleration < SHOOTER_PARAMS.shootBallDeceleration)
+                    numBallsShot++;
+
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose);
                 break;

@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
 @Config
 public class Collection extends Component {
@@ -44,7 +43,9 @@ public class Collection extends Component {
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.2;
         public double INTAKE_SPEED = 0.9;
+        public double OUTTAKE_SPEED = -0.4;
         public double LASER_BALL_THRESHOLD = 1;
+        public double CLUTCH_ENGAGE_TIME = 0.6;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -78,6 +79,8 @@ public class Collection extends Component {
         flickerState = FlickerState.DOWN;
 
         timer.reset();
+        clutchStateTimer = new ElapsedTime();
+        clutchStateTimer.reset();
     }
 
     private double voltageToDistance(double voltage) {
@@ -136,6 +139,7 @@ public class Collection extends Component {
         UP, DOWN, UP_DOWN
     }
 
+    public final ElapsedTime clutchStateTimer;
     @Override
     public void printInfo() {}
 
@@ -152,11 +156,14 @@ public class Collection extends Component {
                 break;
 
             case INTAKE:
-                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
+                if (clutchStateTimer.seconds() > COLLECTOR_PARAMS.CLUTCH_ENGAGE_TIME)
+                    collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
+                else
+                    collectorMotor.setPower(0);
                 break;
 
             case EXTAKE:
-                collectorMotor.setPower(-COLLECTOR_PARAMS.INTAKE_SPEED);
+                collectorMotor.setPower(COLLECTOR_PARAMS.OUTTAKE_SPEED);
                 break;
 
             case TRANSFER:

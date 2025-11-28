@@ -6,14 +6,18 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-public class TimedAction implements Action {
+import java.util.function.BooleanSupplier;
+
+public class CustomEndAction implements Action {
     private final ElapsedTime timer;
     private final Action action;
     private final double maxTime;
+    private final BooleanSupplier endCondition;
     private boolean first = true;
     public Runnable onEnd;
-    public TimedAction(Action action, double maxTime) {
+    public CustomEndAction(Action action, BooleanSupplier endCondition, double maxTime) {
         this.action = action;
+        this.endCondition = endCondition;
         this.maxTime = maxTime;
         this.timer = new ElapsedTime();
         onEnd = () -> {};
@@ -27,12 +31,12 @@ public class TimedAction implements Action {
 
         boolean keepGoing = action.run(telemetryPacket);
         boolean outOfTime = timer.seconds() > maxTime;
-        return keepGoing && !outOfTime;
+        return keepGoing && !outOfTime && !endCondition.getAsBoolean();
     }
 
-    public TimedAction setEndFunction(Runnable onEnd) {
-        TimedAction newAction = new TimedAction(action, maxTime);
-        newAction.onEnd = onEnd;
+    public CustomEndAction setEndFunction(Runnable endFunction) {
+        CustomEndAction newAction = new CustomEndAction(action, endCondition, maxTime);
+        newAction.onEnd = endFunction;
         return newAction;
     }
 }

@@ -501,4 +501,11 @@ public class MecanumDrive {
                 defaultVelConstraint, defaultAccelConstraint
         );
     }
+
+    public void stop() {
+        leftFront.setPower(0);
+        leftBack.setPower(0);
+        rightFront.setPower(0);
+        leftBack.setPower(0);
+    }
 }

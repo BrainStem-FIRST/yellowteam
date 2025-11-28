@@ -52,8 +52,8 @@ public class AutoCommands {
     // SHOOTER
     public Action speedUpShooter() {
         return packet -> {
-            robot.shooter.shooterState = Shooter.ShooterState.FIXED_VELOCITY_IN_AUTO;
-            return robot.shooter.getAvgMotorVelocity() < 1050;
+            robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
+            return (robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) >= 20;
         };
     }
 
@@ -75,6 +75,7 @@ public class AutoCommands {
     public Action engageClutch() {
         return packet -> {
             robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+            robot.collection.clutchStateTimer.reset();
             return false;
         };
     }
@@ -82,6 +83,7 @@ public class AutoCommands {
     public Action disengageClutch() {
         return packet -> {
             robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            robot.collection.clutchStateTimer.reset();
             return false;
         };
     }
@@ -89,6 +91,7 @@ public class AutoCommands {
     public Action flickerUp() {
         return packet -> {
             robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
+            robot.collection.collectionState = Collection.CollectionState.OFF;
             return false;
         };
     }

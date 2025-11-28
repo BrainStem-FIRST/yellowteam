@@ -1,6 +1,7 @@
 package com.example.meepmeeptesting;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.noahbres.meepmeep.MeepMeep;
 import com.noahbres.meepmeep.core.colorscheme.scheme.ColorSchemeRedDark;
 import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder;
@@ -15,7 +16,7 @@ public class MeepMeepTestingTesting {
 
         test.runAction(test.getDrive().actionBuilder(new Pose2d(0, 0, 0))
                 .setTangent(Math.toRadians(90))
-                .splineToLinearHeading(new Pose2d(50, 50, Math.toRadians(45)), Math.toRadians(90))
+                .strafeToLinearHeading(new Vector2d(50, 50), Math.toRadians(90))
                 .build());
 
         meepMeep.setBackground(MeepMeep.Background.FIELD_DECODE_OFFICIAL)

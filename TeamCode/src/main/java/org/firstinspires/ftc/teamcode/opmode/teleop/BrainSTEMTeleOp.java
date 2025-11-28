@@ -59,16 +59,15 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
         CommandScheduler.getInstance().reset();
 
-        robot = new BrainSTEMRobot(alliance, telemetry, hardwareMap, PoseStorage.currentPose); //take pose from auto
+        Pose2d startPose = PoseStorage.currentPose;
+        robot = new BrainSTEMRobot(alliance, telemetry, hardwareMap, startPose); //take pose from auto
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
         robot.setG1(gp1);
 
-        if (Shooter.ENABLE_TESTING) {
-            telemetry.addLine("CURRENTLY IN TESTING MODE - SHOOTER POWER SET TO " + Shooter.testingShootPower + ", HOOD POSITION SET TO " + Shooter.testingBallExitAngleRad);
+        telemetry.addData("starting pose", startPose.position.x + ", " + startPose.position.y + " | " + startPose.heading.toDouble());
+        telemetry.update();
 
-            telemetry.update();
-        }
         waitForStart();
         int framesRunning = 0;
         long startTimeNano = System.nanoTime();
@@ -119,11 +118,13 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.collection.collectionState = Collection.CollectionState.INTAKE;
 
-        if (gp1.isFirstB())
+        if (gp1.isFirstB()) {
             if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
                 robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
             else
                 robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+            robot.collection.clutchStateTimer.reset();
+        }
 
         if (gp1.isFirstY())
             if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE)
@@ -132,7 +133,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
         if (gp1.isFirstDpadDown())
             robot.shooter.shooterTrackerCommand(gp1).schedule();
-
 
         if (gp1.isFirstX())
             if (robot.turret.turretState == Turret.TurretState.CENTER)
