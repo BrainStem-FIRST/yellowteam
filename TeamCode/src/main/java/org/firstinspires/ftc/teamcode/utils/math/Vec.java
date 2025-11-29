@@ -65,6 +65,6 @@ public class Vec {
     @NonNull
     @Override
     public String toString() {
-        return "V(" + x + ", " + y + ")";
+        return "V(" + Math.floor(x * 100)/100 + ", " + Math.floor(y * 100)/100 + ")";
     }
 }

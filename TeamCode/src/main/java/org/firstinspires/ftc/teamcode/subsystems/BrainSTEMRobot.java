@@ -51,7 +51,6 @@ public class BrainSTEMRobot {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         drive = new MecanumDrive(hardwareMap, initialPose);
-//        vision = new Vision(hardwareMap, telemetry, this);
         limelight = new Limelight(hardwareMap, telemetry, this);
         turret = new Turret(hardwareMap, telemetry, this);
         shooter = new Shooter(hardwareMap, telemetry, this);
@@ -96,6 +95,11 @@ public class BrainSTEMRobot {
         if(enableSubsystems)
             for (Component c : subsystems)
                 c.update();
+    }
+    public void updatePoseWithLimelight() {
+        Pose2d limelightPose = limelight.getRobotPose();
+        if(limelightPose != null)
+            drive.localizer.setPose(limelightPose);
     }
 
     private void drawRobot(BrainSTEMRobot robot) {

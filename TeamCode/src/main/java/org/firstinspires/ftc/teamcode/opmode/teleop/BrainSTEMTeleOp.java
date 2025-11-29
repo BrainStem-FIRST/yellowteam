@@ -94,8 +94,11 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
+            telemetry.addData("turret pos", robot.limelight.getTurretPos());
+            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
+            telemetry.addData("robot pos", robot.limelight.getRobotPos());
+            telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
             telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
-
             telemetry.update();
         }
     }
@@ -150,6 +153,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         if (gp1.isFirstRightBumper()) {
             robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
         }
+
+        // TODO: FIGURE OUT LIMELIGHT CONTROLS
+        if(gp1.isFirstLeftBumper())
+            robot.updatePoseWithLimelight();
     }
 
     private void updateDriver2() {

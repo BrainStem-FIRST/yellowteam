@@ -62,7 +62,9 @@ public class Limelight extends Component {
                 turretHeading = turretPose.getOrientation().getYaw(AngleUnit.RADIANS);
 
                 int currentTurretPosition = robot.turret.turretMotor.getCurrentPosition();
-                robotHeading = (turretHeading - Turret.getTurretRelativeAngleRad(currentTurretPosition) + Math.PI * 2) % (Math.PI  * 2);
+                double relTurretAngleRad = Turret.getTurretRelativeAngleRad(currentTurretPosition);
+                robotHeading = turretHeading - relTurretAngleRad;
+                telemetry.addData("rel turret angle deg", Math.floor(relTurretAngleRad * 180 / Math.PI));
                 if(robotHeading > Math.PI)
                     robotHeading -= Math.PI * 2;
                 robotTurretVec = new Vec(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
