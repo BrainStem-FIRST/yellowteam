@@ -10,6 +10,8 @@ import com.acmerobotics.roadrunner.Vector2d;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 
+import java.util.Arrays;
+
 @Config
 public class AutoPositions {
     private final MecanumDrive drive;
@@ -57,8 +59,19 @@ public class AutoPositions {
                 .lineToXLinearHeading(55, Math.toRadians(140))
                 .build();
     }
-    public Action collectAndShoot(Alliance alliance, int lineToCollect, boolean releaseGate, Pose2d shootPose, double shootToCollectTangent, double collectApproachTangent, Pose2d collectApproachPose, double driveThroughLineY, double collectToShootTangent, double shootApproachTangent, AutoRobotStatus robotStatus) {
+    public Action collectAndShoot(Alliance alliance, int lineToCollect, boolean releaseGate, Pose2d shootPose, double shootToCollectTangent, double collectApproachTangent, Pose2d collectApproachPose, double driveThroughLineY, double collectToShootTangent, double shootApproachTangent, double[] maxTimes, AutoRobotStatus robotStatus) {
+        if (maxTimes.length != 3)
+            throw new IllegalArgumentException("need to pass in 3 max times - passed in " + maxTimes.length + ": " + Arrays.toString(maxTimes));
+
         boolean onRedAlliance = alliance == Alliance.RED;
+        if (!onRedAlliance) {
+            shootToCollectTangent *= -1;
+            collectApproachTangent *= -1;
+            driveThroughLineY *= -1;
+            collectToShootTangent *= -1;
+            shootApproachTangent *= -1;
+
+        }
         Action driveToLine = drive.actionBuilder(shootPose)
                 .setTangent(shootToCollectTangent)
                 .splineToLinearHeading(collectApproachPose, collectApproachTangent)

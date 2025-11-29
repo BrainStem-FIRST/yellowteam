@@ -71,6 +71,7 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
         double[] preloadShootToFirstLineTangents = new double[] { 0, Math.PI * 0.5 };
         double driveThroughFirstLineY = 55;
         double[] firstLineToShootTangents = new double[]{ -Math.PI * 0.75,  Math.PI };
+        double[] firstLineMaxTimes = new double[]{ 3, 3, 3 };
 
         // mirror tangents and positions
         if (alliance == Alliance.BLUE) {
@@ -86,7 +87,7 @@ public abstract class ClosePartnerAuto extends LinearOpMode {
                 1, customParams.releaseGateAfterFirstLineCollect,
                 shootPose, preloadShootToFirstLineTangents[0], preloadShootToFirstLineTangents[1],
                 firstLinePose, driveThroughFirstLineY,
-                firstLineToShootTangents[0], firstLineToShootTangents[1],
+                firstLineToShootTangents[0], firstLineToShootTangents[1], firstLineMaxTimes,
                 new AutoRobotStatus()
         );
 
