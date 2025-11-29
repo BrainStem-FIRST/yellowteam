@@ -160,6 +160,7 @@ public class Shooter extends Component {
     public void resetNumBallsShot() {
         numBallsShot = 0;
     }
+
     @Override
     public void update(){
         switch (shooterState) {
