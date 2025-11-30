@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode.utils.autoHelpers;
 
+import androidx.annotation.NonNull;
+
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
@@ -18,6 +22,24 @@ public class AutoCommands {
         this.telemetry = telemetry;
     }
 
+    public Action waitTillDoneShooting(double ensureTime) {
+        return new Action() {
+            private final ElapsedTime timer = new ElapsedTime();
+            private boolean first = true;
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+                if (first) {
+                    first = false;
+                    timer.reset();
+                }
+                if (robot.collection.isBackBallDetected())
+                    timer.reset();
+
+                return timer.seconds() < ensureTime;
+            }
+        };
+    }
     // CONSTANT UPDATES
     public Action updateRobot = packet -> {
         robot.update(true);
@@ -76,6 +98,7 @@ public class AutoCommands {
         return packet -> {
             robot.collection.clutchState = Collection.ClutchState.ENGAGED;
             robot.collection.clutchStateTimer.reset();
+            robot.collection.clutch_timer.reset();
             return false;
         };
     }

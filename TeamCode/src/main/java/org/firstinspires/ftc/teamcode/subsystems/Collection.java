@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public class Collection extends Component {
-
+    public static double shootExtakeTime = 0.15;
     public static boolean activateLasers = false;
     private final DcMotorEx collectorMotor;
     private final ServoImplEx clutchLeft;
@@ -37,13 +37,14 @@ public class Collection extends Component {
     private boolean timerRunning = false;
     private boolean has3Balls = false;
     private final ElapsedTime timer = new ElapsedTime();
+    public final ElapsedTime clutch_timer = new ElapsedTime();
 
     public static class Params{
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.2;
         public double INTAKE_SPEED = 0.9;
-        public double OUTTAKE_SPEED = -0.4;
+        public double OUTTAKE_SPEED = -0.5;
         public double LASER_BALL_THRESHOLD = 1;
         public double CLUTCH_ENGAGE_TIME = 0.6;
     }
@@ -79,6 +80,7 @@ public class Collection extends Component {
         flickerState = FlickerState.DOWN;
 
         timer.reset();
+        clutch_timer.reset();
         clutchStateTimer = new ElapsedTime();
         clutchStateTimer.reset();
     }
@@ -87,7 +89,13 @@ public class Collection extends Component {
         return (voltage * 43.92898) - 6.01454; //tune if not accurate
     }
 
-    private boolean isBackBallDetected() {
+    public double getBackBottomLaserDist() {
+        return voltageToDistance(backBottomLaser.getVoltage());
+    }
+    public double getBackTopLaserDist() {
+        return voltageToDistance(backTopLaser.getVoltage());
+    }
+    public boolean isBackBallDetected() {
         return (voltageToDistance(backBottomLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
                 (voltageToDistance(backTopLaser.getVoltage())) < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
     }
@@ -173,11 +181,16 @@ public class Collection extends Component {
 
         switch (clutchState) {
             case ENGAGED:
+                 if(clutch_timer.seconds() < shootExtakeTime)
+                    collectionState = CollectionState.EXTAKE;
+                else if(collectionState == CollectionState.EXTAKE)
+                    collectionState = CollectionState.OFF;
                 clutchRight.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
                 clutchLeft.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
                 break;
 
             case UNENGAGED:
+                clutch_timer.reset();
                 clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
                 clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
                 break;

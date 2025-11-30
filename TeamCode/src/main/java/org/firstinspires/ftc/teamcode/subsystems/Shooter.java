@@ -183,6 +183,8 @@ public class Shooter extends Component {
                 setHoodPosition(0.34);
                 break;
         }
+
+        telemetry.addData("SHOOTER VELOCITY", getAvgMotorVelocity());
     }
     public Command shooterTrackerCommand(GamepadTracker g) {
         return new Command() {

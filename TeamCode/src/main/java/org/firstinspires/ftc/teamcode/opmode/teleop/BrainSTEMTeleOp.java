@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.opmode.teleop;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
@@ -52,6 +53,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetry.setMsTransmissionInterval(11);
         lastFrameSimplePrediction = PoseStorage.currentPose;
         lastFrameAdvancedPrediction = PoseStorage.currentPose;
         currentlyMoving = false;
@@ -64,7 +67,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
         robot.setG1(gp1);
-
         telemetry.addData("starting pose", startPose.position.x + ", " + startPose.position.y + " | " + startPose.heading.toDouble());
         telemetry.update();
 
@@ -94,6 +96,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
+            telemetry.addData("bbl dist", robot.collection.getBackBottomLaserDist());
+            telemetry.addData("btl dist", robot.collection.getBackTopLaserDist());
             telemetry.addData("turret pos", robot.limelight.getTurretPos());
             telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
             telemetry.addData("robot pos", robot.limelight.getRobotPos());
@@ -160,6 +164,12 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver2() {
+
+        if (gp2.isFirstA())
+            if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
+                robot.collection.collectionState = Collection.CollectionState.OFF;
+            else
+                robot.collection.collectionState = Collection.CollectionState.INTAKE;
         if (gp2.isFirstB())
             if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
                 robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
