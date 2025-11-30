@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmode.testing;
+package org.firstinspires.ftc.teamcode.utils.shootingRecording;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -11,9 +11,9 @@ import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
 @Config
-@TeleOp(name="Shooter Speed Recorder", group="Data Recording")
-public class ShooterSpeedRecorder extends OpMode {
-    public static double recordIntervalMs = 50;
+@TeleOp(name="Manual Shooter Speed Recorder", group="Data Recording")
+public class ManualShooterSpeedRecorder extends OpMode {
+    public static double recordIntervalMs = 20;
     public static int numDataEntries = 5;
     public static int numShotsToRecord = 30; // if you shoot 3 consecutively, it only counts as 1 shot - so this is 45 balls if you collect and shoot 3 everytime
     public static int recordAmountForEachShot = 80;

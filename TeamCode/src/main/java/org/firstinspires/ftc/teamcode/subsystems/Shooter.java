@@ -15,10 +15,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.opmode.testing.ShooterSpeedRecorder;
-import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
+import org.firstinspires.ftc.teamcode.utils.shootingRecording.AutomaticShooterSpeedRecorder;
+import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
+import org.firstinspires.ftc.teamcode.utils.shootingRecording.ShotData;
+import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.Collections;
 import java.util.Set;
@@ -30,7 +32,7 @@ public class Shooter extends Component {
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.0005;
-        public double shootBallDeceleration = -40;
+        public double minShootBallDeceleration = -40;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
@@ -171,7 +173,7 @@ public class Shooter extends Component {
 
             case UPDATE:
                 double acceleration = getAvgMotorVelocity() - previousVelocityTicksPerSec;
-                if (acceleration < SHOOTER_PARAMS.shootBallDeceleration)
+                if (acceleration < SHOOTER_PARAMS.minShootBallDeceleration)
                     numBallsShot++;
 
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
@@ -185,38 +187,6 @@ public class Shooter extends Component {
         }
 
         telemetry.addData("SHOOTER VELOCITY", getAvgMotorVelocity());
-    }
-    public Command shooterTrackerCommand(GamepadTracker g) {
-        return new Command() {
-            private int num = 0;
-            private double lastTime = 0;
-            @Override
-            public void execute() {
-                if (recordTimer.milliseconds() - lastTime > ShooterSpeedRecorder.recordIntervalMs
-                        && num < ShooterSpeedRecorder.recordAmountForEachShot
-                        && ShooterSpeedRecorder.getCurrentShot() < ShooterSpeedRecorder.numShotsToRecord) {
-                    lastTime = recordTimer.milliseconds();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][0] = recordTimer.seconds();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][1] = shooterPID.getTarget();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][2] = getAvgMotorVelocity();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][num][3] = shooterMotorHigh.getPower();
-                    num++;
-                }
-            }
-            @Override
-            public void end(boolean interrupted) {
-                ShooterSpeedRecorder.incrementCurrentShot();
-            }
-            @Override
-            public boolean isFinished() {
-                return !g.gamepad.dpad_down || num >= ShooterSpeedRecorder.recordAmountForEachShot;
-            }
-
-            @Override
-            public Set<Subsystem> getRequirements() {
-                return Collections.emptySet();
-            }
-        };
     }
 
     public double getVelHigh() {
@@ -245,5 +215,56 @@ public class Shooter extends Component {
 
     public double getAvgMotorVelocity() {
         return (getVelHigh() + getVelLow()) * 0.5;
+    }
+
+    public Command manualShooterTrackerCommand(GamepadTracker gp1) {
+        return new Command() {
+            private int num = 0;
+            private double lastTime = 0;
+            @Override
+            public void execute() {
+                if (recordTimer.milliseconds() - lastTime > ManualShooterSpeedRecorder.recordIntervalMs
+                        && num < ManualShooterSpeedRecorder.recordAmountForEachShot
+                        && ManualShooterSpeedRecorder.getCurrentShot() < ManualShooterSpeedRecorder.numShotsToRecord) {
+                    lastTime = recordTimer.milliseconds();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][0] = recordTimer.seconds();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][1] = shooterPID.getTarget();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][2] = getAvgMotorVelocity();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][3] = shooterMotorHigh.getPower();
+                    num++;
+                }
+            }
+            @Override
+            public void end(boolean interrupted) {
+                ManualShooterSpeedRecorder.incrementCurrentShot();
+            }
+            @Override
+            public boolean isFinished() {
+                return !gp1.gamepad.dpad_down || num >= ManualShooterSpeedRecorder.recordAmountForEachShot;
+            }
+
+            @Override
+            public Set<Subsystem> getRequirements() {
+                return Collections.emptySet();
+            }
+        };
+    }
+    public Command automaticShooterTrackerCommand() {
+        return new Command() {
+            private final ElapsedTime timer = new ElapsedTime();
+            @Override
+            public void initialize() {
+                AutomaticShooterSpeedRecorder.resetData();
+                timer.reset();
+            }
+            @Override
+            public void execute() {
+                if (shooterState == ShooterState.UPDATE && robot.collection.clutchState == Collection.ClutchState.ENGAGED)
+                    AutomaticShooterSpeedRecorder.addShotData(new ShotData(timer.seconds(), getAvgMotorVelocity(), shooterPID.getTarget(), shooterMotorHigh.getPower(), Math.toDegrees(ballExitAngleRad)));
+            }
+
+            @Override
+            public Set<Subsystem> getRequirements() { return Collections.emptySet(); }
+        };
     }
 }

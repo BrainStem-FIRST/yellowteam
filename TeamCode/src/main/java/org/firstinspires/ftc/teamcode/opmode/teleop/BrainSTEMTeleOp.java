@@ -73,6 +73,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         waitForStart();
         int framesRunning = 0;
         long startTimeNano = System.nanoTime();
+        robot.shooter.automaticShooterTrackerCommand().schedule();
+
         while (opModeIsActive()) {
             gp1.update();
             gp2.update();
@@ -139,7 +141,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
         if (gp1.isFirstDpadDown())
-            robot.shooter.shooterTrackerCommand(gp1).schedule();
+            robot.shooter.manualShooterTrackerCommand(gp1).schedule();
 
         if (gp1.isFirstX())
             if (robot.turret.turretState == Turret.TurretState.CENTER)

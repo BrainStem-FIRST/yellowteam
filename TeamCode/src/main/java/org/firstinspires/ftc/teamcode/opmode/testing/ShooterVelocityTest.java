@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeedRecorder;
 
 @TeleOp(name="Shooter Velocity Test", group="Data Recording")
 @Config
@@ -30,31 +31,31 @@ public class ShooterVelocityTest extends OpMode {
             if (!shooterOn) {
                 shooter.setShooterPower(0);
                 curShotRecordIndex = 0;
-                ShooterSpeedRecorder.incrementCurrentShot();
+                ManualShooterSpeedRecorder.incrementCurrentShot();
             }
         }
 
-        if (shooterOn && ShooterSpeedRecorder.getCurrentShot() < ShooterSpeedRecorder.numShotsToRecord) {
-            shooter.setShooterVelocityPID(startingVelocityTicksPerSec + ShooterSpeedRecorder.getCurrentShot() * velocityIncrementAmount);
+        if (shooterOn && ManualShooterSpeedRecorder.getCurrentShot() < ManualShooterSpeedRecorder.numShotsToRecord) {
+            shooter.setShooterVelocityPID(startingVelocityTicksPerSec + ManualShooterSpeedRecorder.getCurrentShot() * velocityIncrementAmount);
 
-            if (curShotRecordIndex >= ShooterSpeedRecorder.recordAmountForEachShot) {
+            if (curShotRecordIndex >= ManualShooterSpeedRecorder.recordAmountForEachShot) {
                 curShotRecordIndex = 0;
-                ShooterSpeedRecorder.incrementCurrentShot();
+                ManualShooterSpeedRecorder.incrementCurrentShot();
             }
 
-            if (recordTimer.milliseconds() > ShooterSpeedRecorder.recordIntervalMs) {
+            if (recordTimer.milliseconds() > ManualShooterSpeedRecorder.recordIntervalMs) {
                 recordTimer.reset();
 
-                ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][0] = recordTimer.seconds();
-                ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][1] = shooter.shooterPID.getTarget();
-                ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][2] = shooter.getAvgMotorVelocity();
-                ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][3] = shooter.shooterMotorHigh.getPower();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][0] = recordTimer.seconds();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][1] = shooter.shooterPID.getTarget();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][2] = shooter.getAvgMotorVelocity();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][curShotRecordIndex][3] = shooter.shooterMotorHigh.getPower();
                 curShotRecordIndex++;
             }
         }
 
         telemetry.addData("gamepad y", "toggle shooter");
-        telemetry.addData("current shot", ShooterSpeedRecorder.getCurrentShot());
+        telemetry.addData("current shot", ManualShooterSpeedRecorder.getCurrentShot());
         telemetry.addData("target speed", shooter.shooterPID.getTarget());
         telemetry.update();
     }

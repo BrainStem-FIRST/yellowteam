@@ -18,7 +18,6 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.robotcore.internal.system.Misc;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -26,6 +25,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
+import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeedRecorder;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.List;
@@ -59,7 +59,7 @@ public class RawSubsystemTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        ShooterSpeedRecorder.resetData();
+        ManualShooterSpeedRecorder.resetData();
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
 
@@ -192,14 +192,14 @@ public class RawSubsystemTest extends LinearOpMode {
                 if ((currentTime - lastRecordTimeNano) * 1e-6 > miscParams.updateIntervalMs) {
                     lastRecordTimeNano = currentTime;
 
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][1] = shooterPid.getTarget();
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][2] = Math.abs(shooterLow.getVelocity());
-                    ShooterSpeedRecorder.data[ShooterSpeedRecorder.getCurrentShot()][shotRecordNum][3] = shooterLow.getPower();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][shotRecordNum][1] = shooterPid.getTarget();
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][shotRecordNum][2] = Math.abs(shooterLow.getVelocity());
+                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][shotRecordNum][3] = shooterLow.getPower();
                     shotRecordNum++;
                 }
             }
             if (gamepad1.leftBumperWasReleased())
-                ShooterSpeedRecorder.incrementCurrentShot();
+                ManualShooterSpeedRecorder.incrementCurrentShot();
 
 
 //            telemetry.addData("bulk caching", bulkCaching);
