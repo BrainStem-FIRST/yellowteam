@@ -250,6 +250,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
+        TelemetryHelper.radii[0] = 10;
+        TelemetryHelper.radii[1] = 6;
+        TelemetryHelper.radii[2] = 3;
+        TelemetryHelper.numPosesToShow = 2;
         TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad));
 
         // draw exit position velocity
