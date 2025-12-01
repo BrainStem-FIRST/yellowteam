@@ -19,14 +19,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
-import org.firstinspires.ftc.teamcode.utils.pidDrive.DrivePath;
-import org.firstinspires.ftc.teamcode.utils.pidDrive.Tolerance;
-import org.firstinspires.ftc.teamcode.utils.pidDrive.Waypoint;
 
 import java.util.ArrayList;
 
 @Config
-public abstract class FarAutoPIDDrive extends LinearOpMode {
+public abstract class CloseAuto extends LinearOpMode {
     // want ability to decide order of collection
     // if i get 12 ball auto:
     //    1: if partner gets 0, 3, or 6 then always collect 2nd one first then open gate
@@ -46,9 +43,7 @@ public abstract class FarAutoPIDDrive extends LinearOpMode {
 
         public double secondStartTRed = Math.toRadians(180), secondStartTBlue = 0;
         public double secondXRed = 12, preSecondYRed = 34, secondXBlue = 0, preSecondYBlue = 0;
-        public double secondTolX = 2, secondTolY = 2, secondTolH = 3;
         public double postSecondYRed = 52, postSecondYBlue = 0;
-        public double postSecondTolX = 2, postSecondTolY = 2, postSecondTolH = 10;
 
         public double firstXRed = -13, preFirstYRed = 47, firstXBlue = 0, preFirstYBlue = 0;
         public double postFirstYRed = 54, postFirstYBlue = 0;
@@ -61,9 +56,9 @@ public abstract class FarAutoPIDDrive extends LinearOpMode {
         public double gateCollectXRed = 68, gateCollectYRed = 65, gateCollectARed = Math.toRadians(90);
     }
     public static class Misc {
-        public double startXRed = 63.825, startYRed = 17.6, startARed = Math.toRadians(-180), startXBlue = 0, startYBlue = 0, startABlue = 0;
+        public double startXRed = -63.5, startYRed = 39.5, startARed = Math.toRadians(0), startXBlue = 0, startYBlue = 0, startABlue = 0;
         public double shootFarXRed = 55, shootFarYRed = 15, shootFarARed = Math.toRadians(135), shootFarXBlue = 0, shootFarYBlue = 0, shootFarABlue = 0;
-        public double shootNearXRed = -24, shootNearYRed = 24, shootNearARed = Math.toRadians(110), shootNearXBlue = 0, shootNearYBlue = 0, shootNearABlue = 0;
+        public double shootNearXRed = -13, shootNearYRed = 22, shootNearARed = Math.toRadians(110), shootNearXBlue = 0, shootNearYBlue = 0, shootNearABlue = 0;
         public double gateXRed = -5, gateYRed = 56, gateARed = 90, gateTRed = 90, gateXBlue = 0, gateYBlue = 0, gateABlue = 0, gateTBlue = 0;
         public double parkXFarRed = 48, parkYFarRed = 25, parkFarARed = Math.toRadians(135);
         public double parkXNearRed = -12, parkYNearRed = 36, parkANearRed = Math.toRadians(45);
@@ -147,19 +142,13 @@ public abstract class FarAutoPIDDrive extends LinearOpMode {
                 .strafeToLinearHeading(shootNearPose.position, shootNearPose.heading.toDouble())
                 .build();
 
-        Waypoint collect1Waypoint = new Waypoint(collect1Pose, new Tolerance(collect.secondTolX, collect.secondTolY, collect.secondTolH));
-        collect1Waypoint.params.passPosition = true;
-        Waypoint collect2Waypoint = new Waypoint(collect2Pose, new Tolerance(collect.postSecondTolX, collect.postSecondTolY, collect.postSecondTolH));
-        collect2Waypoint.params.passPosition = true;
-        DrivePath secondCollectDrive = new DrivePath(robot.drive, collect1Waypoint, collect2Waypoint);
 
-//        double startSecondT = isRed ? collect.secondStartTRed : collect.secondStartTBlue;
-//        Action secondCollectDrive = robot.drive.actionBuilder(shootFarPose)
-//                .setTangent(startSecondT)
-//                .splineToLinearHeading(preCollect2Pose, preCollect2Pose.heading.toDouble())
-//                .splineToLinearHeading(collect2Pose, collect2Pose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
-//                .build();
-
+        double startSecondT = isRed ? collect.secondStartTRed : collect.secondStartTBlue;
+        Action secondCollectDrive = robot.drive.actionBuilder(shootFarPose)
+                .setTangent(startSecondT)
+                .splineToLinearHeading(preCollect2Pose, preCollect2Pose.heading.toDouble())
+                .splineToLinearHeading(collect2Pose, collect2Pose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
+                .build();
         double secondStartGateT = isRed ? Math.toRadians(-135) : 0;
         Action secondGateDrive = customizable.openGateOnSecond ?
                 new SequentialAction(

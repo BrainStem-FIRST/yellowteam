@@ -187,16 +187,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         if (gp2.isFirstDpadDown())
             robot.shooter.adjustment -= 10;
 
-//        if (gp2.isFirstRightBumper()) {
-//            if (alliance == Alliance.RED) {
-//                PoseStorage.currentPose = new Pose2d(64, -65.5, Math.toRadians(180));
-//                robot.drive.localizer.setPose(new Pose2d(64, -65.5, Math.toRadians(180)));
-//            } else {
-//                PoseStorage.currentPose = new Pose2d(64, 65.5, Math.toRadians(180));
-//                robot.drive.localizer.setPose(new Pose2d(64, 65.5, Math.toRadians(180)));
-//            }
-//        }
-
         if (gp2.isFirstY()) {
             if (robot.parking.parkState == Parking.ParkState.EXTENDED)
                 robot.turret.turretState = Turret.TurretState.PARK;

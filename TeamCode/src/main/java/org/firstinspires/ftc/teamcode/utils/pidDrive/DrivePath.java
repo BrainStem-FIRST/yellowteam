@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class DrivePath implements Action {
+    public static double moveRightSign = -1, moveForwardSign = 1, turnLeftSign = -1;
     private final MecanumDrive drivetrain;
     private final PinpointLocalizer odo;
     private final Telemetry telemetry;
@@ -46,7 +48,8 @@ public class DrivePath implements Action {
         curWaypointIndex = 0;
 
         waypointTimer = new ElapsedTime();
-        first = false;
+        first = true;
+        startPose = new Pose2d(0, 0, 0);
     }
 
     public void addWaypoint(Waypoint waypoint) {
@@ -74,11 +77,13 @@ public class DrivePath implements Action {
     }
     private Vector2d updateTargetDir(double robotX, double robotY, double headingRad) {
         // translating target so that drivetrain is around origin
-        double xFromRobot = getCurWaypoint().x() - robotX;
-        double yFromRobot = getCurWaypoint().y() - robotY;
+        double xFromRobot = getCurWaypoint().x() - robotX; // 48
+        double yFromRobot = getCurWaypoint().y() - robotY; // 0
         // rotating target around origin
         double rotatedXFromRobot = xFromRobot * Math.sin(headingRad) - yFromRobot * Math.cos(headingRad);
         double rotatedYFromRobot = xFromRobot * Math.cos(headingRad) + yFromRobot * Math.sin(headingRad);
+        // 48 * sin(0) - 0 * cos(0) = 0
+        // 48 * cos(0) + 0 * sin(0) = 48
         // translating target back to absolute; this returns the direction to the next waypoint IN THE ROBOT'S COORDINATE PLANE
         Vector2d targetDir = new Vector2d(rotatedXFromRobot, rotatedYFromRobot);
         double targetDirMag = Math.hypot(targetDir.x, targetDir.y);
@@ -87,15 +92,15 @@ public class DrivePath implements Action {
 
     @Override
     public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+        drivetrain.updatePoseEstimate();
         Pose2d pose = odo.getPose();
-        
+        double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.correctRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
+
         if (first) {
             first = false;
             resetToNewWaypoint();
             startPose = new Pose2d(pose.position, pose.heading);
         }
-        
-        double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.correctRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
 
         // finding direction that motor powers should be applied in
         Vector2d targetDir = updateTargetDir(rx, ry, rHeadingRad);
@@ -159,22 +164,32 @@ public class DrivePath implements Action {
             double b = Math.abs(waypointDistancePID.update(waypointDistAway));
             double t = getCurParams().slowDownPercent;
             speed = a + (b - a) * t;
-            speed = Range.clip(speed, getCurParams().minSpeed, getCurParams().maxSpeed);
+            speed = Range.clip(speed, getCurParams().minLinearPower, getCurParams().maxLinearPower);
         }
-        double lateralPower = targetDir.x * speed * getCurParams().lateralWeight;
-        double axialPower = targetDir.y * speed * getCurParams().axialWeight;
+        double lateralPower = targetDir.x * speed * getCurParams().lateralWeight * moveRightSign;
+        double axialPower = targetDir.y * speed * getCurParams().axialWeight * moveForwardSign;
 
         // calculate angular speed (heading)
         double headingPower = 0;
         if (!inHeadingTolerance) {
             headingPower = headingRadErrorPID.update(headingDegWaypointError);
             double headingSign = Math.signum(headingPower);
-            headingPower = -headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingSpeed, getCurParams().maxHeadingSpeed);
+            headingPower = -headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
             if (flipHeadingDirection)
                 headingPower *= -1;
         }
+        headingPower *= turnLeftSign;
         
-        drivetrain.setDrivePowers(new PoseVelocity2d(new com.acmerobotics.roadrunner.Vector2d(lateralPower, axialPower), headingPower));
+        drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
+        /*
+        robot.drive.setDrivePowers(new PoseVelocity2d(
+                new Vector2d(
+                        -gamepad1.left_stick_y,
+                        -gamepad1.left_stick_x
+                ),
+                -gamepad1.right_stick_x
+        ));
+         */
         
         if (telemetry != null) {
             telemetry.addData("current position", MathUtils.format3(rx) + " ," + MathUtils.format3(ry) + ", " + MathUtils.format3(rHeadingDeg));
@@ -186,7 +201,6 @@ public class DrivePath implements Action {
             telemetry.addLine();
             telemetry.addData("speed", MathUtils.format3(speed));
             telemetry.addData("powers (lat, ax, heading)", MathUtils.format3(lateralPower) + ", " + MathUtils.format3(axialPower) + ", " + MathUtils.format2(headingPower));
-
             TelemetryPacket packet = new TelemetryPacket();
             Canvas fieldOverlay = packet.fieldOverlay();
             Pose2d prevWaypointPose = curWaypointIndex == 0 ? startPose : getWaypoint(curWaypointIndex - 1).pose;
@@ -195,6 +209,10 @@ public class DrivePath implements Action {
             TelemetryHelper.radii[2] = 5;
             TelemetryHelper.numPosesToShow = 3;
             TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, pose, prevWaypointPose, getCurWaypoint().pose);
+            fieldOverlay.setStroke("black");
+            fieldOverlay.strokeLine(pose.position.x, pose.position.y, pose.position.x + targetDir.x * 10, pose.position.y + targetDir.y * 10);
+
+            telemetry.update();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
         return true;

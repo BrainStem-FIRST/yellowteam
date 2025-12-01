@@ -459,13 +459,10 @@ public class MecanumDrive {
         PoseVelocity2d vel = localizer.update();
         poseHistory.add(localizer.getPose());
         
-        while (poseHistory.size() > 100) {
+        while (poseHistory.size() > 100)
             poseHistory.removeFirst();
-        }
 
         estimatedPoseWriter.write(new PoseMessage(localizer.getPose()));
-        
-        
         return vel;
     }
 

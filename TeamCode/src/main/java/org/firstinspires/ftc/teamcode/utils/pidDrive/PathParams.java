@@ -7,22 +7,21 @@ import com.acmerobotics.dashboard.config.Config;
 import java.util.Arrays;
 import java.util.function.BooleanSupplier;
 
-@Config
 public class PathParams {
     private static final double noMaxTime = -1;
 
     public static class DefaultParams {
-        public double speedKp = 0.05, speedKi = 0.001, speedKd = 0.004;
-        public double headingKp = 0.6, headingKi = 0.01, headingKd = 0;
-        public double lateralWeight = 1.2, axialWeight = 1; // weight the drive powers to correct for differences in driving
+        public double speedKp = 0.03, speedKi = 0, speedKd = 0.0004;
+        public double headingKp = 0.015, headingKi = 0, headingKd = 0.00001;
+        public double lateralWeight = 1.5, axialWeight = 1; // weight the drive powers to correct for differences in driving
         public double minSpeed = 0.2, maxSpeed = 1;
-        public double minHeadingSpeed = 0, maxHeadingSpeed = Double.MAX_VALUE;
-        public double maxTime = 2;
+        public double minHeadingSpeed = 0.2, maxHeadingSpeed = 1;
+        public double maxTime = 100;
     }
     public static DefaultParams defaultParams = new DefaultParams();
     public double lateralWeight, axialWeight;
-    public double minSpeed, maxSpeed;
-    public double minHeadingSpeed, maxHeadingSpeed;
+    public double minLinearPower, maxLinearPower;
+    public double minHeadingPower, maxHeadingPower;
     // decides how much the robot will slow down at this waypoint
     // if this equals 1, then the drivetrain will completely stop at this waypoint
     // if this equals 0, this waypoint will have no influence on slowing down the drivetrain as it approaches this point
@@ -48,10 +47,10 @@ public class PathParams {
         this.headingKd = pidCoefficients[5];
 
         maxTime = defaultParams.maxTime;
-        minSpeed = defaultParams.minSpeed;
-        maxSpeed = defaultParams.maxSpeed;
-        minHeadingSpeed = defaultParams.minHeadingSpeed;
-        maxHeadingSpeed = defaultParams.maxHeadingSpeed;
+        minLinearPower = defaultParams.minSpeed;
+        maxLinearPower = defaultParams.maxSpeed;
+        minHeadingPower = defaultParams.minHeadingSpeed;
+        maxHeadingPower = defaultParams.maxHeadingSpeed;
         lateralWeight = defaultParams.lateralWeight;
         axialWeight = defaultParams.axialWeight;
         passPosition = false;
@@ -65,10 +64,10 @@ public class PathParams {
         this.headingKd = headingKd;
 
         maxTime = defaultParams.maxTime;
-        minSpeed = defaultParams.minSpeed;
-        maxSpeed = defaultParams.maxSpeed;
-        minHeadingSpeed = defaultParams.minHeadingSpeed;
-        maxHeadingSpeed = defaultParams.maxHeadingSpeed;
+        minLinearPower = defaultParams.minSpeed;
+        maxLinearPower = defaultParams.maxSpeed;
+        minHeadingPower = defaultParams.minHeadingSpeed;
+        maxHeadingPower = defaultParams.maxHeadingSpeed;
         lateralWeight = defaultParams.lateralWeight;
         axialWeight = defaultParams.axialWeight;
         passPosition = false;
@@ -82,10 +81,10 @@ public class PathParams {
     public PathParams clone() {
         PathParams newParams = new PathParams(speedKp, speedKi, speedKd, headingKp, headingKi, headingKd);
         newParams.maxTime = maxTime;
-        newParams.minSpeed = minSpeed;
-        newParams.maxSpeed = maxSpeed;
-        newParams.minHeadingSpeed = minHeadingSpeed;
-        newParams.maxHeadingSpeed = maxHeadingSpeed;
+        newParams.minLinearPower = minLinearPower;
+        newParams.maxLinearPower = maxLinearPower;
+        newParams.minHeadingPower = minHeadingPower;
+        newParams.maxHeadingPower = maxHeadingPower;
         newParams.lateralWeight = lateralWeight;
         newParams.axialWeight = axialWeight;
         newParams.passPosition = passPosition;
