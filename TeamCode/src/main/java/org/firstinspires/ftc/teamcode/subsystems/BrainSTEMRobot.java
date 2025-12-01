@@ -91,6 +91,7 @@ public class BrainSTEMRobot {
             drive.updatePoseEstimate();
 
         Pose2d pose = drive.localizer.getPose();
+
         telemetry.addData("pose", MathUtils.format3(pose.position.x) + ", " + MathUtils.format3(pose.position.y) + " | " + MathUtils.format3(pose.heading.toDouble()));
         if(enableSubsystems)
             for (Component c : subsystems)

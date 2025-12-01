@@ -63,6 +63,7 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
 
     @Override
     public void start() {
+        parseRawData();
         updateTelemetry();
     }
 
@@ -73,8 +74,6 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
 
         if (gamepad1.y)
             resetData();
-        if (g1.isFirstA())
-            parseRawData();
 
         if (!data.isEmpty()) {
             if (g1.isFirstDpadUp())
@@ -115,7 +114,8 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
                     ", actualSpd: " + MathUtils.format2(shotData.avgVel) +
                     ", power: " + MathUtils.format3(shotData.motorPower) +
                     ", exitAngle: " + MathUtils.format3(shotData.ballExitAngleDeg) +
-                    outOfBoundsAngle
+                    outOfBoundsAngle +
+                    ", turret: " + shotData.turretEncoder + ", " + shotData.targetTurretEncoder
             );
         }
         telemetry.update();

@@ -18,9 +18,9 @@ public class Turret extends Component {
     public static class Params {
         public int fineAdjust = 5;
         public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 64, farRedShotsGoalX = -70, farRedShotsGoalY = 69;
-        public double nearBlueShotsGoalX = -64, nearBlueShotsGoalY = -65.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -68.5;
+        public double nearBlueShotsGoalX = -64, nearBlueShotsGoalY = -65.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -65.5;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
-        public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003, smallKf = 0.03;
+        public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003, smallKf = 0.015;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
         public double noPowerThreshold = 1;
         public double lookAheadTime = 0.1; // time to look ahead for pose prediction
@@ -76,6 +76,7 @@ public class Turret extends Component {
         telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
         telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
+        telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), getTurretEncoder()));
 
 //        if(globalBallExitVelocityMps != null && relativeBallExitVelocityMps != null) {
 //            double globalA = Math.atan2(globalBallExitVelocityMps.y, globalBallExitVelocityMps.x);

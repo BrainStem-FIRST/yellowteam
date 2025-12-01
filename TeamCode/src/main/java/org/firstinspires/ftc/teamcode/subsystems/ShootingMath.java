@@ -25,7 +25,6 @@ public class ShootingMath {
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
         public double powerLossCoefficient = 0.572; // actual exit velocity / theoretical exit velocity
-        public double hoodPowerLossCoefficient = 0.572; // what the hood thinks the power loss coefficient is
         public double shooterMotorTicksPerRev = 28;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
@@ -91,13 +90,6 @@ public class ShootingMath {
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
         return flywheelTangentialVel * shooterSystemParams.powerLossCoefficient;
     }
-    public static double ticksPerSecToExitSpeedMpsForHood(double motorTicksPerSec) {
-        double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
-        double motorAngularVel = motorRevPerSec * 2 * Math.PI;
-        double flywheelAngularVel = motorAngularVel * 28 / 38.5;
-        double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
-        return flywheelTangentialVel * shooterSystemParams.hoodPowerLossCoefficient;
-    }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
     public static double exitMpsToMotorTicksPerSec(double ballExitMps) {
@@ -135,9 +127,9 @@ public class ShootingMath {
             double lowTicksPerSecond = shooterSystemParams.lowShotNearZoneTicksPerSec * inchesFromGoal + shooterSystemParams.lowShotNearZoneTicksPerSecYInt;
             ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
         }
-        else {
+        else
             ticksPerSecond = shooterSystemParams.lowShotFarZoneTicksPerSecSlope * inchesFromGoal + shooterSystemParams.lowShotFarZoneTicksPerSecYInt;
-        }
+
         if (!enableRelativeVelocity) {
             return ticksPerSecond;
         }
@@ -209,13 +201,11 @@ public class ShootingMath {
             v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
         }
         double sign = useHighArc ? 1 : -1;
-        telemetry.addData("ball exit height meters", exitHeightMeters);
 
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
-        if (discriminant <= 0) {
-            telemetry.addLine("NO SOLUTION FOR HOOD=====================");
+        if (discriminant <= 0)
             return -1;
-        }
+
 
         double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
         return Math.atan(tanTheta);
