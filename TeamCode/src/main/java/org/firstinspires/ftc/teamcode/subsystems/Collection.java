@@ -12,13 +12,13 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public class Collection extends Component {
-    public static double shootExtakeTime = 0.15;
+    public static double shootOuttakeTime = 0.15;
     public static boolean activateLasers = false;
     private final DcMotorEx collectorMotor;
     private final ServoImplEx clutchLeft;
     private final ServoImplEx clutchRight;
     public ServoImplEx flickerRight;
-//    private ServoImplEx flickerLeft;
+    private ServoImplEx flickerLeft;
 
     private final ElapsedTime flickerTimer = new ElapsedTime();
     private boolean flickerStarted = false;
@@ -43,10 +43,11 @@ public class Collection extends Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.2;
-        public double INTAKE_SPEED = 0.9;
-        public double OUTTAKE_SPEED = -0.5;
+        public double INTAKE_SPEED = 0.9, FAR_ZONE_SHOOTER_ERROR_INTAKE_SPEED = 0;
+        public double OUTTAKE_SPEED = -0.4;
         public double LASER_BALL_THRESHOLD = 1;
-        public double CLUTCH_ENGAGE_TIME = 0.6;
+        public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
+        public double flickerRightMinPwm = 1491, flickerRightMaxPwm = 1641;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -60,15 +61,13 @@ public class Collection extends Component {
 
         clutchRight = hardwareMap.get(ServoImplEx.class, "clutchRight");
         clutchRight.setPwmRange(new PwmControl.PwmRange(1450, 2000));
-
         clutchLeft = hardwareMap.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
         flickerRight = hardwareMap.get(ServoImplEx.class, "flickerRight");
-        flickerRight.setPwmRange(new PwmControl.PwmRange(1490, 1640));
-
-//        flickerLeft = map.get(ServoImplEx.class, "flickerLeft");
-//        flickerLeft.setPwmRange(new PwmControl.PwmRange(1490, 1640));
+        flickerRight.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.flickerRightMinPwm, COLLECTOR_PARAMS.flickerRightMaxPwm));
+        flickerLeft = hardwareMap.get(ServoImplEx.class, "flickerLeft");
+        flickerLeft.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.flickerLeftMinPwm, COLLECTOR_PARAMS.flickerLeftMaxPwm));
 
         frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
         frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
@@ -164,10 +163,13 @@ public class Collection extends Component {
                 break;
 
             case INTAKE:
-                if (clutchStateTimer.seconds() > COLLECTOR_PARAMS.CLUTCH_ENGAGE_TIME)
+                double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
+                double errorThreshold = robot.shooter.isNear ? Shooter.SHOOTER_PARAMS.maxErrorThresholdNear : Shooter.SHOOTER_PARAMS.maxErrorThresholdFar;
+                telemetry.addData("shooter error", shooterError);
+                if (clutchState == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
                 else
-                    collectorMotor.setPower(0);
+                    collectorMotor.setPower(COLLECTOR_PARAMS.FAR_ZONE_SHOOTER_ERROR_INTAKE_SPEED);
                 break;
 
             case EXTAKE:
@@ -181,7 +183,7 @@ public class Collection extends Component {
 
         switch (clutchState) {
             case ENGAGED:
-                 if(clutch_timer.seconds() < shootExtakeTime)
+                 if(clutch_timer.seconds() < shootOuttakeTime)
                     collectionState = CollectionState.EXTAKE;
                 else if(collectionState == CollectionState.EXTAKE)
                     collectionState = CollectionState.OFF;

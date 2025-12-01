@@ -42,6 +42,7 @@ public class RawSubsystemTest extends LinearOpMode {
         public boolean activateHighMotor = true, activateLowMotor = true;
         public double ballExitAngleDeg = 30;
         public double hoodInc = 0.03;
+        public double flickerInPos = 0.05, flickerOutPos = 0.8;
     }
     public static MiscParams miscParams = new MiscParams();
     public static class ShooterParams {
@@ -102,6 +103,11 @@ public class RawSubsystemTest extends LinearOpMode {
         ServoImplEx clutchLeft = hardwareMap.get(ServoImplEx.class, "clutchLeft");
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
+        ServoImplEx flickerLeft = hardwareMap.get(ServoImplEx.class, "flickerLeft");
+        flickerLeft.setPwmRange(new PwmControl.PwmRange(Collection.COLLECTOR_PARAMS.flickerLeftMinPwm, Collection.COLLECTOR_PARAMS.flickerLeftMaxPwm));
+        ServoImplEx flickerRight = hardwareMap.get(ServoImplEx.class, "flickerRight");
+        flickerRight.setPwmRange(new PwmControl.PwmRange(Collection.COLLECTOR_PARAMS.flickerRightMinPwm, Collection.COLLECTOR_PARAMS.flickerRightMaxPwm));
+
         GamepadTracker g1 = new GamepadTracker(gamepad1);
 
         boolean shooting = false;
@@ -129,6 +135,17 @@ public class RawSubsystemTest extends LinearOpMode {
             ));
 
             turretMotor.setPower(0);
+
+            if(g1.isFirstLeftBumper()) {
+                if(flickerLeft.getPosition() < 0.5) {
+                    flickerLeft.setPosition(0.99);
+                    flickerRight.setPosition(0.99);
+                }
+                else {
+                    flickerLeft.setPosition(0.01);
+                    flickerRight.setPosition(0.01);
+                }
+            }
 
             if(g1.isFirstY()) {
                 shooting = !shooting;
@@ -213,6 +230,8 @@ public class RawSubsystemTest extends LinearOpMode {
             double rfC = drive.rightFront.getCurrent(CurrentUnit.AMPS);
             double intakeC = collectorMotor.getCurrent(CurrentUnit.AMPS);
             double controlC = lowShootC + rbC + rfC + intakeC;
+            telemetry.addData("flicker left position", flickerLeft.getPosition());
+            telemetry.addData("flicker right position", flickerRight.getPosition());
             telemetry.addData("lowShootC", lowShootC);
             telemetry.addData("rbC", rbC);
             telemetry.addData("rfC", rfC);

@@ -20,7 +20,7 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double highArcTargetHeightInches = 46, lowArcTargetHeightInches = 43.5;
+        public double highArcTargetHeightInches = 38, lowArcTargetHeightInches = 43.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
@@ -32,11 +32,13 @@ public class ShootingMath {
         public double flywheelTicksPerRev = 38.5;
 
         // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
-        public double highShotTicksPerSecondSlope = 2.8, highShotTicksPerSecondYInt = 1145;
-        public double lowShotTicksPerSecondSlope = 5.7, lowShotTicksPerSecondYInt = 940;
+        public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1115;
+        public double lowShotNearZoneTicksPerSec = 5.5, lowShotNearZoneTicksPerSecYInt = 1010;
+        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 920;
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
-        public double highToLowArcThresholdInches = 50; // old: 62
-        public double highArcGoalOffsetInches = 16, lowArcGoalOffsetInches = 2;
+        public double closeToFarZoneThresholdInches = 130;
+        public double highToLowArcThresholdInches = 54; // old: 62
+        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = -2, lowArcFarGoalOffsetInches;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
@@ -125,13 +127,16 @@ public class ShootingMath {
     // calculate flywheel speed (encoder ticks per sec) given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, boolean useHighArc, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
-
-        double highTicksPerSecond = shooterSystemParams.highShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecondYInt;
-        double lowTicksPerSecond = shooterSystemParams.lowShotTicksPerSecondSlope * inchesFromGoal + shooterSystemParams.lowShotTicksPerSecondYInt;
-        double ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
-        telemetry.addData("ticks per second motor speed", ticksPerSecond);
-
+    public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, boolean inCloseZone, boolean useHighArc, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
+        double ticksPerSecond;
+        if (inCloseZone) {
+            double highTicksPerSecond = shooterSystemParams.highShotTicksPerSecSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecYInt;
+            double lowTicksPerSecond = shooterSystemParams.lowShotNearZoneTicksPerSec * inchesFromGoal + shooterSystemParams.lowShotNearZoneTicksPerSecYInt;
+            ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
+        }
+        else {
+            ticksPerSecond = shooterSystemParams.lowShotFarZoneTicksPerSecSlope * inchesFromGoal + shooterSystemParams.lowShotFarZoneTicksPerSecYInt;
+        }
         if (!enableRelativeVelocity) {
             return ticksPerSecond;
         }

@@ -156,10 +156,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.collection.collectionState = Collection.CollectionState.EXTAKE;
         }
 
-        if (gp1.isFirstRightBumper()) {
-            robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
-        }
-
         // TODO: FIGURE OUT LIMELIGHT CONTROLS
         if(gp1.isFirstLeftBumper())
             robot.updatePoseWithLimelight();
@@ -178,25 +174,28 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
+        if (gp1.isFirstLeftBumper() || gp2.isFirstLeftBumper())
+            robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
+
         if (gp2.isFirstDpadLeft())
-            robot.turret.adjustment += 10;
+            robot.turret.adjustment += Turret.TURRET_PARAMS.fineAdjust;
         if (gp2.isFirstDpadRight())
-            robot.turret.adjustment -= 10;
+            robot.turret.adjustment -= Turret.TURRET_PARAMS.fineAdjust;
 
         if (gp2.isFirstDpadUp())
             robot.shooter.adjustment += 10;
         if (gp2.isFirstDpadDown())
             robot.shooter.adjustment -= 10;
 
-        if (gp2.isFirstRightBumper()) {
-            if (alliance == Alliance.RED) {
-                PoseStorage.currentPose = new Pose2d(64, -65.5, Math.toRadians(180));
-                robot.drive.localizer.setPose(new Pose2d(64, -65.5, Math.toRadians(180)));
-            } else {
-                PoseStorage.currentPose = new Pose2d(64, 65.5, Math.toRadians(180));
-                robot.drive.localizer.setPose(new Pose2d(64, 65.5, Math.toRadians(180)));
-            }
-        }
+//        if (gp2.isFirstRightBumper()) {
+//            if (alliance == Alliance.RED) {
+//                PoseStorage.currentPose = new Pose2d(64, -65.5, Math.toRadians(180));
+//                robot.drive.localizer.setPose(new Pose2d(64, -65.5, Math.toRadians(180)));
+//            } else {
+//                PoseStorage.currentPose = new Pose2d(64, 65.5, Math.toRadians(180));
+//                robot.drive.localizer.setPose(new Pose2d(64, 65.5, Math.toRadians(180)));
+//            }
+//        }
 
         if (gp2.isFirstY()) {
             if (robot.parking.parkState == Parking.ParkState.EXTENDED)

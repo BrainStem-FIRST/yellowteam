@@ -16,8 +16,9 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
+        public int fineAdjust = 5;
         public double nearShotsGoalX = -64, nearShotsGoalY = 64;
-        public double farShotsGoalX = -70, farShotsGoalY = 68;
+        public double farShotsGoalX = -70, farShotsGoalY = 67.25;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
@@ -26,7 +27,7 @@ public class Turret extends Component {
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;
         public int TICKS_PER_REV = 1228; // new 1228, old 1212\
-        public int RED_ENCODER_OFFSET = -7, BLUE_ENCODER_OFFSET = -15;
+        public int RED_ENCODER_OFFSET = 0, BLUE_ENCODER_OFFSET = 0;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
