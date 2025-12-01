@@ -113,7 +113,7 @@ public class AutoCommands {
 
     public Action flickerUp() {
         return packet -> {
-            robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
+            robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
             robot.collection.collectionState = Collection.CollectionState.OFF;
             return false;
         };
@@ -135,7 +135,7 @@ public class AutoCommands {
 
     public Action reverseIntake() {
         return packet -> {
-            robot.collection.collectionState = Collection.CollectionState.EXTAKE;
+            robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
             return false;
         };
     }

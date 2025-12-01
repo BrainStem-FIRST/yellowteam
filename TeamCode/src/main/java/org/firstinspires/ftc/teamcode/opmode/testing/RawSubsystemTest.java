@@ -138,12 +138,12 @@ public class RawSubsystemTest extends LinearOpMode {
 
             if(g1.isFirstLeftBumper()) {
                 if(flickerLeft.getPosition() < 0.5) {
-                    flickerLeft.setPosition(0.99);
-                    flickerRight.setPosition(0.99);
+                    flickerLeft.setPosition(miscParams.flickerOutPos);
+                    flickerRight.setPosition(miscParams.flickerOutPos);
                 }
                 else {
-                    flickerLeft.setPosition(0.01);
-                    flickerRight.setPosition(0.01);
+                    flickerLeft.setPosition(miscParams.flickerInPos);
+                    flickerRight.setPosition(miscParams.flickerInPos);
                 }
             }
 
@@ -258,7 +258,7 @@ public class RawSubsystemTest extends LinearOpMode {
             telemetry.addData("shooter current", lowShootC + highShootC);
 
             telemetry.addLine();
-            telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(Math.toRadians(miscParams.ballExitAngleDeg)));
+            telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(true));
             telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity())));
             telemetry.addData("1 vel (ticks/s)", shooterLow.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooterHigh.getVelocity());

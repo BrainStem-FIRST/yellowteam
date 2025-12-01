@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
@@ -61,6 +62,11 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
     }
 
     @Override
+    public void start() {
+        updateTelemetry();
+    }
+
+    @Override
     public void loop() {
         int oldCurrentShownShot = currentShownShot;
         g1.update();
@@ -70,39 +76,48 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
         if (g1.isFirstA())
             parseRawData();
 
-        if (g1.isFirstDpadUp())
-            currentShownShot++;
-        else if (g1.isFirstDpadDown())
-            currentShownShot--;
-        else if (g1.isFirstDpadRight())
-            currentShownShot += bigScrollAmount;
-        else if (g1.isFirstDpadLeft())
-            currentShownShot -= bigScrollAmount;
+        if (!data.isEmpty()) {
+            if (g1.isFirstDpadUp())
+                currentShownShot++;
+            else if (g1.isFirstDpadDown())
+                currentShownShot--;
+            else if (g1.isFirstDpadRight())
+                currentShownShot += bigScrollAmount;
+            else if (g1.isFirstDpadLeft())
+                currentShownShot -= bigScrollAmount;
 
-        currentShownShot = (currentShownShot + data.size()) % data.size(); // wrap around
+            currentShownShot = (currentShownShot + data.size()) % data.size(); // wrap around
+        }
 
         boolean newShot = currentShownShot != oldCurrentShownShot;
+        if (newShot)
+            updateTelemetry();
 
-        if (newShot) {
-            telemetry.addLine("===CONTROLS===");
-            telemetry.addData("parse raw data", "A");
-            telemetry.addData("reset speeds", "Y");
-            telemetry.addData("scroll through recorded shots", "dpad up/down");
-            telemetry.addData("big scroll through recorded shots", "dpad right/left");
-            telemetry.addLine();
-            telemetry.addLine("===HYPER PARAMS===");
-            telemetry.addData("current shot index", currentShownShot);
-            telemetry.addData("num shots recorded", data.size());
-            telemetry.addLine();
-            telemetry.addLine("===DATA (time, target spd, actual spd, power, hood) ===");
-            ArrayList<ShotData> shot = data.get(currentShownShot);
-            for (ShotData shotData : shot)
-                telemetry.addLine("time: " + MathUtils.format3(shotData.timestamp) +
-                        ", targetSpd: " + MathUtils.format2(shotData.targetVel) +
-                        ", actualSpd: " + MathUtils.format2(shotData.avgVel) +
-                        ", power: " + MathUtils.format3(shotData.motorPower) +
-                        ", exitAngle: " + MathUtils.format3(shotData.ballExitAngleDeg));
-            telemetry.update();
+    }
+    private void updateTelemetry() {
+        telemetry.addLine("===CONTROLS===");
+        telemetry.addData("parse raw data", "A");
+        telemetry.addData("reset speeds", "Y");
+        telemetry.addData("scroll through recorded shots", "dpad up/down");
+        telemetry.addData("big scroll through recorded shots", "dpad right/left");
+        telemetry.addLine();
+        telemetry.addLine("===HYPER PARAMS===");
+        telemetry.addData("current shot index", currentShownShot);
+        telemetry.addData("num shots recorded", data.size());
+        telemetry.addLine();
+        telemetry.addLine("===DATA (time, target spd, actual spd, power, hood) ===");
+        ArrayList<ShotData> shot = data.get(currentShownShot);
+        for (ShotData shotData : shot) {
+            String outOfBoundsAngle = shotData.ballExitAngleDeg > ShootingMath.hoodSystemParams.maxAngleDeg || shotData.ballExitAngleDeg < ShootingMath.hoodSystemParams.minAngleDeg ?
+                    ", OUT OF HOOD RANGE" : "";
+            telemetry.addLine("time: " + MathUtils.format3(shotData.timestamp) +
+                    ", targetSpd: " + MathUtils.format2(shotData.targetVel) +
+                    ", actualSpd: " + MathUtils.format2(shotData.avgVel) +
+                    ", power: " + MathUtils.format3(shotData.motorPower) +
+                    ", exitAngle: " + MathUtils.format3(shotData.ballExitAngleDeg) +
+                    outOfBoundsAngle
+            );
         }
+        telemetry.update();
     }
 }

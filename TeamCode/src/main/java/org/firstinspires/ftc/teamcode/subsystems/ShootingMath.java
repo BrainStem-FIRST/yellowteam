@@ -34,7 +34,7 @@ public class ShootingMath {
         // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
         public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1115;
         public double lowShotNearZoneTicksPerSec = 5.5, lowShotNearZoneTicksPerSecYInt = 1010;
-        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 920;
+        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 910;
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
         public double highToLowArcThresholdInches = 54; // old: 62
@@ -46,6 +46,7 @@ public class ShootingMath {
         public double servoRangeMm = 30;
         public double minAngleDeg = 15, maxAngleDeg = 55;
         public double hoodAngleRelativeVelocityMultiplier = 1;
+        public double highArcHoodAngleDegEstimation = 20, lowArcHoodAngleDegEstimation = 45;
     }
     public static class TurretSystemParams {
         // the ball exit position must be traveling at a speed (in/sec) greater than this to account for its relative velocity
@@ -77,8 +78,8 @@ public class ShootingMath {
     // what this is used for as of 11/23
     // calculating hood angle
     // raw subsystem testing telemetry
-    public static double calculateExitHeightMeters(double ballExitAngleRad) {
-        double hoodAngleRad = Math.PI * 0.5 - ballExitAngleRad;
+    public static double calculateExitHeightMeters(boolean useHighArc) {
+        double hoodAngleRad = Math.toRadians(useHighArc ? hoodSystemParams.highArcHoodAngleDegEstimation : hoodSystemParams.lowArcHoodAngleDegEstimation);
         return shooterSystemParams.flywheelHeightMeters + (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) * Math.sin(hoodAngleRad);
     }
 
@@ -191,9 +192,9 @@ public class ShootingMath {
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, double distanceInches, double ballExitSpeedMps, double prevBallExitAngleRad, OdoInfo mostRecentVelocity, Telemetry telemetry) {
+    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
         // get the EXACT exit height of the ball (depends on hood position)
-        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(prevBallExitAngleRad);
+        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(useHighArc);
         double targetHeightInches = useHighArc ? shooterSystemParams.highArcTargetHeightInches : shooterSystemParams.lowArcTargetHeightInches;
         double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
 

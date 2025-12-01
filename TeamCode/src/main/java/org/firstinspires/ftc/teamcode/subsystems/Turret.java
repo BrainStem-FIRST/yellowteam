@@ -17,8 +17,8 @@ public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
-        public double nearShotsGoalX = -64, nearShotsGoalY = 64;
-        public double farShotsGoalX = -70, farShotsGoalY = 67.25;
+        public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 64, farRedShotsGoalX = -70, farRedShotsGoalY = 68.5;
+        public double nearBlueShotsGoalX = -64, nearBlueShotsGoalY = -65.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -68.5;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
@@ -26,7 +26,7 @@ public class Turret extends Component {
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;
-        public int TICKS_PER_REV = 1228; // new 1228, old 1212\
+        public double TICKS_PER_REV = 1228.5; // new 1228, old 1212\
         public int RED_ENCODER_OFFSET = 0, BLUE_ENCODER_OFFSET = 0;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
@@ -129,9 +129,15 @@ public class Turret extends Component {
     }
 
     private Pose2d getDefaultTargetGoalPose() {
-        if (robot.drive.localizer.getPose().position.x < 40)
-            return new Pose2d(TURRET_PARAMS.nearShotsGoalX, robot.alliance == Alliance.RED ? TURRET_PARAMS.nearShotsGoalY : -TURRET_PARAMS.nearShotsGoalY, 0);
-        return new Pose2d(TURRET_PARAMS.farShotsGoalX, robot.alliance == Alliance.RED ? TURRET_PARAMS.farShotsGoalY : -TURRET_PARAMS.farShotsGoalY, 0);
+        if (robot.alliance == Alliance.RED) {
+            if (robot.shooter.isNear)
+                return new Pose2d(TURRET_PARAMS.nearRedShotsGoalX, TURRET_PARAMS.nearRedShotsGoalY, 0);
+            return new Pose2d(TURRET_PARAMS.farRedShotsGoalX, TURRET_PARAMS.farRedShotsGoalY, 0);
+        }
+        if (robot.shooter.isNear)
+            return new Pose2d(TURRET_PARAMS.nearBlueShotsGoalX, TURRET_PARAMS.nearBlueShotsGoalY, 0);
+        return new Pose2d(TURRET_PARAMS.farBlueShotsGoalX, TURRET_PARAMS.farBlueShotsGoalY, 0);
+
     }
 
     @Override

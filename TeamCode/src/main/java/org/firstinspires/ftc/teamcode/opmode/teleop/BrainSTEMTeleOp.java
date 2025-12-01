@@ -98,8 +98,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
-            telemetry.addData("bbl dist", robot.collection.getBackBottomLaserDist());
-            telemetry.addData("btl dist", robot.collection.getBackTopLaserDist());
+            telemetry.addData("back left dist", robot.collection.backLeftLaserDist);
+            telemetry.addData("back right dist", robot.collection.backRightLaserDist);
+            telemetry.addData("front left dist", robot.collection.frontLeftLaserDist);
+            telemetry.addData("front right dist", robot.collection.frontRightLaserDist);
             telemetry.addData("turret pos", robot.limelight.getTurretPos());
             telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
             telemetry.addData("robot pos", robot.limelight.getRobotPos());
@@ -150,15 +152,11 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.turret.turretState = Turret.TurretState.CENTER;
 
         if (gp1.isFirstDpadUp()) {
-            if (robot.collection.collectionState == Collection.CollectionState.EXTAKE)
+            if (robot.collection.collectionState == Collection.CollectionState.OUTTAKE)
                 robot.collection.collectionState = Collection.CollectionState.OFF;
             else
-                robot.collection.collectionState = Collection.CollectionState.EXTAKE;
+                robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
         }
-
-        // TODO: FIGURE OUT LIMELIGHT CONTROLS
-        if(gp1.isFirstLeftBumper())
-            robot.updatePoseWithLimelight();
     }
 
     private void updateDriver2() {
@@ -175,7 +173,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
         if (gp1.isFirstLeftBumper() || gp2.isFirstLeftBumper())
-            robot.collection.flickerState = Collection.FlickerState.UP_DOWN;
+            robot.collection.flickerState = Collection.FlickerState.HALF_UP_DOWN;
+        if(gp1.isFirstLeftTrigger() || gp2.isFirstLeftTrigger())
+            robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
 
         if (gp2.isFirstDpadLeft())
             robot.turret.adjustment += Turret.TURRET_PARAMS.fineAdjust;
@@ -203,6 +203,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.parking.parkState = Parking.ParkState.EXTENDED;
         }
+
+        if(gp2.isFirstRightBumper())
+            robot.updatePoseWithLimelight();
     }
     private void updatePosePredict() {
         // show predicted pose on dashboard

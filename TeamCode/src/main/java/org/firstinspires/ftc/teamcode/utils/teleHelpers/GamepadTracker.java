@@ -48,8 +48,8 @@ public class GamepadTracker {
         updateButtonFrame(gamepad.back, () -> backButtonFrameCount, (c) -> backButtonFrameCount = c);
 
         // For triggers, consider them "pressed" if they exceed a threshold
-        updateButtonFrame(gamepad.left_trigger > 0.2, () -> leftTriggerFrameCount, (c) -> leftTriggerFrameCount = c);
-        updateButtonFrame(gamepad.right_trigger > 0.2, () -> rightTriggerFrameCount, (c) -> rightTriggerFrameCount = c);
+        updateButtonFrame(gamepad.left_trigger > 0.3, () -> leftTriggerFrameCount, (c) -> leftTriggerFrameCount = c);
+        updateButtonFrame(gamepad.right_trigger > 0.3, () -> rightTriggerFrameCount, (c) -> rightTriggerFrameCount = c);
     }
 
     private void updateButtonFrame(boolean isPressed, IntSupplier frameCountSupplier, IntConsumer frameCountSetter) {

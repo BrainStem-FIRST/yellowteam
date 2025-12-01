@@ -33,7 +33,7 @@ public class Shooter extends Component {
         public double kD = 0.0;
         public double kF = 0.0005;
         public double minShootBallDeceleration = -40;
-        public double maxErrorThresholdNear = 100, maxErrorThresholdFar = 75;
+        public double maxErrorThresholdNear = 100, maxErrorThresholdFar = 85;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
@@ -149,7 +149,7 @@ public class Shooter extends Component {
         telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
         telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
         double oldBallExitAngleRad = ballExitAngleRad;
-        ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, ballExitAngleRad, mostRecentVelocity, telemetry);
+        ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
         telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
         double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
         if (powerShooterAndHood && ballExitAngleRad != -1 && Math.abs(ballExitAngleRad - oldBallExitAngleRad) >= Math.toRadians(HOOD_PARAMS.moveThresholdAngleDeg))
