@@ -33,7 +33,7 @@ public class Shooter extends Component {
         public double kD = 0.0;
         public double kF = 0.0005;
         public double minShootBallDeceleration = -40;
-        public double maxErrorThresholdNear = 100, maxErrorThresholdFar = 85;
+        public double maxErrorThresholdNear = 100, maxErrorThresholdFar = 75;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;

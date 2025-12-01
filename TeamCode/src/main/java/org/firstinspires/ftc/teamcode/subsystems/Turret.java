@@ -17,11 +17,12 @@ public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
-        public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 64, farRedShotsGoalX = -70, farRedShotsGoalY = 68.5;
+        public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 64, farRedShotsGoalX = -70, farRedShotsGoalY = 69;
         public double nearBlueShotsGoalX = -64, nearBlueShotsGoalY = -65.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -68.5;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
-        public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003;
+        public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003, smallKf = 0.03;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
+        public double noPowerThreshold = 1;
         public double lookAheadTime = 0.1; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
@@ -94,6 +95,12 @@ public class Turret extends Component {
         targetEncoder = ticks + offset;
         double error = getTurretEncoder() - targetEncoder;
 
+        // within threshold - give 0 power
+        if (Math.abs(error) < TURRET_PARAMS.noPowerThreshold) {
+            turretMotor.setPower(0);
+            return;
+        }
+
         // use correct pid values based on error
         if (Math.abs(error) < TURRET_PARAMS.smallPIDValuesErrorThreshold)
             pidController.setPIDValues(TURRET_PARAMS.smallKP, TURRET_PARAMS.smallKI, TURRET_PARAMS.smallKD);
@@ -101,6 +108,7 @@ public class Turret extends Component {
             pidController.setPIDValues(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
 
         double newPower = -pidController.updateWithError(error);
+        newPower += Math.signum(newPower) * TURRET_PARAMS.smallKf;
         turretMotor.setPower(newPower);
     }
 
