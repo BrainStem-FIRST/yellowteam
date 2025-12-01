@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
@@ -17,8 +18,6 @@ public class Parking extends Component {
         public double RETRACTED_POS = 0.075;
         public double EXTENDED_POS = 0.9;
         public double MIDDLE_POS = 0.5;
-        public double SERVO_INCREMENT = 0.1;
-//        public double SCALE_FACTOR = 255;
     }
 
     public static Params PARK_PARAMS = new Parking.Params();
@@ -35,26 +34,21 @@ public class Parking extends Component {
         parkState = ParkState.RETRACTED;
     }
 
-//    public double getColorSensorBrightness() {
-//        float[] hsv = new float[3];
-//        Color.RGBToHSV((int) (leftColorSensor.red() * PARK_PARAMS.SCALE_FACTOR),
-//                (int) (leftColorSensor.green() * PARK_PARAMS.SCALE_FACTOR),
-//                (int) (leftColorSensor.blue() * PARK_PARAMS.SCALE_FACTOR),
-//                hsv);
-//        return hsv[2];
-//    }
-
     public void setParkServoPosition(double position) {
         parkLeftServo.setPosition(position);
         parkRightServo.setPosition(position);
     }
 
     public enum ParkState {
-        RETRACTED, EXTENDED, MIDDLE, OFF
+        RETRACTED, EXTENDED, MIDDLE
     }
 
     @Override
-    public void printInfo() {}
+    public void printInfo() {
+        telemetry.addLine("===PARKING===");
+        telemetry.addData("state", parkState);
+        telemetry.addData("servo pos (L|R)", parkLeftServo + " | " + parkRightServo);
+    }
 
     @Override
     public void reset() {}

@@ -56,6 +56,7 @@ public class Limelight extends Component {
         if(result != null) {
             Pose3D turretPose = result.getBotpose();
 
+            telemetry.addLine("LIMELIGHT UPDATE=================");
             if(turretPose.getPosition().x != 0 && turretPose.getPosition().y != 0) {
                 Position temp = turretPose.getPosition().toUnit(DistanceUnit.INCH);
                 this.turretPos = new Vec(temp.x, temp.y);
@@ -69,6 +70,10 @@ public class Limelight extends Component {
                     robotHeading -= Math.PI * 2;
                 robotTurretVec = new Vec(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
                 robotPos = turretPos.add(robotTurretVec);
+                telemetry.addData("robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
+            }
+            else {
+                telemetry.addData("NO POSE FOUND - robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
             }
         }
     }

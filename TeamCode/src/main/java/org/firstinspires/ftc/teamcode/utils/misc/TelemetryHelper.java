@@ -8,10 +8,10 @@ import com.acmerobotics.roadrunner.Pose2d;
 
 @Config
 public class TelemetryHelper {
-    public static String[] colors = { "red", "green", "blue" };
-    public static Integer[] strokeWidths = { 1, 1, 1 };
-    public static Integer[] radii = { 10, 6, 3 };
-    public static int numPosesToShow = 2;
+    public static String[] colors = { "red", "green", "blue", "gray", "gray" };
+    public static Integer[] strokeWidths = { 1, 1, 1, 1, 1 };
+    public static Integer[] radii = { 10, 6, 3, 1, 1 };
+    public static int numPosesToShow = 3;
     public static double strokeAlpha = 1;
     public static double fieldRotation = 0;
 

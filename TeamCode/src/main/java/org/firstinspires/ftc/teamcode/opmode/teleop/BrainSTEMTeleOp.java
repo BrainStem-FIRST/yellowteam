@@ -240,6 +240,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
+        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
         Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
 
         TelemetryPacket packet = new TelemetryPacket();
@@ -247,8 +248,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         TelemetryHelper.radii[0] = 10;
         TelemetryHelper.radii[1] = 6;
         TelemetryHelper.radii[2] = 3;
-        TelemetryHelper.numPosesToShow = 2;
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad));
+        TelemetryHelper.radii[3] = 10;
+        TelemetryHelper.numPosesToShow = 4;
+
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad), robot.limelight.getRobotPose());
 
         // draw exit position velocity
         fieldOverlay.setAlpha(1);
@@ -261,14 +264,14 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         // draw where turret is pointed
         double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
 
-        fieldOverlay.setStroke("green");
+        fieldOverlay.setStroke("purple");
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
                 exitPosition.x + dist * Math.cos(robot.turret.currentAngleRad),
                 exitPosition.y + dist * Math.sin(robot.turret.currentAngleRad)
         );
-        fieldOverlay.setStroke("blue");
+        fieldOverlay.setStroke("black");
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
