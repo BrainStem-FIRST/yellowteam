@@ -123,12 +123,14 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver1() {
-        if (gp1.gamepad.right_trigger > 0.2)
-            robot.collection.collectionState = Collection.CollectionState.INTAKE;
-        else if (gp1.gamepad.left_trigger > 0.2)
-            robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
-        else
-            robot.collection.collectionState = Collection.CollectionState.OFF;
+        if(robot.collection.clutchState == Collection.ClutchState.UNENGAGED) {
+            if (gp1.gamepad.right_trigger > 0.2)
+                robot.collection.collectionState = Collection.CollectionState.INTAKE;
+            else if (gp1.gamepad.left_trigger > 0.2)
+                robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
+            else
+                robot.collection.collectionState = Collection.CollectionState.OFF;
+        }
 
         if (gp1.isFirstB()) {
             if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
@@ -154,12 +156,13 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver2() {
-
-        if (gp2.isFirstA())
-            if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
-                robot.collection.collectionState = Collection.CollectionState.OFF;
-            else
-                robot.collection.collectionState = Collection.CollectionState.INTAKE;
+        if(robot.collection.clutchState == Collection.ClutchState.ENGAGED) {
+            if (gp2.isFirstA())
+                if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
+                    robot.collection.collectionState = Collection.CollectionState.OFF;
+                else
+                    robot.collection.collectionState = Collection.CollectionState.INTAKE;
+        }
         if (gp2.isFirstB())
             if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
                 robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
