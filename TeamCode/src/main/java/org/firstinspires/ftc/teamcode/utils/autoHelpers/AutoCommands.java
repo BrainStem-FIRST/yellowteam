@@ -97,6 +97,7 @@ public class AutoCommands {
     public Action engageClutch() {
         return packet -> {
             robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+            robot.collection.extakeAfterClutchEngage = false;
             robot.collection.clutchStateTimer.reset();
             robot.collection.clutch_timer.reset();
             return false;

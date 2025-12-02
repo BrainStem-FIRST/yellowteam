@@ -33,6 +33,7 @@ public class Collection extends Component {
     public CollectionState collectionState;
     public ClutchState clutchState;
     public FlickerState flickerState;
+    public boolean extakeAfterClutchEngage;
     private double timerStart = 0;
     private boolean timerRunning = false;
     private boolean has3Balls = false;
@@ -186,7 +187,7 @@ public class Collection extends Component {
 
         switch (clutchState) {
             case ENGAGED:
-                 if(clutch_timer.seconds() < shootOuttakeTime)
+                 if(clutch_timer.seconds() < shootOuttakeTime && extakeAfterClutchEngage)
                     collectionState = CollectionState.OUTTAKE;
                 else if(collectionState == CollectionState.OUTTAKE)
                     collectionState = CollectionState.OFF;
@@ -195,6 +196,7 @@ public class Collection extends Component {
                 break;
 
             case UNENGAGED:
+                extakeAfterClutchEngage = true;
                 clutch_timer.reset();
                 clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
                 clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);

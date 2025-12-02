@@ -123,11 +123,12 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver1() {
-        if (gp1.isFirstA())
-            if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
-                robot.collection.collectionState = Collection.CollectionState.OFF;
-            else
-                robot.collection.collectionState = Collection.CollectionState.INTAKE;
+        if (gp1.gamepad.right_trigger > 0.2)
+            robot.collection.collectionState = Collection.CollectionState.INTAKE;
+        else if (gp1.gamepad.left_trigger > 0.2)
+            robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
+        else
+            robot.collection.collectionState = Collection.CollectionState.OFF;
 
         if (gp1.isFirstB()) {
             if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
@@ -150,13 +151,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.turret.turretState = Turret.TurretState.TRACKING;
             else
                 robot.turret.turretState = Turret.TurretState.CENTER;
-
-        if (gp1.isFirstDpadUp()) {
-            if (robot.collection.collectionState == Collection.CollectionState.OUTTAKE)
-                robot.collection.collectionState = Collection.CollectionState.OFF;
-            else
-                robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
-        }
     }
 
     private void updateDriver2() {
@@ -172,9 +166,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.collection.clutchState = Collection.ClutchState.ENGAGED;
 
-        if (gp1.isFirstLeftBumper() || gp2.isFirstLeftBumper())
+        if (gp2.isFirstLeftBumper())
             robot.collection.flickerState = Collection.FlickerState.HALF_UP_DOWN;
-        if(gp1.isFirstLeftTrigger() || gp2.isFirstLeftTrigger())
+        if(gp2.isFirstLeftTrigger())
             robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
 
         if (gp2.isFirstDpadLeft())

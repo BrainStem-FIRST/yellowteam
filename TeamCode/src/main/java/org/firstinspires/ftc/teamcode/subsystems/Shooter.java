@@ -133,7 +133,7 @@ public class Shooter extends Component {
         double shooterSpeed = getAvgMotorVelocity();
         double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(shooterSpeed);
         double oldBallExitAngleRad = ballExitAngleRad;
-        ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
+        ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, isNear, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
         double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
         if (powerShooterAndHood && ballExitAngleRad != -1 && Math.abs(ballExitAngleRad - oldBallExitAngleRad) >= Math.toRadians(HOOD_PARAMS.moveThresholdAngleDeg))
             setHoodPosition(hoodServoPos);

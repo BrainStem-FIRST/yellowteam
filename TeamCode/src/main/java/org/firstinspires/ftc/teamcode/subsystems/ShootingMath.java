@@ -20,7 +20,7 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double highArcTargetHeightInches = 38, lowArcTargetHeightInches = 43.5;
+        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 45, lowArcFarTargetHeightInches = 43.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
@@ -37,7 +37,7 @@ public class ShootingMath {
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
         public double highToLowArcThresholdInches = 54; // old: 62
-        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = -2, lowArcFarGoalOffsetInches;
+        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = -2, lowArcFarGoalOffsetInches = 0;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
@@ -184,10 +184,15 @@ public class ShootingMath {
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
+    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, boolean isNear, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
         // get the EXACT exit height of the ball (depends on hood position)
         double exitHeightMeters = ShootingMath.calculateExitHeightMeters(useHighArc);
-        double targetHeightInches = useHighArc ? shooterSystemParams.highArcTargetHeightInches : shooterSystemParams.lowArcTargetHeightInches;
+        double targetHeightInches;
+        if (useHighArc)
+            targetHeightInches = shooterSystemParams.highArcTargetHeightInches;
+        else
+            targetHeightInches = isNear ? shooterSystemParams.lowArcNearTargetHeightInches : shooterSystemParams.lowArcFarTargetHeightInches;
+
         double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
 
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
