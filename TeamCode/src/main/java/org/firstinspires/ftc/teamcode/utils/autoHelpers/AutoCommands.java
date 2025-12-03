@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -94,6 +95,12 @@ public class AutoCommands {
     }
 
     // COLLECTIONS
+    public Action engageClutchAndIntake() {
+        return new ParallelAction(
+                engageClutch(),
+                runIntake()
+        );
+    }
     public Action engageClutch() {
         return packet -> {
             robot.collection.clutchState = Collection.ClutchState.ENGAGED;

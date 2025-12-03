@@ -44,7 +44,7 @@ public class Collection extends Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.95;
         public double DELAY_PERIOD = 0.2;
-        public double INTAKE_SPEED = 0.95, FAR_ZONE_SHOOTER_ERROR_INTAKE_SPEED = 0;
+        public double INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0;
         public double OUTTAKE_SPEED = -0.5;
         public double LASER_BALL_THRESHOLD = 2;
         public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
@@ -173,7 +173,7 @@ public class Collection extends Component {
                 if (clutchState == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
                 else
-                    collectorMotor.setPower(COLLECTOR_PARAMS.FAR_ZONE_SHOOTER_ERROR_INTAKE_SPEED);
+                    collectorMotor.setPower(COLLECTOR_PARAMS.SHOOTER_ERROR_INTAKE_SPEED);
                 break;
 
             case OUTTAKE:

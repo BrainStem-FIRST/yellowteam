@@ -23,7 +23,7 @@ public class Turret extends Component {
         public double smallKP = 0.015, smallKI = 0, smallKD = 0.0003, smallKf = 0.015;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
         public double noPowerThreshold = 1;
-        public double lookAheadTime = 0.1; // time to look ahead for pose prediction
+        public double lookAheadTime = 0.115; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;

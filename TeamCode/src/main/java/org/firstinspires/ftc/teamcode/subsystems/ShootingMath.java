@@ -33,7 +33,7 @@ public class ShootingMath {
         // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
         public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1115;
         public double lowShotNearZoneTicksPerSec = 5.5, lowShotNearZoneTicksPerSecYInt = 1010;
-        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 910;
+        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 890;
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
         public double highToLowArcThresholdInches = 54; // old: 62
