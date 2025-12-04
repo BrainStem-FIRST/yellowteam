@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode.opmode.postCrucibleAutos;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.InstantAction;
 import com.acmerobotics.roadrunner.ParallelAction;
@@ -18,7 +21,6 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.CustomEndAction;
-import org.firstinspires.ftc.teamcode.utils.autoHelpers.RRTolerance;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ public abstract class AUTO extends LinearOpMode {
         public boolean openGateOnFirst = false;
         public boolean openGateOnSecond = true;
         public boolean useParkAbort = true;
+        public int maxGateRetries = 1;
     }
     public enum AutoState {
         DRIVE_TO_COLLECT,
@@ -61,10 +64,10 @@ public abstract class AUTO extends LinearOpMode {
             collect1NearPose, preCollect1FarPose, collect1FarPose,
             preCollect2NearPose, collect2NearPose, preCollect2FarPose, collect2FarPose,
             preCollect3NearPose, collect3NearPose, preCollect3FarPose, collect3FarPose,
-            preLoadingPose, postLoadingPose, gateCollectPose,
+            preLoadingPose, postLoadingPose, gateCollectPose, gateCollectRetryPose,
             gate1NearPose, gate1FarPose, gate2NearPose, gate2FarPose,
-            parkNearPose, parkFarPose;
-    private Pose2d shootNearSetup1Pose, shootFarSetup1Pose, shootNearSetup2Pose, shootFarSetup2Pose, shootNearSetup3Pose, shootFarSetup3Pose, shootNearSetupLoadingPose, shootFarSetupLoadingPose;
+            parkNearPose, parkFarPose,
+            shootNearSetup1Pose, shootFarSetup1Pose, shootNearSetup2Pose, shootFarSetup2Pose, shootNearSetup3Pose, shootFarSetup3Pose, shootNearSetupLoadingPose, shootFarSetupLoadingPose;
     private boolean isRed;
     private AutoState autoState;
     @Override
@@ -109,13 +112,11 @@ public abstract class AUTO extends LinearOpMode {
         Pose2d shootPose = null;
         Pose2d preloadShootPose = getSetupPose(customizable.collectionOrder.substring(0, 2));
         Pose2d prevShootPose = new Pose2d(preloadShootPose.position, preloadShootPose.heading);
-        ArrayList<Pose2d> shootPoses = new ArrayList<>();
         for(int i=0; i<numPaths; i++) {
             if(i < numPaths - 1)
                 shootPose = getSetupPose(customizable.collectionOrder.substring(i*2 + 2, i*2 + 4));
             else
                 shootPose = getSetupPose(customizable.collectionOrder.charAt(i * 2 + 2) + "" + customizable.collectionOrder.charAt(i * 2 + 1));
-            shootPoses.add(shootPose);
 
             String curLetter = customizable.collectionOrder.charAt(i*2+1) + "";
             boolean fromNear = customizable.collectionOrder.charAt(i*2) == 'n';
@@ -169,13 +170,6 @@ public abstract class AUTO extends LinearOpMode {
         );
 
         robot.turret.resetEncoders();
-
-        // update shoot poses
-//        TelemetryPacket packet = new TelemetryPacket();
-//        Canvas fieldOverlay = packet.fieldOverlay();
-//        for (Pose2d shootPose : shootPoses) {
-//
-//        }
 
         telemetry.addData("alliance", alliance);
         telemetry.addLine("READY TO RUN");
@@ -477,6 +471,79 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.disengageClutch()
         );
     }
+    private Action getGateRepeatedCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
+        double sign = isRed ? 1 : -1;
+        double shootTangent = toNear ? sign * Math.toRadians(-150) : sign * Math.toRadians(-100);
+
+        Action gateShootDrive = robot.drive.actionBuilder(gateCollectPose)
+                .setTangent(shootTangent)
+                .afterDisp(toNear ? shoot.clutchDispGateNear : shoot.clutchDispGateFar, decideEarlyRunIntake(minTime))
+                .splineToSplineHeading(shootPose, shootTangent)
+                .build();
+
+        return new SequentialAction(
+                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
+                repeatedGateCollect(startPose, fromNear),
+                autoCommands.stopIntake(),
+                autoCommands.engageClutch(),
+                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
+                gateShootDrive,
+                new InstantAction(() -> autoState = AutoState.SHOOT),
+                waitUntilMinTime(minTime),
+                autoCommands.flickerHalfUp(),
+                autoCommands.runIntake(),
+                new SleepAction(timeConstraints.minShootTime),
+                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
+                autoCommands.flickerUp(),
+                new SleepAction(0.4),
+                autoCommands.disengageClutch()
+        );
+    }
+    private Action repeatedGateCollect(Pose2d startPose, boolean fromNear) {
+        return new Action() {
+            private Action gateCollectDrive, gateResetDrive;
+            private boolean first = true;
+            private boolean ranCollectDrive = false;
+            private int numTimesCollected = 0;
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+                if (first) {
+                    first = false;
+                    resetCollectDrive();
+                }
+                if (!ranCollectDrive) {
+                    if (!gateCollectDrive.run(telemetryPacket)) {
+                        ranCollectDrive = true;
+                        numTimesCollected++;
+                        if (robot.collection.intakeHas3Balls() || numTimesCollected > customizable.maxGateRetries)
+                            return false;
+                        resetRetryDrive();
+                        resetCollectDrive();
+                    }
+                }
+                if (ranCollectDrive) {
+                    ranCollectDrive = gateResetDrive.run(telemetryPacket);
+                }
+                return true;
+            }
+            private void resetCollectDrive() {
+                double sign = isRed ? 1 : -1;
+                double collectTangent = fromNear ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
+                gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
+                        .setTangent(collectTangent)
+                        .splineToSplineHeading(gateCollectPose, collectTangent)
+                        .build(),
+                        () -> robot.collection.intakeHas3Balls(), timeConstraints.gateCollectMaxTime);
+            }
+            private void resetRetryDrive() {
+                gateResetDrive = robot.drive.actionBuilder(robot.drive.localizer.getPose())
+                        .strafeToLinearHeading(gateCollectRetryPose.position, gateCollectRetryPose.heading.toDouble())
+                        .build();
+            }
+        };
+    }
+    
     private Action waitUntilMinTime(double minTime) {
         return packet -> minTime > 0 && autoTimer.seconds() < minTime;
     }
@@ -552,8 +619,9 @@ public abstract class AUTO extends LinearOpMode {
         gateCollectPose = isRed ?
                 new Pose2d(collect.gateCollectXRed, collect.gateCollectYRed, collect.gateCollectARed) :
                 new Pose2d(collect.gateCollectXBlue, collect.gateCollectYBlue, collect.gateCollectABlue);
-
-
+        gateCollectRetryPose = isRed ?
+                new Pose2d(collect.gateCollectXRed, collect.gateCollectRetryYRed, collect.gateCollectARed) :
+                new Pose2d(collect.gateCollectXBlue, collect.gateCollectRetryYBlue, collect.gateCollectABlue);
     }
     private void declareMiscPoses() {
         gate1NearPose = isRed ?
@@ -564,7 +632,7 @@ public abstract class AUTO extends LinearOpMode {
                 new Pose2d(misc.gateFarX1Blue, misc.gateFarYBlue, misc.gateBlueA1);
         gate2NearPose = isRed ?
                 new Pose2d(misc.gateNearX2Red, misc.gateFarYRed, misc.gateRedA2) :
-                new Pose2d(misc.gateNearX1Blue, misc.gateFarYBlue, misc.gateBlueA2);
+                new Pose2d(misc.gateNearX2Blue, misc.gateFarYBlue, misc.gateBlueA2);
         gate2FarPose = isRed ?
                 new Pose2d(misc.gateFarX2Red, misc.gateNearYRed, misc.gateRedA2) :
                 new Pose2d(misc.gateFarX2Blue, misc.gateNearYBlue, misc.gateBlueA1);
@@ -580,5 +648,4 @@ public abstract class AUTO extends LinearOpMode {
     public Pose2d shootFarRed(double angleRad) { return new Pose2d(shoot.shootFarXRed, shoot.shootFarYRed, angleRad); }
     public Pose2d shootNearBlue(double angleRad) { return new Pose2d(shoot.shootNearXBlue, shoot.shootNearYBlue, angleRad); }
     public Pose2d shootFarBlue(double angleRad) { return new Pose2d(shoot.shootFarXBlue, shoot.shootFarYBlue, angleRad); }
-
 }

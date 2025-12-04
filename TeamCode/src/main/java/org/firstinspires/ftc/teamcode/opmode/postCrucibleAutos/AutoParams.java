@@ -13,11 +13,12 @@ public class AutoParams {
         public double preThirdYRed = 32, preThirdYBlue = -32, postThirdYRed = 51, postThirdYBlue = -51;
         public double thirdNearXRed = 34, thirdFarXRed = 32, thirdNearXBlue = 34, thirdFarXBlue = 32;
 
-        public double preLoadingXRed = 46, preLoadingYRed = 60, preLoadingARed = Math.toRadians(45), preLoadingXBlue = 46, preLoadingYBlue = -60, preLoadingABlue = -Math.toRadians(45);
-        public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(15), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = -Math.toRadians(15);
+        public double preLoadingXRed = 46, preLoadingYRed = 60, preLoadingARed = Math.toRadians(45), preLoadingXBlue = 46, preLoadingYBlue = -60, preLoadingABlue = Math.toRadians(-45);
+        public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(15), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = Math.toRadians(-15);
 
         public double gateCollectXRed = 68, gateCollectYRed = 65, gateCollectARed = Math.toRadians(90);
-        public double gateCollectXBlue = 68, gateCollectYBlue = -65, gateCollectABlue = -Math.toRadians(90);
+        public double gateCollectXBlue = 68, gateCollectYBlue = -65, gateCollectABlue = Math.toRadians(-90);
+        public double gateCollectRetryYRed = 50, gateCollectRetryYBlue = -50;
     }
     public static class Shoot {
         public double clutchDispPreloadNear = 25, clutchDisp1Near = 38, clutchDisp2Near = 41, clutchDisp3Near = 70, clutchDispLoadingNear = 105, clutchDispGateNear = 110;
@@ -34,10 +35,10 @@ public class AutoParams {
     }
 
     public static class Misc {
-        public double startNearXRed = -63.5, startNearYRed = 39.5, startNearARed = 0, startNearXBlue = -63.5, startNearYBlue = 39.5, startNearABlue = 0;
-        public double startFarXRed = 62.1875, startFarYRed = 16.9859, startFarARed = Math.toRadians(180), startFarXBlue = 0, startFarYBlue = 0, startFarABlue = 0;
-        public double gateNearX1Red = -4, gateNearX2Red = -1, gateNearYRed = 59,  gateNearX1Blue = 0, gateNearX2Blue = 0, gateNearYBlue = 0;
-        public double gateFarX1Red = 0.5, gateFarX2Red = 3, gateFarYRed = 62, gateFarX1Blue = 0, gateFarX2Blue = 0, gateFarYBlue = 0;
+        public double startNearXRed = -63.5, startNearYRed = 39.5, startNearARed = 0, startNearXBlue = -63.5, startNearYBlue = -39.5, startNearABlue = 0;
+        public double startFarXRed = 62.1875, startFarYRed = 16.9859, startFarARed = Math.toRadians(180), startFarXBlue = 62.1875, startFarYBlue = -16.9859, startFarABlue = Math.toRadians(-180);
+        public double gateNearX1Red = -4, gateNearX2Red = -1, gateNearYRed = 59,  gateNearX1Blue = -4, gateNearX2Blue = -1, gateNearYBlue = -59;
+        public double gateFarX1Red = 0.5, gateFarX2Red = 3, gateFarYRed = 62, gateFarX1Blue = 0.5, gateFarX2Blue = 3, gateFarYBlue = -62;
         public double gateRedA1 = Math.toRadians(200), gateBlueA1 = Math.toRadians(-200), gateRedA2 = Math.toRadians(-20), gateBlueA2 = Math.toRadians(20);
         public double parkNearX = -12, parkFarX = 50;
         public double parkNearYRed = 36, parkNearARed = Math.toRadians(45), parkNearYBlue = -36, parkNearABlue = Math.toRadians(-45);
