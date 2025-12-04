@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.CustomEndAction;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.RRTolerance;
+import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
 import java.util.ArrayList;
 
@@ -34,11 +35,11 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "flf2f3f";
+        public String collectionOrder = "f3f2fgf";
         public String minTimes = "-1,-1,-1,-1";
-        public boolean openGateOnFirst = true;
+        public boolean openGateOnFirst = false;
         public boolean openGateOnSecond = true;
-        public boolean useParkAbort = false;
+        public boolean useParkAbort = true;
     }
     public enum AutoState {
         DRIVE_TO_COLLECT,
@@ -177,7 +178,6 @@ public abstract class AUTO extends LinearOpMode {
 //        }
 
         telemetry.addData("alliance", alliance);
-//        telemetry.addData("num paths", numPaths);
         telemetry.addLine("READY TO RUN");
         telemetry.update();
         waitForStart();
@@ -188,9 +188,16 @@ public abstract class AUTO extends LinearOpMode {
                         packet -> { telemetry.addData("AUTO STATE", autoState); return true; },
                         timedAutoAction,
                         autoCommands.updateRobot,
-                        packet -> { telemetry.update(); return true; }
+                        autoCommands.savePoseContinuously,
+                        packet -> {
+                            telemetry.addData("autoX, y, heading", PoseStorage.autoX + ", " + PoseStorage.autoY + ", " + Math.floor(PoseStorage.autoHeading * 180 / Math.PI));
+
+                            telemetry.update();
+                            return true;
+                        }
                 )
         );
+
     }
     private Pose2d getSetupPose(String info) {
         boolean shootClose = info.charAt(0) == 'n';
@@ -298,7 +305,7 @@ public abstract class AUTO extends LinearOpMode {
         Pose2d preCollectPose = fromNear ? preCollect2NearPose : preCollect2FarPose;
         Pose2d collectPose = fromNear ? collect2NearPose : collect2FarPose;
         Action secondCollectDrive = new CustomEndAction(
-                robot.drive.actionBuilder(startPose, collect.secondBeginEndVel)
+                robot.drive.actionBuilder(startPose)
                 .setTangent(fromNear ? 0 : Math.toRadians(180))
                 .splineToSplineHeading(preCollectPose, preCollectPose.heading.toDouble())
                 .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
@@ -538,10 +545,10 @@ public abstract class AUTO extends LinearOpMode {
 
         preLoadingPose = isRed ?
                 new Pose2d(collect.preLoadingXRed, collect.preLoadingYRed, collect.preLoadingARed) :
-                new Pose2d(collect.preLoadingXBlue, collect.loadingYBlue, collect.preLoadingABlue);
+                new Pose2d(collect.preLoadingXBlue, collect.preLoadingYBlue, collect.preLoadingABlue);
         postLoadingPose = isRed ?
                 new Pose2d(collect.postLoadingXRed, collect.postLoadingYRed, collect.postLoadingARed) :
-                new Pose2d(collect.postLoadingXBlue, collect.loadingYBlue, collect.postLoadingABlue);
+                new Pose2d(collect.postLoadingXBlue, collect.postLoadingYBlue, collect.postLoadingABlue);
         gateCollectPose = isRed ?
                 new Pose2d(collect.gateCollectXRed, collect.gateCollectYRed, collect.gateCollectARed) :
                 new Pose2d(collect.gateCollectXBlue, collect.gateCollectYBlue, collect.gateCollectABlue);

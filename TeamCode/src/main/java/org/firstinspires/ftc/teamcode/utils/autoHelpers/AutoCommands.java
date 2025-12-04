@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.ParallelAction;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -48,12 +49,10 @@ public class AutoCommands {
     };
 
     public Action savePoseContinuously = packet -> {
-        PoseStorage.currentPose = robot.drive.localizer.getPose();
-        return true;
-    };
-
-    public Action saveTurretContinuously = packet -> {
-        PoseStorage.currentTurretEncoder = robot.turret.getTurretEncoder();
+        Pose2d cur = robot.drive.localizer.getPose();
+        PoseStorage.autoX = cur.position.x;
+        PoseStorage.autoY = cur.position.y;
+        PoseStorage.autoHeading = cur.heading.toDouble();
         return true;
     };
 

@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
+import static org.firstinspires.ftc.teamcode.subsystems.Shooter.ShooterState.REVERSE_FULL;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
@@ -55,14 +57,14 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     public void runOpMode() {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
-        lastFrameSimplePrediction = PoseStorage.currentPose;
-        lastFrameAdvancedPrediction = PoseStorage.currentPose;
+        Pose2d startPose = new Pose2d(PoseStorage.autoX, PoseStorage.autoY, PoseStorage.autoHeading);
+        lastFrameSimplePrediction = startPose;
+        lastFrameAdvancedPrediction = startPose;
         currentlyMoving = false;
 
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
         CommandScheduler.getInstance().reset();
 
-        Pose2d startPose = PoseStorage.currentPose;
         robot = new BrainSTEMRobot(alliance, telemetry, hardwareMap, startPose); //take pose from auto
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
@@ -189,6 +191,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.turret.turretState = Turret.TurretState.PARK;
             else
                 robot.parking.parkState = Parking.ParkState.EXTENDED;
+            robot.shooter.shooterState = REVERSE_FULL;
         }
 
         if(gp2.isFirstRightBumper())

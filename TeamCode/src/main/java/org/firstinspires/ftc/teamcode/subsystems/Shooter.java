@@ -42,7 +42,7 @@ public class Shooter extends Component {
     public static HoodParams HOOD_PARAMS = new HoodParams();
 
     public enum ShooterState {
-        OFF, UPDATE, FIXED_VELOCITY_IN_AUTO
+        OFF, UPDATE, REVERSE_FULL
     }
     public DcMotorEx shooterMotorLow;
     public DcMotorEx shooterMotorHigh;
@@ -186,10 +186,8 @@ public class Shooter extends Component {
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose, true);
                 break;
-
-            case FIXED_VELOCITY_IN_AUTO:
-                setShooterVelocityPID(1115);
-                setHoodPosition(0.34);
+            case REVERSE_FULL:
+                setShooterPower(-0.99);
                 break;
         }
     }
