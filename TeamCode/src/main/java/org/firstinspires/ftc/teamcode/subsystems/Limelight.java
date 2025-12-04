@@ -53,29 +53,32 @@ public class Limelight extends Component {
     @Override
     public void update() {
         result = limelight.getLatestResult();
-        if(result != null) {
-            Pose3D turretPose = result.getBotpose();
-
-            telemetry.addLine("LIMELIGHT UPDATE=================");
-            if(turretPose.getPosition().x != 0 && turretPose.getPosition().y != 0) {
-                Position temp = turretPose.getPosition().toUnit(DistanceUnit.INCH);
-                this.turretPos = new Vec(temp.x, temp.y);
-                turretHeading = turretPose.getOrientation().getYaw(AngleUnit.RADIANS);
-
-                int currentTurretPosition = robot.turret.turretMotor.getCurrentPosition();
-                double relTurretAngleRad = Turret.getTurretRelativeAngleRad(currentTurretPosition);
-                robotHeading = turretHeading - relTurretAngleRad;
-                telemetry.addData("rel turret angle deg", Math.floor(relTurretAngleRad * 180 / Math.PI));
-                if(robotHeading > Math.PI)
-                    robotHeading -= Math.PI * 2;
-                robotTurretVec = new Vec(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
-                robotPos = turretPos.add(robotTurretVec);
-                telemetry.addData("robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
-            }
-            else {
-                telemetry.addData("NO POSE FOUND - robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
-            }
+        if (result == null) {
+            robotPos = null;
+            robotHeading = 0;
+            return;
         }
+
+        Pose3D turretPose = result.getBotpose();
+
+        telemetry.addLine("LIMELIGHT UPDATE=================");
+        if(turretPose.getPosition().x != 0 && turretPose.getPosition().y != 0) {
+            Position temp = turretPose.getPosition().toUnit(DistanceUnit.INCH);
+            this.turretPos = new Vec(temp.x, temp.y);
+            turretHeading = turretPose.getOrientation().getYaw(AngleUnit.RADIANS);
+
+            int currentTurretPosition = robot.turret.turretMotor.getCurrentPosition();
+            double relTurretAngleRad = Turret.getTurretRelativeAngleRad(currentTurretPosition);
+            robotHeading = turretHeading - relTurretAngleRad;
+            telemetry.addData("rel turret angle deg", Math.floor(relTurretAngleRad * 180 / Math.PI));
+            if(robotHeading > Math.PI)
+                robotHeading -= Math.PI * 2;
+            robotTurretVec = new Vec(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
+            robotPos = turretPos.add(robotTurretVec);
+            telemetry.addData("robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
+        }
+        else
+            telemetry.addData("NO POSE FOUND - robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
     }
 
     // robotHeading should be in radians

@@ -140,7 +140,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             robot.collection.clutchStateTimer.reset();
         }
 
-        if (gp1.isFirstY())
+        if (gp1.isFirstRightBumper())
             if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE)
                 robot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
@@ -148,7 +148,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         if (gp1.isFirstDpadDown())
             robot.shooter.manualShooterTrackerCommand(gp1).schedule();
 
-        if (gp1.isFirstX())
+        if (gp1.isFirstLeftBumper())
             if (robot.turret.turretState == Turret.TurretState.CENTER)
                 robot.turret.turretState = Turret.TurretState.TRACKING;
             else
@@ -248,7 +248,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         TelemetryHelper.radii[3] = 10;
         TelemetryHelper.numPosesToShow = 4;
 
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad), robot.limelight.getRobotPose());
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad));
 
         // draw exit position velocity
         fieldOverlay.setAlpha(1);

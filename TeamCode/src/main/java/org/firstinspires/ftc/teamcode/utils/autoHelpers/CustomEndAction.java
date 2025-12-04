@@ -22,6 +22,9 @@ public class CustomEndAction implements Action {
         this.timer = new ElapsedTime();
         onEnd = () -> {};
     }
+    public CustomEndAction(Action action, BooleanSupplier endCondition) {
+        this(action, endCondition, Double.MAX_VALUE);
+    }
     @Override
     public boolean run(@NonNull TelemetryPacket telemetryPacket) {
         if (first) {

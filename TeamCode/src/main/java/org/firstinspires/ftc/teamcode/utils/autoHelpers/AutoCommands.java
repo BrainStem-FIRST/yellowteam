@@ -126,6 +126,12 @@ public class AutoCommands {
             return false;
         };
     }
+    public Action flickerHalfUp() {
+        return packet -> {
+            robot.collection.flickerState = Collection.FlickerState.HALF_UP_DOWN;
+            return false;
+        };
+    }
 
     public Action flickerDown() {
         return packet -> {
