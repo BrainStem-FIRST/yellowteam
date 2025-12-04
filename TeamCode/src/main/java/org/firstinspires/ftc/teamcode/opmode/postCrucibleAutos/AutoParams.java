@@ -14,7 +14,7 @@ public class AutoParams {
         public double thirdNearXRed = 34, thirdFarXRed = 32, thirdNearXBlue = 34, thirdFarXBlue = 32;
 
         public double preLoadingXRed = 46, preLoadingYRed = 60, preLoadingARed = Math.toRadians(45), preLoadingXBlue = 46, preLoadingYBlue = -60, preLoadingABlue = Math.toRadians(-45);
-        public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(15), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = Math.toRadians(-15);
+        public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(12), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = Math.toRadians(-12);
 
         public double gateCollectXRed = 68, gateCollectYRed = 65, gateCollectARed = Math.toRadians(90);
         public double gateCollectXBlue = 68, gateCollectYBlue = -65, gateCollectABlue = Math.toRadians(-90);

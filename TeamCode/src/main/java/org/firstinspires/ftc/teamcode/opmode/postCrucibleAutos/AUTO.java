@@ -483,7 +483,7 @@ public abstract class AUTO extends LinearOpMode {
 
         return new SequentialAction(
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                repeatedGateCollect(startPose, fromNear),
+                repeatedGateCollect(fromNear),
                 autoCommands.stopIntake(),
                 autoCommands.engageClutch(),
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
@@ -499,7 +499,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.disengageClutch()
         );
     }
-    private Action repeatedGateCollect(Pose2d startPose, boolean fromNear) {
+    private Action repeatedGateCollect(boolean fromNear) {
         return new Action() {
             private Action gateCollectDrive, gateResetDrive;
             private boolean first = true;
@@ -529,8 +529,8 @@ public abstract class AUTO extends LinearOpMode {
             }
             private void resetCollectDrive() {
                 double sign = isRed ? 1 : -1;
-                double collectTangent = fromNear ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
-                gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
+                double collectTangent = fromNear && numTimesCollected == 0 ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
+                gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(robot.drive.localizer.getPose())
                         .setTangent(collectTangent)
                         .splineToSplineHeading(gateCollectPose, collectTangent)
                         .build(),
@@ -543,7 +543,7 @@ public abstract class AUTO extends LinearOpMode {
             }
         };
     }
-    
+
     private Action waitUntilMinTime(double minTime) {
         return packet -> minTime > 0 && autoTimer.seconds() < minTime;
     }
