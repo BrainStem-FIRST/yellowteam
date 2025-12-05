@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.CustomEndAction;
+import org.firstinspires.ftc.teamcode.utils.autoHelpers.TimedAction;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
 import java.util.ArrayList;
@@ -169,6 +170,8 @@ public abstract class AUTO extends LinearOpMode {
                 decideParkDrive(parkDrive)
         );
 
+        Action forcedStopAutoAction = new TimedAction(timedAutoAction, timeConstraints.stopEverythingTime).setEndFunction(robot.drive::stop);
+
         robot.turret.resetEncoders();
 
         telemetry.addData("alliance", alliance);
@@ -180,7 +183,7 @@ public abstract class AUTO extends LinearOpMode {
         Actions.runBlocking(
                 new ParallelAction(
                         packet -> { telemetry.addData("AUTO STATE", autoState); return true; },
-                        timedAutoAction,
+                        forcedStopAutoAction,
                         autoCommands.updateRobot,
                         autoCommands.savePoseContinuously,
                         packet -> {

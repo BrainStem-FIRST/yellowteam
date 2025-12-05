@@ -49,7 +49,8 @@ public class AutoParams {
         public double gateCollectMaxTime = 2.1;
         public double minShootTime = 0.5;
         public double ensureShootAll = 0.7;
-        public double parkStartTime = 29.3;
+        public double parkStartTime = 29;
+        public double stopEverythingTime = 29.6;
 
     }
 }
