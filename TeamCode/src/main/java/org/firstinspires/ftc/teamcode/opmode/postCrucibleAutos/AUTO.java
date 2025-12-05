@@ -37,9 +37,9 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "f3f2fgf";
+        public String collectionOrder = "n1n2n3n";
         public String minTimes = "-1,-1,-1,-1";
-        public boolean openGateOnFirst = false;
+        public boolean openGateOnFirst = true;
         public boolean openGateOnSecond = true;
         public boolean useParkAbort = true;
         public int maxGateRetries = 1;
@@ -100,7 +100,7 @@ public abstract class AUTO extends LinearOpMode {
         String[] minTimeStr = customizable.minTimes.split(",");
         double[] minTimes = new double[minTimeStr.length];
         if(minTimeStr.length != numPaths + 1)
-            throw new IllegalArgumentException("min time string currently has " + minTimeStr.length + " nums. It must have " + (numPaths+1) + " nums. (1 more than collectionOrder)");
+            telemetry.addLine("min time string currently has " + minTimeStr.length + " nums. It must have " + (numPaths+1) + " nums. (1 more than collectionOrder)");
         for (int i=0; i<minTimeStr.length; i++) {
             try {
                 minTimes[i] = Double.parseDouble(minTimeStr[i]);
@@ -237,28 +237,26 @@ public abstract class AUTO extends LinearOpMode {
         if(fromNear)
             firstCollectDrive = new CustomEndAction(
                     robot.drive.actionBuilder(startPose)
-                            .strafeToLinearHeading(collectPose.position, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.firstNearMaxVel))
+                            .strafeToLinearHeading(collectPose.position, isRed ? collect.lineARed : collect.lineABlue, new TranslationalVelConstraint(collect.firstNearMaxVel))
                             .build(),
-            () -> robot.drive.localizer.getPose().position.y > collect1NearPose.position.y - 1 || robot.collection.intakeHas3Balls(),
+            () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect1NearPose.position.y) - 1,
                     10
             );
         else
             firstCollectDrive = new CustomEndAction(
                     robot.drive.actionBuilder(startPose)
                             .setTangent(Math.toRadians(180))
-                            .splineToSplineHeading(preCollect1FarPose, preCollect1FarPose.heading.toDouble())
+                            .splineToSplineHeading(preCollect1FarPose, isRed ? collect.lineARed : collect.lineABlue)
                             .splineToSplineHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
                             .build(),
-                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collectPose.position.y) - 1 || robot.collection.intakeHas3Balls(),
+                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collectPose.position.y) - 1,
                     10
             );
-        double gateMult = isRed ? 1 : -1;
         Pose2d gatePose = fromNear ? gate1NearPose : gate1FarPose;
         Action firstGateDrive = customizable.openGateOnFirst ?
                 new SequentialAction(
                         robot.drive.actionBuilder(collectPose)
-                                .setTangent(Math.toRadians(-30) * gateMult)
-                                .splineToLinearHeading(gatePose, Math.toRadians(90) * gateMult)
+                                .strafeToLinearHeading(gatePose.position, gatePose.heading.toDouble())
                                 .build(),
                         new SleepAction(timeConstraints.gateWait)
                 )
@@ -296,55 +294,54 @@ public abstract class AUTO extends LinearOpMode {
         );
     }
     private Action getSecondCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
-        Pose2d preCollectPose = fromNear ? preCollect2NearPose : preCollect2FarPose;
-        Pose2d collectPose = fromNear ? collect2NearPose : collect2FarPose;
-        Action secondCollectDrive = new CustomEndAction(
-                robot.drive.actionBuilder(startPose)
-                .setTangent(fromNear ? 0 : Math.toRadians(180))
-                .splineToSplineHeading(preCollectPose, preCollectPose.heading.toDouble())
-                .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
-                .build(),
-                () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect2NearPose.position.y) - 0.5 || robot.collection.intakeHas3Balls(),
-                10
-        );
+            Pose2d preCollectPose = fromNear ? preCollect2NearPose : preCollect2FarPose;
+            Pose2d collectPose = fromNear ? collect2NearPose : collect2FarPose;
+            Action secondCollectDrive = new CustomEndAction(
+                    robot.drive.actionBuilder(startPose)
+                            .setTangent(fromNear ? 0 : Math.toRadians(180))
+                            .splineToSplineHeading(preCollectPose, isRed ? collect.lineARed : collect.lineABlue)
+                            .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
+                            .build(),
+                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect2NearPose.position.y) - 0.5,
+                    10
+            );
 
-        double gateMult = isRed ? 1 : -1;
-        Pose2d gatePose = fromNear ? gate2NearPose : gate2FarPose;
-        Action secondGateDrive = customizable.openGateOnSecond ?
-                new SequentialAction(
-                        robot.drive.actionBuilder(collectPose)
-                                .setTangent(Math.toRadians(-150) * gateMult)
-                                .splineToLinearHeading(gatePose, Math.toRadians(90) * gateMult)
-                                .build(),
-                        new SleepAction(timeConstraints.gateWait)
-                )
-                : new SleepAction(0);
+            Pose2d gatePose = fromNear ? gate2NearPose : gate2FarPose;
+            Action secondGateDrive = customizable.openGateOnSecond ?
+                    new SequentialAction(
+                            robot.drive.actionBuilder(collectPose)
+                                    .setTangent(Math.toRadians(isRed ? -135 : 135))
+                                    .splineToLinearHeading(gatePose, Math.toRadians(isRed ? 135 : -135))
+                                    .build(),
+                            new SleepAction(timeConstraints.gateWait)
+                    )
+                    : new SleepAction(0);
 
-        Action secondShootDrive = robot.drive.actionBuilder(customizable.openGateOnSecond ? gatePose : collectPose)
-                .afterDisp(toNear ? shoot.clutchDisp2Near : shoot.clutchDisp2Far, decideEarlyRunIntake(minTime))
-                .strafeToLinearHeading(shootPose.position, shootPose.heading.toDouble())
-                .build();
+            Action secondShootDrive = robot.drive.actionBuilder(customizable.openGateOnSecond ? gatePose : collectPose)
+                    .afterDisp(toNear ? shoot.clutchDisp2Near : shoot.clutchDisp2Far, decideEarlyRunIntake(minTime))
+                    .strafeToLinearHeading(shootPose.position, shootPose.heading.toDouble())
+                    .build();
 
-        return new SequentialAction(
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                autoCommands.runIntake(),
-                secondCollectDrive,
-                autoCommands.engageClutch(),
-                autoCommands.stopIntake(),
-                new InstantAction(() -> autoState = AutoState.OPEN_GATE),
-                secondGateDrive,
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                secondShootDrive,
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                waitUntilMinTime(minTime),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
-        );
+            return new SequentialAction(
+                    new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
+                    autoCommands.runIntake(),
+                    secondCollectDrive,
+                    autoCommands.engageClutch(),
+                    autoCommands.stopIntake(),
+                    new InstantAction(() -> autoState = AutoState.OPEN_GATE),
+                    secondGateDrive,
+                    new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
+                    secondShootDrive,
+                    new InstantAction(() -> autoState = AutoState.SHOOT),
+                    waitUntilMinTime(minTime),
+                    autoCommands.flickerHalfUp(),
+                    autoCommands.runIntake(),
+                    new SleepAction(timeConstraints.minShootTime),
+                    autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
+                    autoCommands.flickerUp(),
+                    new SleepAction(0.4),
+                    autoCommands.disengageClutch()
+            );
     }
     private Action getThirdCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         Pose2d preCollectPose = fromNear ? preCollect3NearPose : preCollect3FarPose;
@@ -357,17 +354,17 @@ public abstract class AUTO extends LinearOpMode {
                     .splineToSplineHeading(preCollectPose, preCollectPose.heading.toDouble())
                     .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
                     .build(),
-                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect3NearPose.position.y) - 0.5 || robot.collection.intakeHas3Balls(),
+                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect3NearPose.position.y) - 0.5,
                     10
             );
         else
             thirdCollectDrive = new CustomEndAction(
                     robot.drive.actionBuilder(startPose)
-                            .setTangent(Math.toRadians(isRed ? 150 : -150))
-                            .splineToLinearHeading(preCollectPose, preCollectPose.heading.toDouble())
+                            .setTangent(Math.toRadians(isRed ? 140 : -140))
+                            .splineToSplineHeading(preCollectPose, isRed ? collect.lineARed : collect.lineABlue)
                             .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
                             .build(),
-                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect3NearPose.position.y) - 0.5 || robot.collection.intakeHas3Balls(),
+                    () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect3NearPose.position.y) - 0.5,
                     10
             );
 
@@ -400,8 +397,8 @@ public abstract class AUTO extends LinearOpMode {
     }
     private Action getLoadingCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
-        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 95);
-        double collectTangent2 = sign * Math.toRadians(fromNear ? 30 : 80);
+        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 90);
+        double collectTangent2 = sign * Math.toRadians(fromNear ? 30 : 90);
         double collectTangent3 = 0;
         double shootTangent = sign * Math.toRadians(toNear ? -150 : -100);
 
@@ -440,7 +437,7 @@ public abstract class AUTO extends LinearOpMode {
     private Action getGateCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
         double collectTangent = fromNear ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
-        double shootTangent = toNear ? sign * Math.toRadians(-150) : sign * Math.toRadians(-100);
+        double shootTangent = toNear ? sign * Math.toRadians(-150) : sign * Math.toRadians(-110);
 
         Action gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
                 .setTangent(collectTangent)
@@ -566,7 +563,7 @@ public abstract class AUTO extends LinearOpMode {
         shootNearSetup1Pose = isRed ? shootNearRed(shoot.shootNearSetup1ARed) : shootNearBlue(shoot.shootNearSetup1ABlue);
         shootFarSetup1Pose = isRed ? shootFarRed(shoot.shootFarSetup1ARed) : shootFarBlue(shoot.shootFarSetup1ABlue);
         shootNearSetup2Pose = isRed ? shootNearRed(shoot.shootNearSetup2ARed) : shootNearBlue(shoot.shootNearSetup2ABlue);
-        shootFarSetup2Pose = isRed ? shootFarRed(shoot.shootFarSetup2ARed) : shootFarRed (shoot.shootFarSetup2ABlue);
+        shootFarSetup2Pose = isRed ? shootFarRed(shoot.shootFarSetup2ARed) : shootFarBlue (shoot.shootFarSetup2ABlue);
         shootNearSetup3Pose = isRed ? shootNearRed(shoot.shootNearSetup3ARed) : shootNearBlue(shoot.shootNearSetup3ABlue);
         shootFarSetup3Pose = isRed ? shootFarRed(shoot.shootFarSetup3ARed) : shootFarBlue(shoot.shootFarSetup3ABlue);
         shootNearSetupLoadingPose = isRed ? shootNearRed(shoot.shootNearSetupLoadingARed) : shootNearBlue(shoot.shootNearSetupLoadingABlue);
@@ -578,34 +575,34 @@ public abstract class AUTO extends LinearOpMode {
                 new Pose2d(collect.firstNearXRed, collect.postFirstNearYRed, collect.lineARed) :
                 new Pose2d(collect.firstNearXBlue, collect.postFirstNearYBlue, collect.lineABlue);
         preCollect1FarPose = isRed ?
-                new Pose2d(collect.firstFarXRed, collect.preFirstFarYRed, collect.lineARed) :
-                new Pose2d(collect.firstFarXBlue, collect.preFirstFarYBlue, collect.lineABlue);
+                new Pose2d(collect.firstFarXRed, collect.preFirstFarYRed, collect.preLineFarARed) :
+                new Pose2d(collect.firstFarXBlue, collect.preFirstFarYBlue, collect.preLineFarABlue);
         collect1FarPose = isRed ?
                 new Pose2d(collect.firstFarXRed, collect.postFirstFarYRed, collect.lineARed) :
                 new Pose2d(collect.firstFarXBlue, collect.postFirstFarYBlue, collect.lineABlue);
 
         preCollect2NearPose = isRed ?
-                new Pose2d(collect.secondNearXRed, collect.preSecondYRed, collect.lineARed) :
-                new Pose2d(collect.secondNearXRed, collect.preSecondYBlue, collect.lineABlue);
+                new Pose2d(collect.secondNearXRed, collect.preSecondYRed, collect.preLineNearARed) :
+                new Pose2d(collect.secondNearXBlue, collect.preSecondYBlue, collect.preLineNearABlue);
         collect2NearPose = isRed ?
                 new Pose2d(collect.secondNearXRed, collect.postSecondYRed, collect.lineARed) :
                 new Pose2d(collect.secondNearXBlue, collect.postSecondYBlue, collect.lineABlue);
         preCollect2FarPose = isRed ?
-                new Pose2d(collect.secondFarXRed, collect.preSecondYRed, collect.lineARed) :
-                new Pose2d(collect.secondFarXRed, collect.preSecondYBlue, collect.lineABlue);
+                new Pose2d(collect.secondFarXRed, collect.preSecondYRed, collect.preLineFarARed) :
+                new Pose2d(collect.secondFarXBlue, collect.preSecondYBlue, collect.preLineFarABlue);
         collect2FarPose = isRed ?
                 new Pose2d(collect.secondFarXRed, collect.postSecondYRed, collect.lineARed) :
                 new Pose2d(collect.secondFarXBlue, collect.postSecondYBlue, collect.lineABlue);
 
         preCollect3NearPose = isRed ?
-                new Pose2d(collect.thirdNearXRed, collect.preThirdYRed, collect.lineARed) :
-                new Pose2d(collect.thirdNearXBlue, collect.preThirdYBlue, collect.lineABlue);
+                new Pose2d(collect.thirdNearXRed, collect.preThirdYRed, collect.preLineNearARed) :
+                new Pose2d(collect.thirdNearXBlue, collect.preThirdYBlue, collect.preLineNearABlue);
         collect3NearPose = isRed ?
                 new Pose2d(collect.thirdNearXRed, collect.postThirdYRed, collect.lineARed) :
                 new Pose2d(collect.thirdNearXBlue, collect.postThirdYBlue, collect.lineABlue);
         preCollect3FarPose = isRed ?
-                new Pose2d(collect.thirdFarXRed, collect.preThirdYRed, collect.lineARed) :
-                new Pose2d(collect.thirdFarXBlue, collect.preThirdYBlue, collect.lineABlue);
+                new Pose2d(collect.thirdFarXRed, collect.preThirdYRed, collect.preLineFarARed) :
+                new Pose2d(collect.thirdFarXBlue, collect.preThirdYBlue, collect.preLineFarABlue);
         collect3FarPose = isRed ?
                 new Pose2d(collect.thirdFarXRed, collect.postThirdYRed, collect.lineARed) :
                 new Pose2d(collect.thirdFarXBlue, collect.postThirdYBlue, collect.lineABlue);
@@ -635,7 +632,7 @@ public abstract class AUTO extends LinearOpMode {
                 new Pose2d(misc.gateNearX2Blue, misc.gateFarYBlue, misc.gateBlueA2);
         gate2FarPose = isRed ?
                 new Pose2d(misc.gateFarX2Red, misc.gateNearYRed, misc.gateRedA2) :
-                new Pose2d(misc.gateFarX2Blue, misc.gateNearYBlue, misc.gateBlueA1);
+                new Pose2d(misc.gateFarX2Blue, misc.gateNearYBlue, misc.gateBlueA2);
 
         parkNearPose = isRed ?
                 new Pose2d(misc.parkNearX, misc.parkNearYRed, misc.parkNearARed) :
