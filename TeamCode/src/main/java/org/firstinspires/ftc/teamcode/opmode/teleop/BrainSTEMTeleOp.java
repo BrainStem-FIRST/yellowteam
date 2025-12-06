@@ -81,6 +81,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             gp1.update();
             gp2.update();
 
+            telemetry.addData("SHOOTER ADJUSTMENT", robot.shooter.adjustment);
+            telemetry.addData("TURRET ADJUSTMENT", robot.turret.adjustment);
+
             updateDrive();
             updateDriver2();
             updateDriver1();

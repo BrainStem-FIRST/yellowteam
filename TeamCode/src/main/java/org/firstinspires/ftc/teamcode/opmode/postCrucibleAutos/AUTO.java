@@ -38,11 +38,11 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "n1n2n3n";
-        public String minTimes = "-1,-1,-1,-1";
-        public boolean openGateOnFirst = true;
-        public boolean openGateOnSecond = true;
-        public boolean useParkAbort = true;
+        public String collectionOrder = "flf3f2fgf";
+        public String minTimes = "-1,-1,-1,-1,-1";
+        public boolean openGateOnFirst = false;
+        public boolean openGateOnSecond = false;
+        public boolean useParkAbort = false;
         public int maxGateRetries = 1;
     }
     public enum AutoState {
@@ -322,7 +322,8 @@ public abstract class AUTO extends LinearOpMode {
 
             Action secondShootDrive = robot.drive.actionBuilder(customizable.openGateOnSecond ? gatePose : collectPose)
                     .afterDisp(toNear ? shoot.clutchDisp2Near : shoot.clutchDisp2Far, decideEarlyRunIntake(minTime))
-                    .strafeToLinearHeading(shootPose.position, shootPose.heading.toDouble())
+                    .setTangent(Math.toRadians(isRed ? -90 : 90))
+                    .splineToLinearHeading(shootPose, fromNear ? Math.toRadians(180) : Math.toRadians(0))
                     .build();
 
             return new SequentialAction(
@@ -400,7 +401,7 @@ public abstract class AUTO extends LinearOpMode {
     }
     private Action getLoadingCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
-        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 90);
+        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 85);
         double collectTangent2 = sign * Math.toRadians(fromNear ? 30 : 90);
         double collectTangent3 = 0;
         double shootTangent = sign * Math.toRadians(toNear ? -150 : -100);
@@ -419,12 +420,17 @@ public abstract class AUTO extends LinearOpMode {
         return new SequentialAction(
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
                 loadingCollectDrive,
-                !toNear ? new SequentialAction(
-                        autoCommands.engageClutch(),
-                        autoCommands.stopIntake()) :
-                        new SleepAction(0),
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                loadingShootDrive,
+                new ParallelAction(
+                    loadingShootDrive,
+                    new SequentialAction(
+                        new SleepAction(0.9),
+                        !toNear ? new SequentialAction(
+                                autoCommands.engageClutch(),
+                                autoCommands.stopIntake()) :
+                                new SleepAction(0)
+                    )
+                ),
                 new InstantAction(() -> autoState = AutoState.SHOOT),
                 waitUntilMinTime(minTime),
                 toNear ? autoCommands.engageClutch() : new SleepAction(0),
