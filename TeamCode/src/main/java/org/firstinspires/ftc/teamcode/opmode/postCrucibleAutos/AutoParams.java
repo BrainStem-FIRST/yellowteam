@@ -11,9 +11,9 @@ public class AutoParams {
         public double preSecondYRed = 32, postSecondYRed = 52, preSecondYBlue = -32, postSecondYBlue = -52;
         public double secondNearXRed = 13.25, secondFarXRed = 10, secondNearXBlue = 13.25, secondFarXBlue = 12;
         public double preThirdYRed = 32, preThirdYBlue = -35, postThirdYRed = 51, postThirdYBlue = -51;
-        public double thirdNearXRed = 34, thirdFarXRed = 31, thirdNearXBlue = 38.5, thirdFarXBlue = 37;
+        public double thirdNearXRed = 34, thirdFarXRed = 30, thirdNearXBlue = 38.5, thirdFarXBlue = 35.5;
 
-        public double preLoadingXRed = 46, preLoadingYRed = 60, preLoadingARed = Math.toRadians(50), preLoadingXBlue = 46, preLoadingYBlue = -60, preLoadingABlue = Math.toRadians(-50);
+        public double preLoadingXRed = 46.5, preLoadingYRed = 60, preLoadingARed = Math.toRadians(50), preLoadingXBlue = 46.5, preLoadingYBlue = -60, preLoadingABlue = Math.toRadians(-50);
         public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(16), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = Math.toRadians(-12);
 
         public double gateCollectXRed = 68, gateCollectYRed = 65, gateCollectARed = Math.toRadians(90);
@@ -36,7 +36,7 @@ public class AutoParams {
 
     public static class Misc {
         public double startNearXRed = -63.5, startNearYRed = 39.5, startNearARed = 0, startNearXBlue = -63.5, startNearYBlue = -39.5, startNearABlue = 0;
-        public double startFarXRed = 60.8, startFarYRed = 14.4, startFarARed = Math.toRadians(180), startFarXBlue = 60.85, startFarYBlue = -18.2, startFarABlue = Math.toRadians(-180);
+        public double startFarXRed = 60.8, startFarYRed = 15.4, startFarARed = Math.toRadians(180), startFarXBlue = 60.85, startFarYBlue = -19.2, startFarABlue = Math.toRadians(-180);
         public double gateNearX1Red = -3.5, gateNearX2Red = -1, gateNearYRed = 59,  gateNearX1Blue = -4, gateNearX2Blue = -2, gateNearYBlue = -61;
         public double gateFarX1Red = 0.5, gateFarX2Red = 0, gateFarYRed = 62, gateFarX1Blue = -4, gateFarX2Blue = -2, gateFarYBlue = -62;
         public double gateRedA1 = Math.toRadians(200), gateBlueA1 = Math.toRadians(-200), gateRedA2 = Math.toRadians(-20), gateBlueA2 = Math.toRadians(20);
@@ -50,7 +50,7 @@ public class AutoParams {
         public double minShootTime = 0.5;
         public double ensureShootAll = 0.7;
         public double parkStartTime = 29;
-        public double stopEverythingTime = 29.6;
+        public double stopEverythingTime = 29.5;
 
     }
 }

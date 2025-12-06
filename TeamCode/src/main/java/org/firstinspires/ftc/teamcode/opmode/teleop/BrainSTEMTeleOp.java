@@ -113,6 +113,11 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
             telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
             telemetry.update();
+
+            Pose2d p = robot.drive.localizer.getPose();
+            PoseStorage.autoX = p.position.x;
+            PoseStorage.autoY = p.position.y;
+            PoseStorage.autoHeading = p.heading.toDouble();
         }
     }
 

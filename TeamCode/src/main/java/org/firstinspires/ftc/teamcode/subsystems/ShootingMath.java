@@ -20,7 +20,7 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 45, lowArcFarTargetHeightInches = 43.5;
+        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 47, lowArcFarTargetHeightInches = 46.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
@@ -33,7 +33,7 @@ public class ShootingMath {
         // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
         public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1115;
         public double lowShotNearZoneTicksPerSec = 5.5, lowShotNearZoneTicksPerSecYInt = 1010;
-        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 905;
+        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 920;
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
         public double highToLowArcThresholdInches = 54; // old: 62

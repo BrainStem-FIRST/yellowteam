@@ -38,11 +38,11 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "flf3f2fgf";
-        public String minTimes = "-1,-1,-1,-1,-1";
+        public String collectionOrder = "flf3f2f";
+        public String minTimes = "-1,-1,-1,-1";
         public boolean openGateOnFirst = false;
         public boolean openGateOnSecond = false;
-        public boolean useParkAbort = false;
+        public boolean useParkAbort = true;
         public int maxGateRetries = 1;
     }
     public enum AutoState {
@@ -279,13 +279,13 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.runIntake(),
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
                 firstCollectDrive,
-                autoCommands.engageClutch(),
                 autoCommands.stopIntake(),
                 new InstantAction(() -> autoState = AutoState.OPEN_GATE),
                 firstGateDrive,
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
                 firstShootDrive,
                 new InstantAction(() -> autoState = AutoState.SHOOT),
+                autoCommands.engageClutch(),
                 waitUntilMinTime(minTime),
                 autoCommands.flickerHalfUp(),
                 autoCommands.runIntake(),
@@ -330,13 +330,13 @@ public abstract class AUTO extends LinearOpMode {
                     new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
                     autoCommands.runIntake(),
                     secondCollectDrive,
-                    autoCommands.engageClutch(),
                     autoCommands.stopIntake(),
                     new InstantAction(() -> autoState = AutoState.OPEN_GATE),
                     secondGateDrive,
                     new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
                     secondShootDrive,
                     new InstantAction(() -> autoState = AutoState.SHOOT),
+                    autoCommands.engageClutch(),
                     waitUntilMinTime(minTime),
                     autoCommands.flickerHalfUp(),
                     autoCommands.runIntake(),
@@ -384,12 +384,12 @@ public abstract class AUTO extends LinearOpMode {
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
                 autoCommands.runIntake(),
                 thirdCollectDrive,
-                autoCommands.engageClutch(),
                 autoCommands.stopIntake(),
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
                 thirdShootDrive,
                 new InstantAction(() -> autoState = AutoState.SHOOT),
                 waitUntilMinTime(minTime),
+                autoCommands.engageClutch(),
                 autoCommands.flickerHalfUp(),
                 autoCommands.runIntake(),
                 new SleepAction(timeConstraints.minShootTime),
@@ -401,14 +401,14 @@ public abstract class AUTO extends LinearOpMode {
     }
     private Action getLoadingCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
-        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 85);
+        double collectTangent1 = sign * Math.toRadians(fromNear ? 20 : 90);
         double collectTangent2 = sign * Math.toRadians(fromNear ? 30 : 90);
         double collectTangent3 = 0;
         double shootTangent = sign * Math.toRadians(toNear ? -150 : -100);
 
         Action loadingCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
                 .setTangent(collectTangent1)
-                .splineToSplineHeading(preLoadingPose, collectTangent2)
+                .splineToLinearHeading(preLoadingPose, collectTangent2)
                 .splineToLinearHeading(postLoadingPose, collectTangent3, new TranslationalVelConstraint(collect.maxVel))
                 .build(), () -> robot.collection.intakeHas3Balls());
         Action loadingShootDrive = robot.drive.actionBuilder(postLoadingPose)
