@@ -9,6 +9,8 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -24,7 +26,7 @@ public class AutoCommands {
         this.telemetry = telemetry;
     }
 
-    public Action waitTillDoneShooting(double ensureTime) {
+    public Action waitTillDoneShooting(double intakeCurrentValidationTime) {
         return new Action() {
             private final ElapsedTime timer = new ElapsedTime();
             private boolean first = true;
@@ -35,10 +37,10 @@ public class AutoCommands {
                     first = false;
                     timer.reset();
                 }
-                if (robot.collection.isBackBallDetected())
+                if (robot.collection.collectorMotor.getPower() != Collection.COLLECTOR_PARAMS.INTAKE_SPEED || robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
                     timer.reset();
 
-                return timer.seconds() < ensureTime;
+                return timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }
         };
     }
@@ -75,7 +77,7 @@ public class AutoCommands {
     public Action speedUpShooter() {
         return packet -> {
             robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
-            return (robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) >= 20;
+            return Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) >= BrainSTEMTeleOp.firstShootTolerance;
         };
     }
 
@@ -139,9 +141,16 @@ public class AutoCommands {
         };
     }
 
+
     public Action runIntake() {
         return packet -> {
             robot.collection.collectionState = Collection.CollectionState.INTAKE;
+            return false;
+        };
+    }
+    public Action intakeSlow() {
+        return telemetryPacket -> {
+            robot.collection.collectionState = Collection.CollectionState.INTAKE_SLOW;
             return false;
         };
     }

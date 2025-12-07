@@ -31,8 +31,8 @@ import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 
 @Config
 public abstract class BrainSTEMTeleOp extends LinearOpMode {
-    public static boolean showRelative = false, showGlobal = true;
-    public static double velocitySize = 10;
+    public static double firstShootTolerance = 40;
+
     public enum PosePredictType {
         SIMPLE,
         ADVANCED,
@@ -88,6 +88,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDriver2();
             updateDriver1();
             CommandScheduler.getInstance().run();
+            robot.collection.printInfo();
             robot.limelight.printInfo();
             robot.turret.printInfo();
             robot.shooter.printInfo();
@@ -103,15 +104,15 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
-            telemetry.addData("back left dist", robot.collection.backLeftLaserDist);
-            telemetry.addData("back right dist", robot.collection.backRightLaserDist);
-            telemetry.addData("front left dist", robot.collection.frontLeftLaserDist);
-            telemetry.addData("front right dist", robot.collection.frontRightLaserDist);
-            telemetry.addData("turret pos", robot.limelight.getTurretPos());
-            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
-            telemetry.addData("robot pos", robot.limelight.getRobotPos());
-            telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
-            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
+//            telemetry.addData("back left dist", robot.collection.backLeftLaserDist);
+//            telemetry.addData("back right dist", robot.collection.backRightLaserDist);
+//            telemetry.addData("front left dist", robot.collection.frontLeftLaserDist);
+//            telemetry.addData("front right dist", robot.collection.frontRightLaserDist);
+//            telemetry.addData("turret pos", robot.limelight.getTurretPos());
+//            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
+//            telemetry.addData("robot pos", robot.limelight.getRobotPos());
+//            telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
+//            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
             telemetry.update();
 
             Pose2d p = robot.drive.localizer.getPose();
@@ -170,7 +171,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
                     robot.collection.collectionState = Collection.CollectionState.OFF;
-                else
+                else if (Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance)
                     robot.collection.collectionState = Collection.CollectionState.INTAKE;
         }
         if (gp2.isFirstB())

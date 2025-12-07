@@ -31,15 +31,17 @@ public class Shooter extends Component {
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kF = 0.0005;
+        public double kF = 0.00048;
         public double minShootBallDeceleration = -40;
         public double maxErrorThresholdNear = 75, maxErrorThresholdFar = 60;
+        public double shotVelDropThreshold = 60;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
     }
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
+    public static boolean printShootInfo = false;
 
     public enum ShooterState {
         OFF, UPDATE, REVERSE_FULL
@@ -55,9 +57,10 @@ public class Shooter extends Component {
     public double adjustment;
     private final ElapsedTime recordTimer;
     public Vector2d ballExitPosition;
-    private double previousVelocityTicksPerSec;
-    private int numBallsShot;
+    private int ballsShot;
     public boolean isNear;
+    private double prevVel, lastMax, lastMin;
+    private boolean wasPrevIncreasing;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
@@ -84,6 +87,10 @@ public class Shooter extends Component {
 
         shooterState = ShooterState.OFF;
         recordTimer = new ElapsedTime();
+        lastMax = 0;
+        lastMin = Double.MAX_VALUE;
+        ballsShot = 100;
+
     }
 
     public double getBallExitAngleRad() {
@@ -98,12 +105,14 @@ public class Shooter extends Component {
 
         double currentVelocity = getAvgMotorVelocity();
         double pidOutput = -shooterPID.update(currentVelocity);
-        telemetry.addData("pid output", pidOutput);
         double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
         totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
-        telemetry.addData("total power", totalPower);
+        if (printShootInfo) {
+            telemetry.addData("pid output", pidOutput);
+            telemetry.addData("total power", totalPower);
+        }
 
         setShooterPower(totalPower);
     }
@@ -134,25 +143,23 @@ public class Shooter extends Component {
         double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(shooterSpeed);
         double oldBallExitAngleRad = ballExitAngleRad;
         ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, isNear, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
-        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, telemetry);
+        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, printShootInfo ? telemetry : null);
         if (powerShooterAndHood && ballExitAngleRad != -1 && Math.abs(ballExitAngleRad - oldBallExitAngleRad) >= Math.toRadians(HOOD_PARAMS.moveThresholdAngleDeg))
             setHoodPosition(hoodServoPos);
 
-
-        telemetry.addData("use high arc", shootHighArc);
-        telemetry.addData("in near zone", isNear);
-        telemetry.addData("actual distance from goal inches", ballExitPosInchesFromGoal);
-        telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
-        telemetry.addData("target motor speed", motorTicksPerSecond);
-        telemetry.addData("actual motor speed", getAvgMotorVelocity());
-        telemetry.addData("exit speed mps", currentBallExitSpeedMps);
-        telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
-        telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
-        if (ballExitAngleRad == -1)
-            telemetry.addLine("NO SOLUTION FOR HOOD=====================");
-
-
-
+        if (printShootInfo) {
+            telemetry.addData("use high arc", shootHighArc);
+            telemetry.addData("in near zone", isNear);
+            telemetry.addData("actual distance from goal inches", ballExitPosInchesFromGoal);
+            telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
+            telemetry.addData("target motor speed", motorTicksPerSecond);
+            telemetry.addData("actual motor speed", getAvgMotorVelocity());
+            telemetry.addData("exit speed mps", currentBallExitSpeedMps);
+            telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
+            telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
+            if (ballExitAngleRad == -1)
+                telemetry.addLine("NO SOLUTION FOR HOOD=====================");
+        }
     }
 
     public void setHoodPosition(double position) {
@@ -164,12 +171,18 @@ public class Shooter extends Component {
     public void reset() {
     }
 
-    public void resetNumBallsShot() {
-        numBallsShot = 0;
-    }
-
     @Override
     public void update(){
+        double vel = getAvgMotorVelocity();
+        double dif = vel - prevVel;
+        boolean increasing;
+        if(dif > 0)
+            increasing = true;
+        else if(dif == 0)
+            increasing = wasPrevIncreasing;
+        else
+            increasing = false;
+
         switch (shooterState) {
             case OFF:
                 setShooterPower(0);
@@ -179,9 +192,13 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
-                double acceleration = getAvgMotorVelocity() - previousVelocityTicksPerSec;
-                if (acceleration < SHOOTER_PARAMS.minShootBallDeceleration)
-                    numBallsShot++;
+                if(increasing && !wasPrevIncreasing) { // means relative min detected
+                    lastMin = prevVel;
+                    if(lastMax - lastMin > SHOOTER_PARAMS.shotVelDropThreshold)
+                        ballsShot++;
+                }
+                if(wasPrevIncreasing && !increasing) // means relative max detected
+                    lastMax = prevVel;
 
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose, true);
@@ -190,6 +207,8 @@ public class Shooter extends Component {
                 setShooterPower(-0.99);
                 break;
         }
+        prevVel = vel;
+        wasPrevIncreasing = increasing;
     }
 
     public double getVelHigh() {
@@ -202,18 +221,20 @@ public class Shooter extends Component {
     @Override
     public void printInfo() {
         telemetry.addLine("SHOOTER------");
-        telemetry.addData("state", shooterState);
-        telemetry.addData("high motor vel", getVelHigh());
-        telemetry.addData("low motor vel", getVelLow());
-        telemetry.addData("pid target vel", shooterPID.getTarget());
-        telemetry.addData("power high", shooterMotorHigh.getPower());
-        telemetry.addData("power low", shooterMotorLow.getPower());
+        telemetry.addData("  state", shooterState);
+        telemetry.addData("  balls shot", ballsShot);
+        telemetry.addData("  avg motor vel", getAvgMotorVelocity());
+        telemetry.addData("  last max", lastMax);
+        telemetry.addData("  last min", lastMin);
+        telemetry.addData("  pid target vel", shooterPID.getTarget());
+        telemetry.addData("  power high", shooterMotorHigh.getPower());
+        telemetry.addData("  power low", shooterMotorLow.getPower());
 
         telemetry.addLine();
         telemetry.addLine("HOOD------");
-        telemetry.addData("ball exit angle rad", ballExitAngleRad);
-        telemetry.addData("left servo pos", hoodLeftServo.getPosition());
-        telemetry.addData("right servo pos", hoodRightServo.getPosition());
+        telemetry.addData("  ball exit angle rad", ballExitAngleRad);
+        telemetry.addData("  left servo pos", hoodLeftServo.getPosition());
+        telemetry.addData("  right servo pos", hoodRightServo.getPosition());
     }
 
     public double getAvgMotorVelocity() {
@@ -273,5 +294,11 @@ public class Shooter extends Component {
             @Override
             public Set<Subsystem> getRequirements() { return Collections.emptySet(); }
         };
+    }
+    public void setBallsShot(int n) {
+        ballsShot = n;
+    }
+    public int getBallsShot() {
+        return ballsShot;
     }
 }

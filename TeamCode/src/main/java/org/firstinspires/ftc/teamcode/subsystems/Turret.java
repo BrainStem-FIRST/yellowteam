@@ -17,7 +17,7 @@ public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
-        public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 64.5, farRedShotsGoalX = -70, farRedShotsGoalY = 69;
+        public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 67.5, farRedShotsGoalX = -70, farRedShotsGoalY = 68;
         public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -63.5;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
         public double smallKP = 0.017, smallKI = 0, smallKD = 0.0003, smallKf = 0.015;

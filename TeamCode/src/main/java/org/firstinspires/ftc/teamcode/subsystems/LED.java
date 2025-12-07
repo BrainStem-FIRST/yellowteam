@@ -6,10 +6,11 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 
 @Config
 public class LED extends Component {
-    public static double shooterFlashThreshold = 40;
+    public static double shooterFlashThreshold = 20;
     public static double white = 0.99, green = 0.45, yellow = 0.35, blue = 0.666, red = 0.279;
     public static double flashOnTime = 0.3, flashOffTime = 0.1;
     private final ServoImplEx left_led;
@@ -33,7 +34,7 @@ public class LED extends Component {
     @Override
     public void update(){
         double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
-        if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error >= shooterFlashThreshold) {
+        if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance) {
             if (timer.seconds() > flashOnTime + flashOffTime)
                 timer.reset();
             else if (timer.seconds() > flashOnTime) {

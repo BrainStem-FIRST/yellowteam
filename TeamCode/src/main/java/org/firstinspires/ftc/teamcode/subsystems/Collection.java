@@ -9,12 +9,13 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @Config
 public class Collection extends Component {
     public static double shootOuttakeTime = 0.15;
     public static boolean activateLasers = true;
-    private final DcMotorEx collectorMotor;
+    public final DcMotorEx collectorMotor;
     private final ServoImplEx clutchLeft;
     private final ServoImplEx clutchRight;
     public ServoImplEx flickerRight;
@@ -42,9 +43,9 @@ public class Collection extends Component {
     public double backLeftLaserDist, backRightLaserDist, frontLeftLaserDist, frontRightLaserDist;
     public static class Params{
         public double ENGAGED_POS = 0.1;
-        public double DISENGAGED_POS = 0.95;
+        public double DISENGAGED_POS = 0.65;
         public double DELAY_PERIOD = 0.2;
-        public double INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0;
+        public double INTAKE_SLOW_SPEED = 0.3, INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0;
         public double OUTTAKE_SPEED = -0.5;
         public double LASER_BALL_THRESHOLD = 2;
         public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
@@ -52,6 +53,8 @@ public class Collection extends Component {
         public double flickerFullUpPos = 0.8;
         public double flickerHalfUpPos = 0.4;
         public double flickerDownPos = 0.05;
+        public double hasBallCurrentThreshold = 3600;
+        public double hasBallValidationTime = 0.7;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
@@ -131,7 +134,7 @@ public class Collection extends Component {
     }
 
     public enum CollectionState {
-        OFF, INTAKE, OUTTAKE, TRANSFER
+        OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
     }
 
     public enum ClutchState {
@@ -144,7 +147,11 @@ public class Collection extends Component {
 
     public final ElapsedTime clutchStateTimer;
     @Override
-    public void printInfo() {}
+    public void printInfo() {
+        telemetry.addLine("===COLLECTION======");
+        telemetry.addData("current", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
+        telemetry.addData("power", collectorMotor.getPower());
+    }
 
     @Override
     public void reset() {
@@ -165,7 +172,8 @@ public class Collection extends Component {
             case OFF:
                 collectorMotor.setPower(0);
                 break;
-
+            case INTAKE_SLOW:
+                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SLOW_SPEED);
             case INTAKE:
                 double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
                 double errorThreshold = robot.shooter.isNear ? Shooter.SHOOTER_PARAMS.maxErrorThresholdNear : Shooter.SHOOTER_PARAMS.maxErrorThresholdFar;
@@ -251,5 +259,8 @@ public class Collection extends Component {
 //        telemetry.addData("Front Ball Detected", isFrontBallDetected());
 //        telemetry.addData("FLICKER State", flickerState.toString());
 //        telemetry.addData("Clutch State", clutchState.toString());
+    }
+    public double getIntakePower() {
+        return collectorMotor.getPower();
     }
 }

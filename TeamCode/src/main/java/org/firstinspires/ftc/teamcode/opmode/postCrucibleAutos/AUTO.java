@@ -13,12 +13,15 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.SleepAction;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.CustomEndAction;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.TimedAction;
@@ -38,12 +41,13 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "flf3f2f";
-        public String minTimes = "-1,-1,-1,-1";
-        public boolean openGateOnFirst = false;
+        public String collectionOrder = "f1n2n3fgf";
+        public String minTimes = "-1,-1,-1,-1, -1";
+        public boolean openGateOnFirst = true;
         public boolean openGateOnSecond = false;
         public boolean useParkAbort = true;
-        public int maxGateRetries = 1;
+        public boolean usedCurvedSecondCollect = false;
+        public int maxGateRetries = 0;
     }
     public enum AutoState {
         DRIVE_TO_COLLECT,
@@ -136,17 +140,10 @@ public abstract class AUTO extends LinearOpMode {
                     actionOrder.add(getThirdCollectAndShoot(prevShootPose, shootPose, fromNear, toNear, minTime));
                     break;
                 case "l" : actionOrder.add(getLoadingCollectAndShoot(prevShootPose, shootPose, fromNear, toNear, minTime)); break;
-                case "g": actionOrder.add(getGateCollectAndShoot(prevShootPose, shootPose, fromNear, toNear, minTime)); break;
+                case "g": actionOrder.add(getRepeatedGateCollectAndShoot(prevShootPose, shootPose, fromNear, toNear, minTime)); break;
             }
             prevShootPose = new Pose2d(shootPose.position, shootPose.heading);
         }
-
-        boolean isLastShootPoseNear = customizable.collectionOrder.charAt(customizable.collectionOrder.length() - 1) == 'n';
-        Pose2d parkPose = isLastShootPoseNear ? parkNearPose : parkFarPose;
-        Action parkDrive = robot.drive.actionBuilder(shootPose)
-                .setTangent(shootPose.heading.toDouble())
-                .strafeToConstantHeading(parkPose.position)
-                .build();
 
         Action autoAction = new SequentialAction(
                 getPreloadDriveAndShoot(preloadShootPose, customizable.collectionOrder.charAt(0) == 'n', minTimes[0]),
@@ -167,33 +164,41 @@ public abstract class AUTO extends LinearOpMode {
                         () -> autoTimer.seconds() > timeConstraints.parkStartTime && autoState != AutoState.DRIVE_TO_COLLECT && customizable.useParkAbort, 500),
                 autoCommands.stopIntake(),
                 autoCommands.stopShooter(),
-                decideParkDrive(parkDrive)
+                decideParkDrive()
         );
 
-        Action forcedStopAutoAction = new TimedAction(timedAutoAction, timeConstraints.stopEverythingTime).setEndFunction(robot.drive::stop);
 
+        Action forcedStopAutoAction = new ParallelAction(
+                packet -> { telemetry.addData("AUTO STATE", autoState); return true; },
+                new TimedAction(timedAutoAction, timeConstraints.stopEverythingTime).setEndFunction(robot.drive::stop),
+                autoCommands.updateRobot,
+                autoCommands.savePoseContinuously,
+                packet -> {
+                    telemetry.addData("current", robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
+                    telemetry.addData("balls shot", robot.shooter.getBallsShot());
+                    telemetry.addData("intake p", robot.collection.getIntakePower());
+                    telemetry.addData("shooter error", robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
+                    telemetry.addData("autoX, y, heading", PoseStorage.autoX + ", " + PoseStorage.autoY + ", " + Math.floor(PoseStorage.autoHeading * 180 / Math.PI));
+                    telemetry.update();
+                    return true;
+                }
+        );
         robot.turret.resetEncoders();
 
         telemetry.addData("alliance", alliance);
+        telemetry.addData("auto string", customizable.collectionOrder);
         telemetry.addLine("READY TO RUN");
         telemetry.update();
         waitForStart();
         autoTimer.reset();
 
-        Actions.runBlocking(
-                new ParallelAction(
-                        packet -> { telemetry.addData("AUTO STATE", autoState); return true; },
-                        forcedStopAutoAction,
-                        autoCommands.updateRobot,
-                        autoCommands.savePoseContinuously,
-                        packet -> {
-                            telemetry.addData("autoX, y, heading", PoseStorage.autoX + ", " + PoseStorage.autoY + ", " + Math.floor(PoseStorage.autoHeading * 180 / Math.PI));
+        robot.shooter.setBallsShot(0); // always start with 3 preloads
 
-                            telemetry.update();
-                            return true;
-                        }
-                )
+        Actions.runBlocking(
+                forcedStopAutoAction
+
         );
+        robot.drive.stop();
 
     }
     private Pose2d getSetupPose(String info) {
@@ -210,27 +215,60 @@ public abstract class AUTO extends LinearOpMode {
 
     private Action getPreloadDriveAndShoot(Pose2d shootPose, boolean isNear, double minTime) {
         Action preloadShootDrive = robot.drive.actionBuilder(start)
-                .afterDisp(isNear ? shoot.clutchDispPreloadNear : shoot.clutchDispPreloadFar, decideEarlyRunIntake(minTime))
-                .strafeToLinearHeading(shootPose.position, shootPose.heading.toDouble())
+                .setTangent(Math.toRadians(isRed ? shoot.preloadTangentRed : -shoot.preloadTangentRed))
+                .splineToLinearHeading(shootPose, 0)
                 .build();
         return new SequentialAction(
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
                 new ParallelAction(
                         autoCommands.speedUpShooter(),
                         autoCommands.enableTurretTracking(),
-                        autoCommands.engageClutch(),
                         preloadShootDrive
                 ),
                 new InstantAction(() -> autoState = AutoState.SHOOT),
                 waitUntilMinTime(minTime),
+                autoCommands.engageClutch(),
                 autoCommands.runIntake(),
                 autoCommands.flickerHalfUp(),
                 new SequentialAction(
                         new SleepAction(timeConstraints.minShootTime),
-                        autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll)
+                        autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.hasBallValidationTime)
                 ),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
+                decideFlicker(),
+                autoCommands.disengageClutch()
+        );
+    }
+    private Action buildCollectAndShoot(Action collectDrive, Action gateDrive, Action shootDrive, double minTime, double slowIntakeTime) {
+        return new SequentialAction(
+                autoCommands.runIntake(),
+                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
+                collectDrive,
+                autoCommands.intakeSlow(),
+                new ParallelAction(
+                        new SequentialAction(
+                                new InstantAction(() -> autoState = AutoState.OPEN_GATE),
+                                gateDrive,
+                                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
+                                shootDrive
+                        ),
+                        new SequentialAction(
+                                new SleepAction(slowIntakeTime),
+                                autoCommands.stopIntake()
+                        )
+                ),
+                new InstantAction(() -> autoState = AutoState.SHOOT),
+                autoCommands.speedUpShooter(),
+                waitUntilMinTime(minTime),
+                telemetryPacket -> {
+                    robot.shooter.setBallsShot(0);
+                    return false;
+                },
+                autoCommands.runIntake(),
+                autoCommands.engageClutch(),
+                autoCommands.flickerHalfUp(),
+                new SleepAction(timeConstraints.minShootTime),
+                autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.hasBallValidationTime),
+                decideFlicker(),
                 autoCommands.disengageClutch()
         );
     }
@@ -243,7 +281,7 @@ public abstract class AUTO extends LinearOpMode {
                             .strafeToLinearHeading(collectPose.position, isRed ? collect.lineARed : collect.lineABlue, new TranslationalVelConstraint(collect.firstNearMaxVel))
                             .build(),
             () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect1NearPose.position.y) - 1,
-                    10
+                    1.4
             );
         else
             firstCollectDrive = new CustomEndAction(
@@ -259,52 +297,33 @@ public abstract class AUTO extends LinearOpMode {
         Action firstGateDrive = customizable.openGateOnFirst ?
                 new SequentialAction(
                         robot.drive.actionBuilder(collectPose)
-                                .strafeToLinearHeading(gatePose.position, gatePose.heading.toDouble())
+                                .setTangent(Math.toRadians(isRed ? -45 : 45))
+                                .splineToLinearHeading(gatePose, Math.toRadians(isRed ? 90 : -90))
                                 .build(),
                         new SleepAction(timeConstraints.gateWait)
                 )
                 : new SleepAction(0);
         Action firstShootDrive = toNear ?
                 robot.drive.actionBuilder(customizable.openGateOnFirst ? gatePose : collectPose)
-                .afterDisp(shoot.clutchDisp1Near, decideEarlyRunIntake(minTime))
+//                .afterDisp(shoot.clutchDisp1Near, decideEarlyRunIntake(minTime))
                 .strafeToLinearHeading(shootPose.position, shootPose.heading.toDouble())
                 .build() :
                 robot.drive.actionBuilder(customizable.openGateOnFirst ? gatePose : collectPose)
                         .setTangent(Math.toRadians(isRed ? -45 : 45))
-                        .afterDisp(shoot.clutchDisp1Far, decideEarlyRunIntake(minTime))
+//                        .afterDisp(shoot.clutchDisp1Far, decideEarlyRunIntake(minTime))
                         .splineToSplineHeading(shootPose, Math.toRadians(isRed ? -20 : 20))
                         .build();
 
-        return new SequentialAction(
-                autoCommands.runIntake(),
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                firstCollectDrive,
-                autoCommands.stopIntake(),
-                new InstantAction(() -> autoState = AutoState.OPEN_GATE),
-                firstGateDrive,
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                firstShootDrive,
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                autoCommands.engageClutch(),
-                waitUntilMinTime(minTime),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
-        );
+        return buildCollectAndShoot(firstCollectDrive, firstGateDrive, firstShootDrive, minTime, timeConstraints.slowIntakeTime);
     }
     private Action getSecondCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
             Pose2d preCollectPose = fromNear ? preCollect2NearPose : preCollect2FarPose;
             Pose2d collectPose = fromNear ? collect2NearPose : collect2FarPose;
-            Action secondCollectDrive = new CustomEndAction(
-                    robot.drive.actionBuilder(startPose)
-                            .setTangent(fromNear ? 0 : Math.toRadians(180))
-                            .splineToSplineHeading(preCollectPose, isRed ? collect.lineARed : collect.lineABlue)
-                            .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
-                            .build(),
+            Action secondCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
+                        .setTangent(fromNear ? 0 : Math.toRadians(180))
+                        .splineToSplineHeading(preCollectPose, isRed ? collect.lineARed : collect.lineABlue)
+                        .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
+                        .build(),
                     () -> Math.abs(robot.drive.localizer.getPose().position.y) > Math.abs(collect2NearPose.position.y) - 0.5,
                     10
             );
@@ -314,38 +333,25 @@ public abstract class AUTO extends LinearOpMode {
                     new SequentialAction(
                             robot.drive.actionBuilder(collectPose)
                                     .setTangent(Math.toRadians(isRed ? -135 : 135))
-                                    .splineToLinearHeading(gatePose, Math.toRadians(isRed ? 135 : -135))
+                                    .splineToLinearHeading(gatePose, Math.toRadians(isRed ? 90 : -90))
                                     .build(),
                             new SleepAction(timeConstraints.gateWait)
                     )
                     : new SleepAction(0);
 
-            Action secondShootDrive = robot.drive.actionBuilder(customizable.openGateOnSecond ? gatePose : collectPose)
-                    .afterDisp(toNear ? shoot.clutchDisp2Near : shoot.clutchDisp2Far, decideEarlyRunIntake(minTime))
-                    .setTangent(Math.toRadians(isRed ? -90 : 90))
-                    .splineToLinearHeading(shootPose, fromNear ? Math.toRadians(180) : Math.toRadians(0))
-                    .build();
+            double tangent;
+            if (customizable.usedCurvedSecondCollect)
+                tangent = Math.toRadians(-90);
+            else
+                tangent = Math.toRadians(toNear ? 220 : -40);
+            tangent *= isRed ? 1 : -1;
 
-            return new SequentialAction(
-                    new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                    autoCommands.runIntake(),
-                    secondCollectDrive,
-                    autoCommands.stopIntake(),
-                    new InstantAction(() -> autoState = AutoState.OPEN_GATE),
-                    secondGateDrive,
-                    new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                    secondShootDrive,
-                    new InstantAction(() -> autoState = AutoState.SHOOT),
-                    autoCommands.engageClutch(),
-                    waitUntilMinTime(minTime),
-                    autoCommands.flickerHalfUp(),
-                    autoCommands.runIntake(),
-                    new SleepAction(timeConstraints.minShootTime),
-                    autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                    autoCommands.flickerUp(),
-                    new SleepAction(0.4),
-                    autoCommands.disengageClutch()
-            );
+            Action secondShootDrive = robot.drive.actionBuilder(customizable.openGateOnSecond ? gatePose : collectPose)
+                        .setTangent(tangent)
+                        .splineToLinearHeading(shootPose, customizable.usedCurvedSecondCollect ? Math.toRadians(toNear ? 180 : 0) : tangent)
+                        .build();
+
+            return buildCollectAndShoot(secondCollectDrive, secondGateDrive, secondShootDrive, minTime, timeConstraints.slowIntakeTime);
     }
     private Action getThirdCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         Pose2d preCollectPose = fromNear ? preCollect3NearPose : preCollect3FarPose;
@@ -364,7 +370,7 @@ public abstract class AUTO extends LinearOpMode {
         else
             thirdCollectDrive = new CustomEndAction(
                     robot.drive.actionBuilder(startPose)
-                            .setTangent(Math.toRadians(isRed ? 140 : -140))
+                            .setTangent(Math.toRadians(isRed ? 135 : -135))
                             .splineToSplineHeading(preCollectPose, isRed ? collect.lineARed : collect.lineABlue)
                             .splineToLinearHeading(collectPose, collectPose.heading.toDouble(), new TranslationalVelConstraint(collect.maxVel))
                             .build(),
@@ -376,28 +382,11 @@ public abstract class AUTO extends LinearOpMode {
         double shootTangent = sign * Math.toRadians(toNear ? -150 : -50);
         Action thirdShootDrive = robot.drive.actionBuilder(collectPose)
                 .setTangent(shootTangent)
-                .afterDisp(toNear ? shoot.clutchDisp3Near : shoot.clutchDisp3Far, decideEarlyRunIntake(minTime))
+//                .afterDisp(toNear ? shoot.clutchDisp3Near : shoot.clutchDisp3Far, decideEarlyRunIntake(minTime))
                 .splineToSplineHeading(shootPose, shootTangent)
                 .build();
 
-        return new SequentialAction(
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                autoCommands.runIntake(),
-                thirdCollectDrive,
-                autoCommands.stopIntake(),
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                thirdShootDrive,
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                waitUntilMinTime(minTime),
-                autoCommands.engageClutch(),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
-        );
+        return buildCollectAndShoot(thirdCollectDrive, new SleepAction(0), thirdShootDrive, minTime, timeConstraints.slowIntakeTime);
     }
     private Action getLoadingCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
@@ -406,104 +395,31 @@ public abstract class AUTO extends LinearOpMode {
         double collectTangent3 = 0;
         double shootTangent = sign * Math.toRadians(toNear ? -150 : -100);
 
-        Action loadingCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
+        Action loadingCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose, collect.loadingBeginEndVel)
                 .setTangent(collectTangent1)
                 .splineToLinearHeading(preLoadingPose, collectTangent2)
                 .splineToLinearHeading(postLoadingPose, collectTangent3, new TranslationalVelConstraint(collect.maxVel))
                 .build(), () -> robot.collection.intakeHas3Balls());
-        Action loadingShootDrive = robot.drive.actionBuilder(postLoadingPose)
+        Action loadingShootDrive = new TimedAction(robot.drive.actionBuilder(postLoadingPose)
                 .setTangent(shootTangent)
-                .afterDisp(toNear ? shoot.clutchDispLoadingNear : shoot.clutchDispLoadingFar, decideEarlyRunIntake(minTime))
+//                .afterDisp(toNear ? shoot.clutchDispLoadingNear : shoot.clutchDispLoadingFar, decideEarlyRunIntake(minTime))
                 .splineToSplineHeading(shootPose, shootTangent)
-                .build();
-
-        return new SequentialAction(
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                loadingCollectDrive,
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                new ParallelAction(
-                    loadingShootDrive,
-                    new SequentialAction(
-                        new SleepAction(0.9),
-                        !toNear ? new SequentialAction(
-                                autoCommands.engageClutch(),
-                                autoCommands.stopIntake()) :
-                                new SleepAction(0)
-                    )
-                ),
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                waitUntilMinTime(minTime),
-                toNear ? autoCommands.engageClutch() : new SleepAction(0),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
+                .build(),
+                2.1
         );
+
+        return buildCollectAndShoot(loadingCollectDrive, new SleepAction(0), loadingShootDrive, minTime, timeConstraints.loadingSlowIntakeTime);
     }
-    private Action getGateCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
+    private Action getRepeatedGateCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double sign = isRed ? 1 : -1;
-        double collectTangent = fromNear ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
         double shootTangent = toNear ? sign * Math.toRadians(-150) : sign * Math.toRadians(-110);
 
-        Action gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(startPose)
-                .setTangent(collectTangent)
-                .splineToSplineHeading(gateCollectPose, collectTangent)
-                .build(),
-                () -> robot.collection.intakeHas3Balls(), timeConstraints.gateCollectMaxTime);
         Action gateShootDrive = robot.drive.actionBuilder(gateCollectPose)
                 .setTangent(shootTangent)
-                .afterDisp(toNear ? shoot.clutchDispGateNear : shoot.clutchDispGateFar, decideEarlyRunIntake(minTime))
                 .splineToSplineHeading(shootPose, shootTangent)
                 .build();
 
-        return new SequentialAction(
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                gateCollectDrive,
-                autoCommands.stopIntake(),
-                autoCommands.engageClutch(),
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                gateShootDrive,
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                waitUntilMinTime(minTime),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
-        );
-    }
-    private Action getGateRepeatedCollectAndShoot(Pose2d startPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
-        double sign = isRed ? 1 : -1;
-        double shootTangent = toNear ? sign * Math.toRadians(-150) : sign * Math.toRadians(-100);
-
-        Action gateShootDrive = robot.drive.actionBuilder(gateCollectPose)
-                .setTangent(shootTangent)
-                .afterDisp(toNear ? shoot.clutchDispGateNear : shoot.clutchDispGateFar, decideEarlyRunIntake(minTime))
-                .splineToSplineHeading(shootPose, shootTangent)
-                .build();
-
-        return new SequentialAction(
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
-                repeatedGateCollect(fromNear),
-                autoCommands.stopIntake(),
-                autoCommands.engageClutch(),
-                new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                gateShootDrive,
-                new InstantAction(() -> autoState = AutoState.SHOOT),
-                waitUntilMinTime(minTime),
-                autoCommands.flickerHalfUp(),
-                autoCommands.runIntake(),
-                new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(timeConstraints.ensureShootAll),
-                autoCommands.flickerUp(),
-                new SleepAction(0.4),
-                autoCommands.disengageClutch()
-        );
+        return buildCollectAndShoot(repeatedGateCollect(fromNear), new SleepAction(0), gateShootDrive, minTime, timeConstraints.loadingSlowIntakeTime);
     }
     private Action repeatedGateCollect(boolean fromNear) {
         return new Action() {
@@ -534,18 +450,27 @@ public abstract class AUTO extends LinearOpMode {
                 return true;
             }
             private void resetCollectDrive() {
-                double sign = isRed ? 1 : -1;
-                double collectTangent = fromNear && numTimesCollected == 0 ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
-                gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(robot.drive.localizer.getPose())
-                        .setTangent(collectTangent)
-                        .splineToSplineHeading(gateCollectPose, collectTangent)
-                        .build(),
-                        () -> robot.collection.intakeHas3Balls(), timeConstraints.gateCollectMaxTime);
+                if (numTimesCollected == 0) {
+                    double sign = isRed ? 1 : -1;
+                    double collectTangent = fromNear ? sign * Math.toRadians(30) : sign * Math.toRadians(80);
+                    gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(robot.drive.localizer.getPose())
+                            .setTangent(collectTangent)
+                            .splineToSplineHeading(gateCollectPose, collectTangent)
+                            .build(),
+                            () -> robot.collection.intakeHas3Balls(), timeConstraints.gateCollectMaxTime);
+                }
+                else {
+                    gateCollectDrive = new CustomEndAction(robot.drive.actionBuilder(robot.drive.localizer.getPose())
+                            .strafeToLinearHeading(new Vector2d(collect.gateCollectRetryX, gateCollectPose.position.y), gateCollectPose.heading.toDouble())
+                            .build(),
+                            () -> robot.collection.intakeHas3Balls(), timeConstraints.gateCollectMaxTime);
+                }
             }
             private void resetRetryDrive() {
-                gateResetDrive = robot.drive.actionBuilder(robot.drive.localizer.getPose())
+                gateResetDrive = new CustomEndAction(robot.drive.actionBuilder(robot.drive.localizer.getPose())
                         .strafeToLinearHeading(gateCollectRetryPose.position, gateCollectRetryPose.heading.toDouble())
-                        .build();
+                        .build(),
+                        () -> robot.collection.intakeHas3Balls() || Math.abs(robot.drive.localizer.getPose().position.y) < (gateCollectRetryPose.position.y) + 1);
             }
         };
     }
@@ -553,12 +478,53 @@ public abstract class AUTO extends LinearOpMode {
     private Action waitUntilMinTime(double minTime) {
         return packet -> minTime > 0 && autoTimer.seconds() < minTime;
     }
-    private Action decideParkDrive(Action parkDrive) {
-        return packet -> {
-            if (autoState == AutoState.SHOOT || autoState == AutoState.DRIVE_TO_SHOOT)
-                return parkDrive.run(packet);
-            robot.drive.stop();
-            return false;
+    private Action decideFlicker() {
+        return new Action() {
+            private final ElapsedTime timer = new ElapsedTime();
+            private boolean first = true;
+            @Override
+            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+                if (robot.shooter.getBallsShot() == 3)
+                    return false;
+
+                if (first) {
+                    first = false;
+                    timer.reset();
+                }
+
+                robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
+                robot.collection.collectionState = Collection.CollectionState.OFF;
+
+                return timer.seconds() < 0.4;
+            }
+        };
+    }
+    private Action decideParkDrive() {
+        return new Action() {
+            private boolean first = true;
+            private Action parkDrive;
+            @Override
+            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
+                if (autoState == AutoState.DRIVE_TO_COLLECT) {
+                    robot.drive.stop();
+                    return false;
+                }
+
+                if (first) {
+                    first = false;
+                    declareDrive();
+                }
+
+                return parkDrive.run(telemetryPacket);
+            }
+            private void declareDrive() {
+                boolean isLastShootPoseNear = customizable.collectionOrder.charAt(customizable.collectionOrder.length() - 1) == 'n';
+                Pose2d startPose = robot.drive.localizer.getPose();
+                Pose2d parkPose = isLastShootPoseNear ? parkNearPose : parkFarPose;
+                parkDrive = robot.drive.actionBuilder(startPose)
+                        .strafeToConstantHeading(parkPose.position)
+                        .build();
+            }
         };
     }
     private Action decideEarlyRunIntake(double minTime) {
@@ -576,8 +542,7 @@ public abstract class AUTO extends LinearOpMode {
         shootNearSetup3Pose = isRed ? shootNearRed(shoot.shootNearSetup3ARed) : shootNearBlue(shoot.shootNearSetup3ABlue);
         shootFarSetup3Pose = isRed ? shootFarRed(shoot.shootFarSetup3ARed) : shootFarBlue(shoot.shootFarSetup3ABlue);
         shootNearSetupLoadingPose = isRed ? shootNearRed(shoot.shootNearSetupLoadingARed) : shootNearBlue(shoot.shootNearSetupLoadingABlue);
-        shootFarSetupLoadingPose = isRed ? shootFarRed(shoot.shootFarSetupLoadingARed) : shootFarBlue(shoot.shootFarSetupLoadingABlue);
-
+        shootFarSetupLoadingPose = isRed ? new Pose2d(shoot.shootFarSetupLoadingXRed, shoot.shootFarSetupLoadingYRed, shoot.shootFarSetupLoadingARed) : new Pose2d(shoot.shootFarSetupLoadingXBlue, shoot.shootFarSetupLoadingYBlue, shoot.shootFarSetupLoadingABlue);
     }
     private void declareCollectPoses() {
         collect1NearPose = isRed ? // only 1 collect pose for near (no pre collect pose, only post collect pose)

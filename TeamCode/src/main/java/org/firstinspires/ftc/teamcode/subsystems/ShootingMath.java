@@ -31,13 +31,13 @@ public class ShootingMath {
         public double flywheelTicksPerRev = 38.5;
 
         // slope and y intercept of distance-exit speed regression - ultimate value takes the max value between these 2
-        public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1115;
+        public double highShotTicksPerSecSlope = 3.8, highShotTicksPerSecYInt = 1100;
         public double lowShotNearZoneTicksPerSec = 5.5, lowShotNearZoneTicksPerSecYInt = 1010;
-        public double lowShotFarZoneTicksPerSecSlope = 5.7, lowShotFarZoneTicksPerSecYInt = 920;
+        public double lowShotFarZoneTicksPerSecSlope = 6.46622, lowShotFarZoneTicksPerSecYInt = 829.67635; //y=6.46622x+829.67635
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
-        public double highToLowArcThresholdInches = 54; // old: 62
-        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = -2, lowArcFarGoalOffsetInches = 0;
+        public double highToLowArcThresholdInches = 56; // old: 62
+        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = 0, lowArcFarGoalOffsetInches = 0;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
