@@ -41,8 +41,8 @@ public abstract class AUTO extends LinearOpMode {
     //    1: if partner gets 6 or more than do procedure with 12 ball
     //    2: if partner gets 0 or 3 then collect 3rd one first, then collect 2nd and open gate
     public static class Customizable {
-        public String collectionOrder = "f1n2n3fgf";
-        public String minTimes = "-1,-1,-1,-1, -1";
+        public String collectionOrder = "flf3fgfgf";
+        public String minTimes = "-1,-1,-1,-1,-1";
         public boolean openGateOnFirst = true;
         public boolean openGateOnSecond = false;
         public boolean useParkAbort = true;
@@ -232,7 +232,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.flickerHalfUp(),
                 new SequentialAction(
                         new SleepAction(timeConstraints.minShootTime),
-                        autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.hasBallValidationTime)
+                        autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.maxTimeBetweenShots, Collection.COLLECTOR_PARAMS.hasBallValidationTime)
                 ),
                 decideFlicker(),
                 autoCommands.disengageClutch()
@@ -249,7 +249,8 @@ public abstract class AUTO extends LinearOpMode {
                                 new InstantAction(() -> autoState = AutoState.OPEN_GATE),
                                 gateDrive,
                                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_SHOOT),
-                                shootDrive
+                                shootDrive,
+                                packet -> {robot.drive.stop(); return false; }
                         ),
                         new SequentialAction(
                                 new SleepAction(slowIntakeTime),
@@ -267,7 +268,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.engageClutch(),
                 autoCommands.flickerHalfUp(),
                 new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.hasBallValidationTime),
+                autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.maxTimeBetweenShots, Collection.COLLECTOR_PARAMS.hasBallValidationTime),
                 decideFlicker(),
                 autoCommands.disengageClutch()
         );
@@ -400,12 +401,17 @@ public abstract class AUTO extends LinearOpMode {
                 .splineToLinearHeading(preLoadingPose, collectTangent2)
                 .splineToLinearHeading(postLoadingPose, collectTangent3, new TranslationalVelConstraint(collect.maxVel))
                 .build(), () -> robot.collection.intakeHas3Balls());
-        Action loadingShootDrive = new TimedAction(robot.drive.actionBuilder(postLoadingPose)
-                .setTangent(shootTangent)
-//                .afterDisp(toNear ? shoot.clutchDispLoadingNear : shoot.clutchDispLoadingFar, decideEarlyRunIntake(minTime))
-                .splineToSplineHeading(shootPose, shootTangent)
-                .build(),
-                2.1
+        Action loadingShootDrive = new SequentialAction(
+                new TimedAction(robot.drive.actionBuilder(postLoadingPose)
+                        .setTangent(shootTangent)
+                        .splineToSplineHeading(shootPose, shootTangent)
+                        .build(),
+                        2.3
+                ),
+                telemetryPacket -> {
+                    robot.drive.stop();
+                    return false;
+                }
         );
 
         return buildCollectAndShoot(loadingCollectDrive, new SleepAction(0), loadingShootDrive, minTime, timeConstraints.loadingSlowIntakeTime);

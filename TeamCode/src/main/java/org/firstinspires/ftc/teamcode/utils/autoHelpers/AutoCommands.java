@@ -26,9 +26,11 @@ public class AutoCommands {
         this.telemetry = telemetry;
     }
 
-    public Action waitTillDoneShooting(double intakeCurrentValidationTime) {
+    public Action waitTillDoneShooting(double maxTimeBetweenShots, double intakeCurrentValidationTime) {
         return new Action() {
             private final ElapsedTime timer = new ElapsedTime();
+            private final ElapsedTime timeSinceLastVelDrop = new ElapsedTime();
+            private int oldBallsShot;
             private boolean first = true;
 
             @Override
@@ -36,11 +38,25 @@ public class AutoCommands {
                 if (first) {
                     first = false;
                     timer.reset();
+                    timeSinceLastVelDrop.reset();
+                    oldBallsShot = robot.shooter.getBallsShot();
                 }
-                if (robot.collection.collectorMotor.getPower() != Collection.COLLECTOR_PARAMS.INTAKE_SPEED || robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
+                if (robot.collection.collectorMotor.getPower() != Collection.COLLECTOR_PARAMS.INTAKE_SPEED) {
+                    timer.reset();
+                    timeSinceLastVelDrop.reset();
+                }
+
+                if (robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
                     timer.reset();
 
-                return timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
+                if (oldBallsShot != robot.shooter.getBallsShot())
+                    timeSinceLastVelDrop.reset();
+
+                oldBallsShot = robot.shooter.getBallsShot();
+                telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());
+
+
+                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }
         };
     }

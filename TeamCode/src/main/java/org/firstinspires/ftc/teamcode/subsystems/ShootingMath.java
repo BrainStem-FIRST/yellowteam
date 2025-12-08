@@ -20,7 +20,7 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 47, lowArcFarTargetHeightInches = 46.5;
+        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 46, lowArcFarTargetHeightInches = 46.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;

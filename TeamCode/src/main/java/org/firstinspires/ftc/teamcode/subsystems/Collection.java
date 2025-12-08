@@ -53,8 +53,9 @@ public class Collection extends Component {
         public double flickerFullUpPos = 0.8;
         public double flickerHalfUpPos = 0.4;
         public double flickerDownPos = 0.05;
-        public double hasBallCurrentThreshold = 3600;
-        public double hasBallValidationTime = 0.7;
+        public double hasBallCurrentThreshold = 3500;
+        public double hasBallValidationTime = 1;
+        public double maxTimeBetweenShots = 1.5;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
