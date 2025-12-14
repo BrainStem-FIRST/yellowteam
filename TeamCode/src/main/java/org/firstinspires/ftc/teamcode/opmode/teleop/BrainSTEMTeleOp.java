@@ -81,8 +81,11 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             gp1.update();
             gp2.update();
 
+            telemetry.addData("TRACKING SHOOTER DATA", robot.shooter.isTrackingData());
+            telemetry.addLine();
             telemetry.addData("SHOOTER ADJUSTMENT", robot.shooter.adjustment);
             telemetry.addData("TURRET ADJUSTMENT", robot.turret.adjustment);
+            telemetry.addLine();
 
             updateDrive();
             updateDriver2();
@@ -156,9 +159,13 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 robot.shooter.shooterState = Shooter.ShooterState.OFF;
             else
                 robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
-        if (gp1.isFirstDpadDown())
-            robot.shooter.manualShooterTrackerCommand(gp1).schedule();
 
+        if (gp1.isFirstDpadDown()) {
+            if (robot.shooter.isTrackingData())
+                robot.shooter.stopManualTrackingData();
+            else
+                robot.shooter.startManualTrackingData();
+        }
         if (gp1.isFirstLeftBumper())
             if (robot.turret.turretState == Turret.TurretState.CENTER)
                 robot.turret.turretState = Turret.TurretState.TRACKING;

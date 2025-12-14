@@ -18,6 +18,9 @@ public class MathUtils {
             deg -= 360;
         return deg;
     }
+    public static String format1(Number num) {
+        return format(num, 1);
+    }
     public static String format2(Number num) {
         return format(num, 2);
     }

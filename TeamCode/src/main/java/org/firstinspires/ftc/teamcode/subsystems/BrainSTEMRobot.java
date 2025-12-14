@@ -39,7 +39,6 @@ public class BrainSTEMRobot {
     private final List<LynxModule> allHubs;
     private Telemetry telemetry;
     public GamepadTracker g1;
-    public Vector2d ballExitPosition;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;

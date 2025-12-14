@@ -1,13 +1,15 @@
 package org.firstinspires.ftc.teamcode.utils.shootingRecording;
 
 public class ShotData {
-    public final double timestamp, avgVel, targetVel, motorPower, ballExitAngleDeg;
-    public final int turretEncoder;
+    public final double timestamp, avgVel, theoreticalTargetVel, adjustedTargetVel, motorPower, ballExitAngleDeg;
+    public final int numBallsShot, turretEncoder;
     public final double targetTurretEncoder;
-    public ShotData(double timestamp, double avgVel, double targetVel, double motorPower, double ballExitAngleDeg, int turretEncoder, double targetTurretEncoder) {
+    public ShotData(double timestamp, int numBallsShot, double avgVel, double theoreticalTargetVel, double adjustedTargetVel, double motorPower, double ballExitAngleDeg, int turretEncoder, double targetTurretEncoder) {
         this.timestamp = timestamp;
+        this.numBallsShot = numBallsShot;
         this.avgVel = avgVel;
-        this.targetVel = targetVel;
+        this.theoreticalTargetVel = theoreticalTargetVel;
+        this.adjustedTargetVel = adjustedTargetVel;
         this.motorPower = motorPower;
         this.ballExitAngleDeg = ballExitAngleDeg;
         this.turretEncoder = turretEncoder;

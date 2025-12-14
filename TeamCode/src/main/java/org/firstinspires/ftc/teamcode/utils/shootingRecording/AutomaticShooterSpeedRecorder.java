@@ -5,9 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
@@ -17,9 +15,17 @@ import java.util.ArrayList;
 @Config
 @TeleOp(name="Automatic Shooter Speed Recorder", group="Data Recording")
 public class AutomaticShooterSpeedRecorder extends OpMode {
+    public static class ShowDataOptions {
+        public boolean showTime = false;
+        public boolean showNumBallsShot = true;
+        public boolean showShooterVel = true;
+        public boolean showShooterPower = false;
+        public boolean showHood = false;
+        public boolean showTurret = false;
+    }
+    public static ShowDataOptions showDataOptions = new ShowDataOptions();
     public static int bigScrollAmount = 4;
     public static int shotBufferFrames = 10;
-    public static int sameShotThresholdFrames = 2; // how far apart do 2 decelerations need to be for this to consider them as separate shots?
     private static final ArrayList<ShotData> rawData = new ArrayList<>();
     private static final ArrayList<ArrayList<ShotData>> data = new ArrayList<>();
 
@@ -33,23 +39,15 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
     private static void parseRawData() {
         data.clear();
         ArrayList<Integer> shotInts = new ArrayList<>();
-        double prevVel = rawData.get(0).avgVel;
-        double curVel;
-        for (int i=1; i<rawData.size(); i++) {
-            curVel = rawData.get(i).avgVel;
+        for (int i=1; i<rawData.size(); i++)
+            if (rawData.get(i).numBallsShot > rawData.get(i - 1).numBallsShot)
+                shotInts.add(i);
 
-            if (curVel - prevVel <= Shooter.SHOOTER_PARAMS.minShootBallDeceleration) {
-                boolean farEnoughFromPrev = shotInts.isEmpty() || i - shotInts.get(shotInts.size() - 1) > sameShotThresholdFrames;
-                if (farEnoughFromPrev)
-                    shotInts.add(i);
-            }
-        }
         for (Integer shotInt : shotInts) {
-            data.add(new ArrayList<>());
-
-            for (int i=Math.max(0, shotInt - shotBufferFrames); i<Math.min(rawData.size(), shotInt + shotBufferFrames); i++) {
-                data.get(data.size() - 1).add(rawData.get(i));
-            }
+            ArrayList<ShotData> shotDataList = new ArrayList<>();
+            for (int i=Math.max(0, shotInt - shotBufferFrames); i<Math.min(rawData.size(), shotInt + shotBufferFrames); i++)
+                shotDataList.add(rawData.get(i));
+            data.add(shotDataList);
         }
     }
     private GamepadTracker g1;
@@ -91,7 +89,6 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
         boolean newShot = currentShownShot != oldCurrentShownShot;
         if (newShot)
             updateTelemetry();
-
     }
     private void updateTelemetry() {
         telemetry.addLine("===CONTROLS===");
@@ -105,19 +102,26 @@ public class AutomaticShooterSpeedRecorder extends OpMode {
         telemetry.addData("num shots recorded", data.size());
         telemetry.addLine();
         telemetry.addLine("===DATA (time, target spd, actual spd, power, hood) ===");
+
         ArrayList<ShotData> shot = data.get(currentShownShot);
         for (ShotData shotData : shot) {
-            String outOfBoundsAngle = shotData.ballExitAngleDeg > ShootingMath.hoodSystemParams.maxAngleDeg || shotData.ballExitAngleDeg < ShootingMath.hoodSystemParams.minAngleDeg ?
-                    ", OUT OF HOOD RANGE" : "";
-            telemetry.addLine("time: " + MathUtils.format3(shotData.timestamp) +
-                    ", targetSpd: " + MathUtils.format2(shotData.targetVel) +
-                    ", actualSpd: " + MathUtils.format2(shotData.avgVel) +
-                    ", power: " + MathUtils.format3(shotData.motorPower) +
-                    ", exitAngle: " + MathUtils.format3(shotData.ballExitAngleDeg) +
-                    outOfBoundsAngle +
-                    ", turret: " + shotData.turretEncoder + ", " + shotData.targetTurretEncoder
-            );
+            String time = showDataOptions.showTime ? "tm:" + MathUtils.format3(shotData.timestamp) + "| " : "";
+            String numBalls = showDataOptions.showNumBallsShot ? "bs: " + shotData.numBallsShot + "| " : "";
+            String shooterVel = showDataOptions.showShooterVel ?
+                    "spd: " + MathUtils.format1(shotData.avgVel) + " ttSpd: " + MathUtils.format1(shotData.theoreticalTargetVel) +
+                    " attSpd: " + MathUtils.format1(shotData.adjustedTargetVel) + "| " : "";
+            String shooterPow = showDataOptions.showShooterPower ? "pwr: " + MathUtils.format3(shotData.motorPower) + "| " : "";
+            String hood = "angle: " + MathUtils.format3(shotData.ballExitAngleDeg);
+            if (shotData.ballExitAngleDeg > ShootingMath.hoodSystemParams.maxAngleDeg || shotData.ballExitAngleDeg < ShootingMath.hoodSystemParams.minAngleDeg)
+                    hood += ", OUT OF HOOD RANGE";
+            hood += "| ";
+            if (!showDataOptions.showHood)
+                hood = "";
+            String turret = showDataOptions.showTurret ? "trrt: " + shotData.turretEncoder + ", " + shotData.targetTurretEncoder : "";
+
+            telemetry.addLine(time + numBalls + shooterVel + shooterPow + hood + turret);
         }
+
         telemetry.update();
     }
 }

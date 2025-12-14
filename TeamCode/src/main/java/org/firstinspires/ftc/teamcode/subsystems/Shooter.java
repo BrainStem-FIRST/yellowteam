@@ -32,16 +32,18 @@ public class Shooter extends Component {
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.00048;
-        public double minShootBallDeceleration = -40;
         public double maxErrorThresholdNear = 75, maxErrorThresholdFar = 60;
-        public double shotVelDropThreshold = 60;
+        public double shotVelDropThreshold = 70;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
     }
+
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
     public static boolean printShootInfo = false;
+    public static boolean fixHoodToIdealVelocity = true;
+    public static int startingShooterSpeedAdjustment = -20;
 
     public enum ShooterState {
         OFF, UPDATE, REVERSE_FULL
@@ -87,9 +89,11 @@ public class Shooter extends Component {
 
         shooterState = ShooterState.OFF;
         recordTimer = new ElapsedTime();
+        recordTimer.reset();
         lastMax = 0;
         lastMin = Double.MAX_VALUE;
-        ballsShot = 100;
+        ballsShot = 0;
+        adjustment = startingShooterSpeedAdjustment;
 
     }
 
@@ -126,10 +130,10 @@ public class Shooter extends Component {
 
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-        double motorTicksPerSecond = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
+        double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
 
         if (powerShooterAndHood)
-            setShooterVelocityPID(motorTicksPerSecond);
+            setShooterVelocityPID(targetShooterVelocityTicksPerSec);
 
         // update HOOD
         // offset the hood's distance when close
@@ -139,7 +143,7 @@ public class Shooter extends Component {
         else
             hoodBallExitPosInchesFromGoal += isNear ? ShootingMath.shooterSystemParams.lowArcNearGoalOffsetInches : ShootingMath.shooterSystemParams.lowArcFarGoalOffsetInches;
 
-        double shooterSpeed = getAvgMotorVelocity();
+        double shooterSpeed = fixHoodToIdealVelocity ? targetShooterVelocityTicksPerSec : getAvgMotorVelocity();
         double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(shooterSpeed);
         double oldBallExitAngleRad = ballExitAngleRad;
         ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, isNear, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
@@ -152,7 +156,7 @@ public class Shooter extends Component {
             telemetry.addData("in near zone", isNear);
             telemetry.addData("actual distance from goal inches", ballExitPosInchesFromGoal);
             telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
-            telemetry.addData("target motor speed", motorTicksPerSecond);
+            telemetry.addData("target motor speed", targetShooterVelocityTicksPerSec);
             telemetry.addData("actual motor speed", getAvgMotorVelocity());
             telemetry.addData("exit speed mps", currentBallExitSpeedMps);
             telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
@@ -186,7 +190,6 @@ public class Shooter extends Component {
         switch (shooterState) {
             case OFF:
                 setShooterPower(0);
-                adjustment = 0;
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose, false);
                 break;
@@ -209,6 +212,8 @@ public class Shooter extends Component {
         }
         prevVel = vel;
         wasPrevIncreasing = increasing;
+
+        updateManualShooterTracking();
     }
 
     public double getVelHigh() {
@@ -226,6 +231,7 @@ public class Shooter extends Component {
         telemetry.addData("  avg motor vel", getAvgMotorVelocity());
         telemetry.addData("  last max", lastMax);
         telemetry.addData("  last min", lastMin);
+        telemetry.addData("shooter error", getAvgMotorVelocity() - shooterPID.getTarget());
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  power high", shooterMotorHigh.getPower());
         telemetry.addData("  power low", shooterMotorLow.getPower());
@@ -241,38 +247,41 @@ public class Shooter extends Component {
         return (getVelHigh() + getVelLow()) * 0.5;
     }
 
-    public Command manualShooterTrackerCommand(GamepadTracker gp1) {
-        return new Command() {
-            private int num = 0;
-            private double lastTime = 0;
-            @Override
-            public void execute() {
-                if (recordTimer.milliseconds() - lastTime > ManualShooterSpeedRecorder.recordIntervalMs
-                        && num < ManualShooterSpeedRecorder.recordAmountForEachShot
-                        && ManualShooterSpeedRecorder.getCurrentShot() < ManualShooterSpeedRecorder.numShotsToRecord) {
-                    lastTime = recordTimer.milliseconds();
-                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][0] = recordTimer.seconds();
-                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][1] = shooterPID.getTarget();
-                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][2] = getAvgMotorVelocity();
-                    ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][3] = shooterMotorHigh.getPower();
-                    num++;
-                }
-            }
-            @Override
-            public void end(boolean interrupted) {
-                ManualShooterSpeedRecorder.incrementCurrentShot();
-            }
-            @Override
-            public boolean isFinished() {
-                return !gp1.gamepad.dpad_down || num >= ManualShooterSpeedRecorder.recordAmountForEachShot;
-            }
+    private boolean trackData = false;
+    private int num;
+    private double lastTime;
+    private void updateManualShooterTracking() {
+        if (trackData) {
+            if (num >= ManualShooterSpeedRecorder.recordAmountForEachShot)
+                throw new IllegalStateException("tracking data for too long - " + num + " is out of range for " + ManualShooterSpeedRecorder.recordAmountForEachShot + " data slots");
 
-            @Override
-            public Set<Subsystem> getRequirements() {
-                return Collections.emptySet();
+            if (recordTimer.milliseconds() - lastTime > ManualShooterSpeedRecorder.recordIntervalMs
+                    && num < ManualShooterSpeedRecorder.recordAmountForEachShot
+                    && ManualShooterSpeedRecorder.getCurrentShot() < ManualShooterSpeedRecorder.numShotsToRecord) {
+                lastTime = recordTimer.milliseconds();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][0] = recordTimer.seconds();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][1] = shooterPID.getTarget();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][2] = getAvgMotorVelocity();
+                ManualShooterSpeedRecorder.data[ManualShooterSpeedRecorder.getCurrentShot()][num][3] = shooterMotorHigh.getPower();
+                num++;
             }
-        };
+        }
     }
+    public boolean isTrackingData() {
+        return trackData;
+    }
+    public void startManualTrackingData() {
+        trackData = true;
+        num = 0;
+        lastTime = 0;
+    }
+    public void stopManualTrackingData() {
+        trackData = false;
+        ManualShooterSpeedRecorder.incrementCurrentShot();
+        lastTime = 0;
+        num = 0;
+    }
+
     public Command automaticShooterTrackerCommand() {
         return new Command() {
             private final ElapsedTime timer = new ElapsedTime();
@@ -286,7 +295,10 @@ public class Shooter extends Component {
                 if (shooterState == ShooterState.UPDATE && robot.collection.clutchState == Collection.ClutchState.ENGAGED && robot.collection.collectionState == Collection.CollectionState.INTAKE)
                     AutomaticShooterSpeedRecorder.addShotData(new ShotData(
                             timer.seconds(),
-                            getAvgMotorVelocity(), shooterPID.getTarget(), shooterMotorHigh.getPower(),
+                            ballsShot,
+                            getAvgMotorVelocity(),
+                            shooterPID.getTarget() - adjustment, shooterPID.getTarget(),
+                            shooterMotorHigh.getPower(),
                             Math.toDegrees(ballExitAngleRad),
                             robot.turret.getTurretEncoder(), robot.turret.targetEncoder));
             }
