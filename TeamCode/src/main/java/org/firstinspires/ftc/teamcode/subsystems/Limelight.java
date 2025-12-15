@@ -1,6 +1,7 @@
 
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -13,7 +14,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
+@Config
 public class Limelight extends Component {
+    public static boolean useMT2 = false;
     // i should tune the camera so that it gives me the turret center position
     private final Limelight3A limelight;
     private Vec turretPos;
@@ -22,6 +25,8 @@ public class Limelight extends Component {
     private double robotHeading;
     private Vec robotTurretVec;
     private LLResult result;
+    private Pose2d lastTurretPose;
+    public double maxTranslationalError = 0, maxHeadingErrorDeg = 0;
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -49,19 +54,35 @@ public class Limelight extends Component {
     @Override
     public void reset() {}
 
-
     @Override
     public void update() {
+        if (useMT2) {
+            double robotYaw = robot.drive.pinpoint().driver.getYawScalar();
+            limelight.updateRobotOrientation(robotYaw);
+        }
         result = limelight.getLatestResult();
+
         if (result == null) {
             robotPos = null;
             robotHeading = 0;
             return;
         }
 
-        Pose3D turretPose = result.getBotpose();
+        Pose3D turretPose = useMT2 ? result.getBotpose_MT2() : result.getBotpose();
+        Position position = turretPose.getPosition().toUnit(DistanceUnit.INCH);
+
+        double translationalError = Math.hypot(position.x - lastTurretPose.position.x, position.y - lastTurretPose.position.y);
+        double headingErrorDeg = Math.abs(turretPose.getOrientation().getYaw(AngleUnit.DEGREES) - Math.toDegrees(lastTurretPose.heading.toDouble()));
+        maxTranslationalError = Math.max(maxTranslationalError, translationalError);
+        maxHeadingErrorDeg = Math.max(maxHeadingErrorDeg, headingErrorDeg);
 
         telemetry.addLine("LIMELIGHT UPDATE=================");
+        telemetry.addData("using MT2", useMT2);
+        telemetry.addData("translational error", translationalError);
+        telemetry.addData("max translational error", maxTranslationalError);
+        telemetry.addData("heading error", headingErrorDeg);
+        telemetry.addData("max heading error", maxHeadingErrorDeg);
+        
 //        if(turretPose.getPosition().x != 0 && turretPose.getPosition().z != 0) {
         Position temp = turretPose.getPosition().toUnit(DistanceUnit.INCH);
         this.turretPos = new Vec(temp.x, temp.y);
@@ -70,15 +91,12 @@ public class Limelight extends Component {
         int currentTurretPosition = robot.turret.turretMotor.getCurrentPosition();
         double relTurretAngleRad = Turret.getTurretRelativeAngleRad(currentTurretPosition);
         robotHeading = turretHeading - relTurretAngleRad;
-//        telemetry.addData("   rel turret angle deg", Math.floor(relTurretAngleRad * 180 / Math.PI));
         if(robotHeading > Math.PI)
             robotHeading -= Math.PI * 2;
         robotTurretVec = new Vec(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
         robotPos = turretPos.add(robotTurretVec);
-//        telemetry.addData("robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
-//        }
-//        else
-//            telemetry.addData("NO POSE FOUND - robot pose", getRobotPos().x + ", " +  getRobotPos().y + " | " + Math.toDegrees(robotHeading));
+
+        lastTurretPose = new Pose2d(temp.x, temp.y, robotHeading);
     }
 
     // robotHeading should be in radians

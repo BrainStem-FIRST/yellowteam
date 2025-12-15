@@ -166,11 +166,17 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             else
                 robot.shooter.startManualTrackingData();
         }
-        if (gp1.isFirstLeftBumper())
+        if (gp1.isFirstLeftBumper()) {
             if (robot.turret.turretState == Turret.TurretState.CENTER)
                 robot.turret.turretState = Turret.TurretState.TRACKING;
             else
                 robot.turret.turretState = Turret.TurretState.CENTER;
+        }
+
+        if (gp1.isFirstBack()) {
+            robot.limelight.maxTranslationalError = 0;
+            robot.limelight.maxHeadingErrorDeg = 0;
+        }
     }
 
     private void updateDriver2() {
