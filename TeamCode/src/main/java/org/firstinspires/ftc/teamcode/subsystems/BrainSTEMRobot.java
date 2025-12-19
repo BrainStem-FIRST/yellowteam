@@ -96,20 +96,6 @@ public class BrainSTEMRobot {
             for (Component c : subsystems)
                 c.update();
     }
-    public void updatePoseWithLimelight() {
-        Pose2d limelightPose = limelight.getRobotPose();
-        if(limelightPose != null) {
-            led.setLed(LED.white);
-            drive.stop();
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            drive.updatePoseEstimate();
-            drive.localizer.setPose(limelightPose);
-        }
-    }
 
     private void drawRobot(BrainSTEMRobot robot) {
         TelemetryPacket packet = new TelemetryPacket();

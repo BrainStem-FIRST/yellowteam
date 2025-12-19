@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 @Config
 public class LED extends Component {
     public static double shooterFlashThreshold = 20;
-    public static double white = 0.99, green = 0.45, yellow = 0.35, blue = 0.666, red = 0.279;
+    public static double white = 0.99, pink = 0.9, green = 0.45, yellow = 0.35, blue = 0.666, red = 0.279;
     public static double flashOnTime = 0.3, flashOffTime = 0.1;
     private final ServoImplEx left_led;
     private final ServoImplEx right_led;
@@ -33,6 +33,11 @@ public class LED extends Component {
 
     @Override
     public void update(){
+        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+            setLed(robot.limelight.successfullyFoundPose ? white : pink);
+            return;
+        }
+
         double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
         if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance) {
             if (timer.seconds() > flashOnTime + flashOffTime)

@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode.utils.math;
 
+import com.acmerobotics.roadrunner.Pose2d;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 import java.text.DecimalFormat;
 
 // helps for concise, easy printing to telemetry
@@ -43,6 +47,9 @@ public class MathUtils {
         for (double num : nums)
             total.append(format3(num)).append(", ");
         return total.substring(0, total.length() - 2);
+    }
+    public static String format2Pose(Pose2d pose) {
+        return MathUtils.format2(pose.position.x) + " " + MathUtils.format2(pose.position.y) + MathUtils.format2(pose.heading.toDouble());
     }
 
     public static double lerp(double a, double b, double t) {

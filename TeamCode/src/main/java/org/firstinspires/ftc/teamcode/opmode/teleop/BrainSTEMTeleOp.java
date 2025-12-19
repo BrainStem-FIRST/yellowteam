@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.PosePredictionErrorRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.Limelight;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
@@ -112,7 +113,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 //            telemetry.addData("front left dist", robot.collection.frontLeftLaserDist);
 //            telemetry.addData("front right dist", robot.collection.frontRightLaserDist);
 //            telemetry.addData("turret pos", robot.limelight.getTurretPos());
-//            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeading() * 180 / Math.PI));
+//            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeadingRad() * 180 / Math.PI));
 //            telemetry.addData("robot pos", robot.limelight.getRobotPos());
 //            telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
 //            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
@@ -126,6 +127,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDrive() {
+        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE)
+            return;
         currentlyMoving = gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
@@ -217,7 +220,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if(gp2.isFirstRightBumper())
-            robot.updatePoseWithLimelight();
+            robot.limelight.setState(Limelight.UpdateState.UPDATING_POSE);
     }
     private void updatePosePredict() {
         // show predicted pose on dashboard
