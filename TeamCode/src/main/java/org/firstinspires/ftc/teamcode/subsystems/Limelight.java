@@ -45,7 +45,7 @@ public class Limelight extends Component {
     private LLResult result;
     private Pose2d lastAvgTurretPose;
     private final ArrayList<Pose3D> lastTurretPoses;
-    public double maxTranslationalError = 0, maxHeadingErrorDeg = 0;
+    public double maxTranslationalError, maxHeadingErrorDeg;
     private boolean canUpdateReliably;
     public boolean successfullyFoundPose;
     private UpdateState updateState;
@@ -65,6 +65,8 @@ public class Limelight extends Component {
         lastTurretPoses = new ArrayList<>();
         setState(UpdateState.PASSIVE_READING);
         successfullyFoundPose = false;
+        maxTranslationalError = 0;
+        maxHeadingErrorDeg = 0;
     }
 
     @Override

@@ -222,6 +222,52 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         if(gp2.isFirstRightBumper())
             robot.limelight.setState(Limelight.UpdateState.UPDATING_POSE);
     }
+    private void updateDashboardField() {
+        Pose2d robotPose = robot.drive.pinpoint().getPose();
+        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+        Pose2d exitPose = new Pose2d(exitPosition, robot.turret.currentAngleRad);
+        Pose2d limelightRobotPose = robot.limelight.getRobotPose();
+        if (limelightRobotPose == null)
+            limelightRobotPose = new Pose2d(0, 0, 0);
+
+        TelemetryPacket packet = new TelemetryPacket();
+        Canvas fieldOverlay = packet.fieldOverlay();
+        TelemetryHelper.radii[0] = 10;
+        TelemetryHelper.radii[1] = 6;
+        TelemetryHelper.radii[2] = 3;
+        TelemetryHelper.radii[3] = 10;
+        TelemetryHelper.numPosesToShow = 4;
+
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose, limelightRobotPose);
+
+        // draw where turret is pointed
+        fieldOverlay.setAlpha(1);
+        double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
+
+        fieldOverlay.setStroke("purple");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(robot.turret.currentAngleRad),
+                exitPosition.y + dist * Math.sin(robot.turret.currentAngleRad)
+        );
+        fieldOverlay.setStroke("black");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(robot.turret.targetAngleRad),
+                exitPosition.y + dist * Math.sin(robot.turret.targetAngleRad)
+        );
+
+        // draw goal
+        fieldOverlay.setStroke("yellow");
+        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 3);
+        Pose2d defaultGoalPose = robot.turret.targetPose;
+        fieldOverlay.strokeCircle(defaultGoalPose.position.x, defaultGoalPose.position.y, 3);
+        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+    }
+
     private void updatePosePredict() {
         // show predicted pose on dashboard
         PinpointLocalizer pinpoint = robot.drive.pinpoint();
@@ -263,91 +309,4 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         );
         PosePredictionErrorRecorder.controlGroupError.add(controlGroupError);
     }
-    private void updateDashboardField() {
-        Pose2d robotPose = robot.drive.pinpoint().getPose();
-        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
-        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
-
-        TelemetryPacket packet = new TelemetryPacket();
-        Canvas fieldOverlay = packet.fieldOverlay();
-        TelemetryHelper.radii[0] = 10;
-        TelemetryHelper.radii[1] = 6;
-        TelemetryHelper.radii[2] = 3;
-        TelemetryHelper.radii[3] = 10;
-        TelemetryHelper.numPosesToShow = 4;
-
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, new Pose2d(exitPosition.x, exitPosition.y, robot.turret.targetAngleRad));
-
-        // draw exit position velocity
-        fieldOverlay.setAlpha(1);
-        fieldOverlay.setStroke("black");
-        fieldOverlay.strokeLine(robotPose.position.x,
-                robotPose.position.y,
-                robotPose.position.x + robot.turret.exitVelocityMps.x,
-                robotPose.position.y + robot.turret.exitVelocityMps.y);
-
-        // draw where turret is pointed
-        double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
-
-        fieldOverlay.setStroke("purple");
-        fieldOverlay.strokeLine(
-                exitPosition.x,
-                exitPosition.y,
-                exitPosition.x + dist * Math.cos(robot.turret.currentAngleRad),
-                exitPosition.y + dist * Math.sin(robot.turret.currentAngleRad)
-        );
-        fieldOverlay.setStroke("black");
-        fieldOverlay.strokeLine(
-                exitPosition.x,
-                exitPosition.y,
-                exitPosition.x + dist * Math.cos(robot.turret.targetAngleRad),
-                exitPosition.y + dist * Math.sin(robot.turret.targetAngleRad)
-        );
-
-        // draw goal
-        fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 3);
-        Pose2d defaultGoalPose = robot.turret.targetPose;
-        fieldOverlay.strokeCircle(defaultGoalPose.position.x, defaultGoalPose.position.y, 3);
-        FtcDashboard.getInstance().sendTelemetryPacket(packet);
-    }
-//    private void updateDashboardField() {
-//        Pose2d robotPose = robot.drive.pinpoint().getPose();
-//        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
-//
-//        TelemetryPacket packet = new TelemetryPacket();
-//        Canvas fieldOverlay = packet.fieldOverlay();
-//        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose);
-//        fieldOverlay.setAlpha(1);
-//        fieldOverlay.setStroke("black");
-//        fieldOverlay.strokeLine(robotPose.position.x,
-//                robotPose.position.y,
-//                robotPose.position.x + robot.turret.exitVelocityMps.x,
-//                robotPose.position.y + robot.turret.exitVelocityMps.y);
-//        if (showRelative) {
-//            Vec vec = robot.turret.relativeBallExitVelocityMps.normalize().mult(velocitySize);
-//            fieldOverlay.setStroke("green");
-//            fieldOverlay.strokeLine(turretPose.position.x,
-//                    turretPose.position.y,
-//                    turretPose.position.x + vec.x,
-//                    turretPose.position.y + vec.y
-//            );
-//        }
-//        if (showGlobal) {
-//            Vec vec = robot.turret.globalBallExitVelocityMps.normalize().mult(velocitySize);
-//            fieldOverlay.setStroke("blue");
-//            fieldOverlay.strokeLine(turretPose.position.x,
-//                    turretPose.position.y,
-//                    turretPose.position.x + vec.x,
-//                    turretPose.position.y + vec.y
-//            );
-//        }
-//
-//        fieldOverlay.setStroke("yellow");
-//        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 5);
-//        FtcDashboard.getInstance().sendTelemetryPacket(packet);
-//
-//       TelemetryHelper.sendRobotPoses(robotPose, robot.turret.getTurretPose(robotPose));
-//    }
-
 }

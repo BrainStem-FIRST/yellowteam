@@ -27,7 +27,7 @@ public class Turret extends Component {
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;
-        public double TICKS_PER_REV = 1228.5; // new 1228, old 1212\
+        public double TICKS_PER_REV = 1228.5;
         public int RED_ENCODER_OFFSET = 0, BLUE_ENCODER_OFFSET = 0;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
@@ -35,14 +35,14 @@ public class Turret extends Component {
     public static boolean powerTurret = true;
     public static Params TURRET_PARAMS = new Turret.Params();
     public enum TurretState {
-        OFF, TRACKING, CENTER, PARK
+        TRACKING, CENTER, PARK
     }
     public DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose;
-    public Vec exitVelocityMps, relativeBallExitVelocityMps, globalBallExitVelocityMps;
+    public Vec relativeBallExitVelocityMps, globalBallExitVelocityMps;
     public double targetAngleRad, currentAngleRad, turretAngleRad;
     public int targetEncoder;
     public double currentLookAheadTime;
@@ -54,10 +54,8 @@ public class Turret extends Component {
 
         pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
         turretState = TurretState.CENTER;
-        exitVelocityMps = new Vec(0, 0);
         relativeBallExitVelocityMps = new Vec(0, 0);
         globalBallExitVelocityMps = new Vec(0, 0);
-//        targetPose = getDefaultTargetGoalPose();
     }
 
     @Override
@@ -149,39 +147,48 @@ public class Turret extends Component {
     @Override
     public void update(){
         targetPose = getDefaultTargetGoalPose();
+        Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
+        Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+
         switch (turretState) {
-            case OFF:
-                break;
             case TRACKING:
-                Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
-                Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
-                int turretEncoder = getTurretEncoder();
+                if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+                    turretMotor.setPower(0);
+                    break;
+                }
+
                 double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
-                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
-                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, getTurretEncoder(), ballExitAngleRad);
+                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, getTurretEncoder(), ballExitAngleRad);
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
                 double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
                 targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
 
-                double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
                 int targetTurretPosition = (int)(turretTargetAngleRad * turretTicksPerRadian);
                 targetTurretPosition += adjustment;
                 targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
 
                 if (powerTurret)
                     setTurretPosition(targetTurretPosition);
-                turretAngleRad = getTurretEncoder() / turretTicksPerRadian;
-                currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
                 break;
 
             case CENTER:
+                if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+                    turretMotor.setPower(0);
+                    break;
+                }
+
                 setTurretPosition(0);
-                adjustment = 0;
+                targetAngleRad = currentRobotPose.heading.toDouble();
                 break;
 
             case PARK:
                 setTurretPosition(-330);
                 break;
         }
+
+        turretAngleRad = getTurretEncoder() / turretTicksPerRadian;
+        currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
     }
 }
