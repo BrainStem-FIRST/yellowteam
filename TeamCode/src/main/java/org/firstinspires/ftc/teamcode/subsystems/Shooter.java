@@ -172,10 +172,6 @@ public class Shooter extends Component {
     }
 
     @Override
-    public void reset() {
-    }
-
-    @Override
     public void update(){
         double vel = getAvgMotorVelocity();
         double dif = vel - prevVel;

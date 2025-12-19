@@ -128,9 +128,6 @@ public class Turret extends Component {
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad(turretPosition));
     }
 
-    @Override
-    public void reset() {}
-
     public void updateLookAheadTime(boolean useLookAhead) {
         double newLookAhead = useLookAhead ? TURRET_PARAMS.lookAheadTime : 0;
         double smoothValue = useLookAhead ? TURRET_PARAMS.startLookAheadSmoothValue : TURRET_PARAMS.endLookAheadSmoothValue;

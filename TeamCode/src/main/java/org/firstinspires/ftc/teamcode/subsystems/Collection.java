@@ -155,10 +155,6 @@ public class Collection extends Component {
     }
 
     @Override
-    public void reset() {
-    }
-
-    @Override
     public void update() {
         telemetry.addData("flicker state", flickerState);
         telemetry.addData("flicker left pos", flickerLeft.getPosition());

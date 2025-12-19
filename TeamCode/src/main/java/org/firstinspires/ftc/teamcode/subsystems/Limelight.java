@@ -28,12 +28,16 @@ public class Limelight extends Component {
         PASSIVE_READING,
         UPDATING_POSE
     }
+    public static class UpdatePoseParams {
+        public double maxUpdateTranslationalVel = 0.5, maxUpdateHeadingDegVel = 2; // inches and degrees
+        public int maxUpdateTurretVelTicksPerSec = 1;
+        public double maxUpdateDist = 110;
+        public int numPrevFramesToAvg = 4;
+        public int minTimeBetweenUpdates = 5;
+    }
     public static UpdatePoseType updatePoseType = UpdatePoseType.CONTINUOUS;
     public static UpdateState offUpdateState = UpdateState.PASSIVE_READING;
-    public static double maxUpdateTranslationalVel = 0.5, maxUpdateHeadingDegVel = 2; // inches and degrees
-    public static int maxUpdateTurretVelTicksPerSec = 1;
-    public static double maxUpdateDist = 110;
-    public static int numPrevFramesToAvg = 4;
+    public static UpdatePoseParams updatePoseParams = new UpdatePoseParams();
     // i should tune the camera so that it gives me the turret center position
     private final Limelight3A limelight;
     private Pose2d turretPose, robotPose;
@@ -48,6 +52,7 @@ public class Limelight extends Component {
     private OdoInfo odoVel = new OdoInfo(0, 0, 0);
     private Pose2d odoPose = new Pose2d(0, 0, 0);
     private int numSetPoses = 0;
+    private double lastUpdateTimeMs = 0;
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -71,17 +76,18 @@ public class Limelight extends Component {
             telemetry.addData("   isValid", result.isValid());
             telemetry.addData("   can update reliably", canUpdateReliably);
             telemetry.addData("   successfully found pose", successfullyFoundPose);
+            telemetry.addData("   last update time", MathUtils.format2(lastUpdateTimeMs * 0.001));
+            telemetry.addLine();
             telemetry.addData("   max translational error", maxTranslationalError);
             telemetry.addData("   max heading error", maxHeadingErrorDeg);
             telemetry.addData("   turret pose", MathUtils.format2(turretPose.position.x) + " " + MathUtils.format2(turretPose.position.y) + " " + MathUtils.format2(Math.toDegrees(turretPose.heading.toDouble())));
             telemetry.addData("   robot pose", MathUtils.format2(robotPose.position.x) + " " + MathUtils.format2(robotPose.position.y) + " " + MathUtils.format2(Math.toDegrees(robotPose.heading.toDouble())));
 
-            if (!lastTurretPoses.isEmpty())
-                telemetry.addData("   last pose 1", MathUtils.format2(lastTurretPoses.get(0).getPosition().x) + " " + MathUtils.format2(lastTurretPoses.get(0).getPosition().y) + MathUtils.format2(lastTurretPoses.get(0).getOrientation().getYaw(AngleUnit.DEGREES)));
-            if (lastTurretPoses.size() > 1)
-                telemetry.addData("   last pose 2", MathUtils.format2(lastTurretPoses.get(1).getPosition().x) + " " + MathUtils.format2(lastTurretPoses.get(1).getPosition().y) + MathUtils.format2(lastTurretPoses.get(1).getOrientation().getYaw(AngleUnit.DEGREES)));
-            if (lastTurretPoses.size() > 2)
-                telemetry.addData("   last pose 3", MathUtils.format2(lastTurretPoses.get(2).getPosition().x) + " " + MathUtils.format2(lastTurretPoses.get(2).getPosition().y) + MathUtils.format2(lastTurretPoses.get(2).getOrientation().getYaw(AngleUnit.DEGREES)));
+            for (int i=0; i<Math.min(3, lastTurretPoses.size()); i++)
+                telemetry.addData("   last pose " + (i + 1),
+                          MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
+                                MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
+                                MathUtils.format2(lastTurretPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
 
             telemetry.addData("odo vel", odoVel);
             telemetry.addData("odo pose", MathUtils.format2Pose(odoPose));
@@ -92,18 +98,19 @@ public class Limelight extends Component {
     }
 
     @Override
-    public void reset() {}
-
-    @Override
     public void update() {
         boolean prevCanUpdateReliably = canUpdateReliably;
         canUpdateReliably = canUpdateReliably();
+        double curTimeMs = System.currentTimeMillis();
         if (!canUpdateReliably) {
             setState(offUpdateState);
             successfullyFoundPose = false;
+            lastTurretPoses.clear();
         }
-        else if (!prevCanUpdateReliably && updatePoseType == UpdatePoseType.CONTINUOUS)
+        else if (!prevCanUpdateReliably && updatePoseType == UpdatePoseType.CONTINUOUS && curTimeMs - lastUpdateTimeMs > updatePoseParams.minTimeBetweenUpdates) {
             setState(UpdateState.UPDATING_POSE);
+            lastUpdateTimeMs = curTimeMs;
+        }
 
         switch (updateState) {
             case OFF:
@@ -115,6 +122,8 @@ public class Limelight extends Component {
                 break;
             case UPDATING_POSE:
                 robotPose = updatePoseFromCamera();
+                updateMaxErrors(lastAvgTurretPose, turretPose);
+
                 successfullyFoundPose = robotPose != null;
                 if (robotPose == null)
                     robotPose = new Pose2d(0, 0, 0);
@@ -129,26 +138,24 @@ public class Limelight extends Component {
         }
     }
     private Pose2d updatePoseFromCamera() {
-        result = limelight.getLatestResult();
+        lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
 
+        result = limelight.getLatestResult();
         if (result == null)
             return null;
+
         Pose3D curFrameTurretPose = result.getBotpose();
         lastTurretPoses.add(new Pose3D(curFrameTurretPose.getPosition().toUnit(DistanceUnit.INCH), curFrameTurretPose.getOrientation()));
-        if (lastTurretPoses.size() > numPrevFramesToAvg)
+        if (lastTurretPoses.size() > updatePoseParams.numPrevFramesToAvg)
             lastTurretPoses.remove(0);
         else
             return null;
 
         turretPose = getAvgTurretPose(lastTurretPoses);
-        updateMaxErrors(turretPose);
-        Pose2d robotPose = calculateRobotPose(turretPose);
-        lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
-
-        return robotPose;
+        return calculateRobotPose(turretPose);
     }
 
-    private void updateMaxErrors(Pose2d curAvgTurretPose) {
+    private void updateMaxErrors(Pose2d lastAvgTurretPose, Pose2d curAvgTurretPose) {
         double translationalError = Math.hypot(curAvgTurretPose.position.x - lastAvgTurretPose.position.x, curAvgTurretPose.position.y - lastAvgTurretPose.position.y);
         double headingErrorDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - lastAvgTurretPose.heading.toDouble()));
         maxTranslationalError = Math.max(maxTranslationalError, translationalError);
@@ -183,9 +190,9 @@ public class Limelight extends Component {
         odoVel = robot.drive.pinpoint().getMostRecentVelocity();
         odoPose = robot.drive.localizer.getPose();
         Pose2d targetPose = robot.turret.targetPose;
-        boolean turretSlowEnough = robot.turret.turretMotor.getVelocity() < maxUpdateTurretVelTicksPerSec;
-        boolean slowEnough = Math.abs(Math.toDegrees(odoVel.headingRad)) < maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < maxUpdateTranslationalVel;
-        boolean inRange = Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < maxUpdateDist;
+        boolean turretSlowEnough = robot.turret.turretMotor.getVelocity() < updatePoseParams.maxUpdateTurretVelTicksPerSec;
+        boolean slowEnough = Math.abs(Math.toDegrees(odoVel.headingRad)) < updatePoseParams.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < updatePoseParams.maxUpdateTranslationalVel;
+        boolean inRange = Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < updatePoseParams.maxUpdateDist;
         return turretSlowEnough && slowEnough && inRange;
     }
 
@@ -193,7 +200,15 @@ public class Limelight extends Component {
         return updateState;
     }
     public void setState(UpdateState state) {
+        if (state == this.updateState)
+            return;
+
         this.updateState = state;
+        if (state == UpdateState.UPDATING_POSE) {
+            lastTurretPoses.clear();
+            successfullyFoundPose = false;
+        }
+
     }
 }
 

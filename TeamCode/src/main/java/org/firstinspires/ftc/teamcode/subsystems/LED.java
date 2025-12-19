@@ -29,9 +29,6 @@ public class LED extends Component {
     public void printInfo() {}
 
     @Override
-    public void reset() {}
-
-    @Override
     public void update(){
         if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
             setLed(robot.limelight.successfullyFoundPose ? white : pink);

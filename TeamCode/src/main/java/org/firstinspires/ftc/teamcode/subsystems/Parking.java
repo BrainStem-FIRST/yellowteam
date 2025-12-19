@@ -51,9 +51,6 @@ public class Parking extends Component {
     }
 
     @Override
-    public void reset() {}
-
-    @Override
     public void update() {
         switch (parkState) {
             case RETRACTED:

@@ -17,7 +17,5 @@ public abstract class Component {
 
     public abstract void printInfo();
 
-    public abstract void reset();
-
     public abstract void update();
 }

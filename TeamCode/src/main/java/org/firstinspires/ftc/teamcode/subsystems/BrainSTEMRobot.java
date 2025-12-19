@@ -74,11 +74,6 @@ public class BrainSTEMRobot {
     public void setG1(GamepadTracker g1) {
         this.g1 = g1;
     }
-    public void reset() {
-        for (Component c : subsystems) {
-            c.reset();
-        }
-    }
     public void update(boolean useTurretLookAhead) {
         for(LynxModule hub : allHubs)
             hub.clearBulkCache();
