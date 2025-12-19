@@ -221,6 +221,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
         if(gp2.isFirstRightBumper())
             robot.limelight.setState(Limelight.UpdateState.UPDATING_POSE);
+        if (gp2.isFirstBack())
+            robot.limelight.takePic();
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();

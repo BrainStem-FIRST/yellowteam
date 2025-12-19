@@ -35,11 +35,17 @@ public class Limelight extends Component {
         public int numPrevFramesToAvg = 4;
         public int minTimeBetweenUpdates = 5;
     }
+    public static class SnapshotParams {
+        public String snapshotName = "near zone";
+        public int snapshotNum = 0;
+        public boolean clearSnapshots = false;
+    }
     public static UpdatePoseType updatePoseType = UpdatePoseType.CONTINUOUS;
     public static UpdateState offUpdateState = UpdateState.PASSIVE_READING;
     public static UpdatePoseParams updatePoseParams = new UpdatePoseParams();
+    public static SnapshotParams snapshotParams = new SnapshotParams();
     // i should tune the camera so that it gives me the turret center position
-    private final Limelight3A limelight;
+    public final Limelight3A limelight;
     private Pose2d turretPose, robotPose;
     private Vector2d robotTurretVec;
     private LLResult result;
@@ -101,6 +107,11 @@ public class Limelight extends Component {
 
     @Override
     public void update() {
+        if (snapshotParams.clearSnapshots) {
+            limelight.deleteSnapshots();
+            snapshotParams.clearSnapshots = false;
+        }
+
         boolean prevCanUpdateReliably = canUpdateReliably;
         canUpdateReliably = canUpdateReliably();
         double curTimeMs = System.currentTimeMillis();
@@ -210,7 +221,11 @@ public class Limelight extends Component {
             lastTurretPoses.clear();
             successfullyFoundPose = false;
         }
+    }
 
+    public void takePic() {
+        limelight.captureSnapshot(snapshotParams.snapshotName + "-" + snapshotParams.snapshotNum + " | " + MathUtils.format2Pose(robotPose));
+        snapshotParams.snapshotNum++;
     }
 }
 
