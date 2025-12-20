@@ -29,11 +29,13 @@ public class Limelight extends Component {
         UPDATING_POSE
     }
     public static class UpdatePoseParams {
-        public double maxUpdateTranslationalVel = 0.5, maxUpdateHeadingDegVel = 2; // inches and degrees
+        public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
         public int maxUpdateTurretVelTicksPerSec = 1;
+        public boolean allowUpdateAnywhereForFirst = true;
         public double maxUpdateDist = 110;
-        public int numPrevFramesToAvg = 4;
+        public int numPrevFramesToAvg = 10;
         public int minTimeBetweenUpdates = 5;
+        public int numPrevPosesToPrint = 0;
     }
     public static class SnapshotParams {
         public String snapshotName = "near zone";
@@ -52,7 +54,7 @@ public class Limelight extends Component {
     private Pose2d lastAvgTurretPose;
     private final ArrayList<Pose3D> lastTurretPoses;
     public double maxTranslationalError, maxHeadingErrorDeg;
-    private boolean canUpdateReliably;
+    private boolean drivetrainGoodForUpdate, turretGoodForUpdate;
     public boolean successfullyFoundPose;
     private UpdateState updateState;
     private OdoInfo odoVel = new OdoInfo(0, 0, 0);
@@ -71,8 +73,11 @@ public class Limelight extends Component {
         lastTurretPoses = new ArrayList<>();
         setState(UpdateState.PASSIVE_READING);
         successfullyFoundPose = false;
+        drivetrainGoodForUpdate = false;
+        turretGoodForUpdate = false;
         maxTranslationalError = 0;
         maxHeadingErrorDeg = 0;
+        numSetPoses = 0;
     }
 
     @Override
@@ -80,9 +85,11 @@ public class Limelight extends Component {
         telemetry.addLine("LIMELIGHT");
         telemetry.addData("state", updateState);
         if(result != null) {
-            telemetry.addData("num set poses", numSetPoses);
+            telemetry.addData("   num set poses", numSetPoses);
             telemetry.addData("   isValid", result.isValid());
-            telemetry.addData("   can update reliably", canUpdateReliably);
+            telemetry.addData("   bot pose is null", result.getBotpose() == null);
+            telemetry.addData("   drivetrain good for update", drivetrainGoodForUpdate);
+            telemetry.addData("   turret good for update", turretGoodForUpdate);
             telemetry.addData("   successfully found pose", successfullyFoundPose);
             telemetry.addData("   last update time", MathUtils.format2(lastUpdateTimeMs * 0.001));
             telemetry.addLine();
@@ -91,13 +98,13 @@ public class Limelight extends Component {
             telemetry.addData("   turret pose", MathUtils.format2(turretPose.position.x) + " " + MathUtils.format2(turretPose.position.y) + " " + MathUtils.format2(Math.toDegrees(turretPose.heading.toDouble())));
             telemetry.addData("   robot pose", MathUtils.format2(robotPose.position.x) + " " + MathUtils.format2(robotPose.position.y) + " " + MathUtils.format2(Math.toDegrees(robotPose.heading.toDouble())));
 
-            for (int i=0; i<Math.min(3, lastTurretPoses.size()); i++)
+            for (int i=0; i<Math.min(updatePoseParams.numPrevPosesToPrint, lastTurretPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
                           MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
 
-            telemetry.addData("odo vel", odoVel);
+            telemetry.addData("odo vel", odoVel.toString(2));
             telemetry.addData("odo pose", MathUtils.format2Pose(odoPose));
             telemetry.addData("turret vel", robot.turret.turretMotor.getVelocity());
         }
@@ -112,15 +119,21 @@ public class Limelight extends Component {
             snapshotParams.clearSnapshots = false;
         }
 
-        boolean prevCanUpdateReliably = canUpdateReliably;
-        canUpdateReliably = canUpdateReliably();
-        double curTimeMs = System.currentTimeMillis();
-        if (!canUpdateReliably) {
+        drivetrainGoodForUpdate = canUpdateDrivetrainReliably();
+        turretGoodForUpdate = canUpdateTurretReliably();
+
+        if (!drivetrainGoodForUpdate || !turretGoodForUpdate) {
             setState(offUpdateState);
-            successfullyFoundPose = false;
             lastTurretPoses.clear();
         }
-        else if (!prevCanUpdateReliably && updatePoseType == UpdatePoseType.CONTINUOUS && curTimeMs - lastUpdateTimeMs > updatePoseParams.minTimeBetweenUpdates) {
+
+        if (!drivetrainGoodForUpdate)
+            successfullyFoundPose = false;
+
+        double curTimeMs = System.currentTimeMillis();
+        if (drivetrainGoodForUpdate && turretGoodForUpdate && !successfullyFoundPose &&
+                updatePoseType == UpdatePoseType.CONTINUOUS &&
+                (curTimeMs - lastUpdateTimeMs) * 0.001 > updatePoseParams.minTimeBetweenUpdates) {
             setState(UpdateState.UPDATING_POSE);
             lastUpdateTimeMs = curTimeMs;
         }
@@ -130,23 +143,38 @@ public class Limelight extends Component {
                 break;
             case PASSIVE_READING:
                 robotPose = updatePoseFromCamera();
-                if (robotPose == null)
+                if (robotPose == null || !result.isValid()) {
                     robotPose = new Pose2d(0, 0, 0);
-                break;
-            case UPDATING_POSE:
-                robotPose = updatePoseFromCamera();
+                    break;
+                }
                 updateMaxErrors(lastAvgTurretPose, turretPose);
 
-                successfullyFoundPose = robotPose != null;
-                if (robotPose == null)
-                    robotPose = new Pose2d(0, 0, 0);
-
-                if(successfullyFoundPose) {
-                    robot.drive.stop();
-                    robot.drive.localizer.setPose(robotPose);
-                    numSetPoses++;
+                break;
+            case UPDATING_POSE:
+                if (!drivetrainGoodForUpdate) {
+                    successfullyFoundPose = false;
                     setState(offUpdateState);
+                    break;
                 }
+                robotPose = updatePoseFromCamera();
+                if (!result.isValid()) {
+                    robotPose = new Pose2d(0, 0, 0);
+                    successfullyFoundPose = false;
+                    setState(offUpdateState);
+                    break;
+                }
+
+                successfullyFoundPose = robotPose != null;
+                if (!successfullyFoundPose) {
+                    robotPose = new Pose2d(0, 0, 0);
+                    break;
+                }
+                updateMaxErrors(lastAvgTurretPose, turretPose);
+
+                robot.drive.stop();
+                robot.drive.localizer.setPose(robotPose);
+                numSetPoses++;
+                setState(offUpdateState);
                 break;
         }
     }
@@ -154,10 +182,13 @@ public class Limelight extends Component {
         lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
 
         result = limelight.getLatestResult();
-        if (result == null)
+        if (result == null || !result.isValid())
             return null;
 
         Pose3D curFrameTurretPose = result.getBotpose();
+        if (curFrameTurretPose == null)
+            return null;
+
         lastTurretPoses.add(new Pose3D(curFrameTurretPose.getPosition().toUnit(DistanceUnit.INCH), curFrameTurretPose.getOrientation()));
         if (lastTurretPoses.size() > updatePoseParams.numPrevFramesToAvg)
             lastTurretPoses.remove(0);
@@ -199,14 +230,17 @@ public class Limelight extends Component {
             return null;
         return new Pose2d(robotPose.position.x, robotPose.position.y, robotPose.heading.toDouble());
     }
-    private boolean canUpdateReliably() {
+    private boolean canUpdateDrivetrainReliably() {
         odoVel = robot.drive.pinpoint().getMostRecentVelocity();
         odoPose = robot.drive.localizer.getPose();
         Pose2d targetPose = robot.turret.targetPose;
-        boolean turretSlowEnough = robot.turret.turretMotor.getVelocity() < updatePoseParams.maxUpdateTurretVelTicksPerSec;
         boolean slowEnough = Math.abs(Math.toDegrees(odoVel.headingRad)) < updatePoseParams.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < updatePoseParams.maxUpdateTranslationalVel;
-        boolean inRange = Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < updatePoseParams.maxUpdateDist;
-        return turretSlowEnough && slowEnough && inRange;
+        boolean inRange = (numSetPoses == 0 && updatePoseParams.allowUpdateAnywhereForFirst) ||
+                Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < updatePoseParams.maxUpdateDist;
+        return slowEnough && inRange;
+    }
+    private boolean canUpdateTurretReliably() {
+        return robot.turret.turretMotor.getVelocity() < updatePoseParams.maxUpdateTurretVelTicksPerSec;
     }
 
     public UpdateState getState() {
