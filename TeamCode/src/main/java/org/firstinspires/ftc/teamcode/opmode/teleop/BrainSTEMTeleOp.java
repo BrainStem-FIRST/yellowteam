@@ -127,8 +127,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDrive() {
-        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE)
+        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE && robot.limelight.manualPoseUpdate) {
+            stop();
             return;
+        }
         currentlyMoving = gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
@@ -219,8 +221,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             robot.shooter.shooterState = REVERSE_FULL;
         }
 
-        if(gp2.isFirstRightBumper())
+        if(gp2.isFirstRightBumper()) {
+            robot.limelight.manualPoseUpdate = true;
             robot.limelight.setState(Limelight.UpdateState.UPDATING_POSE);
+        }
         if (gp2.isFirstBack())
             robot.limelight.takePic();
     }

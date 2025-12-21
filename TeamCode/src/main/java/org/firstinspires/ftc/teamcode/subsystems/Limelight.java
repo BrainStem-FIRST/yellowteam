@@ -7,6 +7,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -56,11 +57,13 @@ public class Limelight extends Component {
     public double maxTranslationalError, maxHeadingErrorDeg;
     private boolean drivetrainGoodForUpdate, turretGoodForUpdate;
     public boolean successfullyFoundPose;
-    private UpdateState updateState;
+    private UpdateState updateState, prevUpdateState;
+    private final ElapsedTime stateTimer;
     private OdoInfo odoVel = new OdoInfo(0, 0, 0);
     private Pose2d odoPose = new Pose2d(0, 0, 0);
     private int numSetPoses = 0;
     private double lastUpdateTimeMs = 0;
+    public boolean manualPoseUpdate;
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -71,10 +74,13 @@ public class Limelight extends Component {
         robotTurretVec = new Vector2d(0, 0);
         lastAvgTurretPose = new Pose2d(0, 0, 0);
         lastTurretPoses = new ArrayList<>();
+        stateTimer = new ElapsedTime();
+        prevUpdateState = UpdateState.PASSIVE_READING;
         setState(UpdateState.PASSIVE_READING);
         successfullyFoundPose = false;
         drivetrainGoodForUpdate = false;
         turretGoodForUpdate = false;
+        manualPoseUpdate = false;
         maxTranslationalError = 0;
         maxHeadingErrorDeg = 0;
         numSetPoses = 0;
@@ -123,6 +129,10 @@ public class Limelight extends Component {
         turretGoodForUpdate = canUpdateTurretReliably();
 
         if (!drivetrainGoodForUpdate || !turretGoodForUpdate) {
+            // want to update again immediately if current update is interrupted
+            if (updateState == UpdateState.UPDATING_POSE)
+                lastUpdateTimeMs = 0;
+
             setState(offUpdateState);
             lastTurretPoses.clear();
         }
@@ -134,8 +144,9 @@ public class Limelight extends Component {
         if (drivetrainGoodForUpdate && turretGoodForUpdate && !successfullyFoundPose &&
                 updatePoseType == UpdatePoseType.CONTINUOUS &&
                 (curTimeMs - lastUpdateTimeMs) * 0.001 > updatePoseParams.minTimeBetweenUpdates) {
-            setState(UpdateState.UPDATING_POSE);
             lastUpdateTimeMs = curTimeMs;
+            manualPoseUpdate = false;
+            setState(UpdateState.UPDATING_POSE);
         }
 
         switch (updateState) {
@@ -171,7 +182,6 @@ public class Limelight extends Component {
                 }
                 updateMaxErrors(lastAvgTurretPose, turretPose);
 
-                robot.drive.stop();
                 robot.drive.localizer.setPose(robotPose);
                 numSetPoses++;
                 setState(offUpdateState);
@@ -246,11 +256,18 @@ public class Limelight extends Component {
     public UpdateState getState() {
         return updateState;
     }
+    public UpdateState getPrevState() {
+        return prevUpdateState;
+    }
+    public double getStateTime() {
+        return stateTimer.seconds();
+    }
     public void setState(UpdateState state) {
         if (state == this.updateState)
             return;
-
-        this.updateState = state;
+        stateTimer.reset();
+        prevUpdateState = updateState;
+        updateState = state;
         if (state == UpdateState.UPDATING_POSE) {
             lastTurretPoses.clear();
             successfullyFoundPose = false;

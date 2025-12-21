@@ -108,6 +108,7 @@ public class DrivePath implements Action {
         // note: error is calculated in field's coordinate plane
         double xWaypointError = Math.abs(rx - getCurWaypoint().x());
         double yWaypointError = Math.abs(ry - getCurWaypoint().y());
+
         double headingDegWaypointError = getCurWaypoint().headingDeg() - rHeadingDeg;
         // flip heading error if necessary
         double absHeadingWaypointError = Math.abs(headingDegWaypointError);

@@ -10,8 +10,9 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 
 @Config
 public class LED extends Component {
-    public static double white = 0.99, green = 0.45, yellow = 0.35, blue = 0.666, red = 0.279;
+    public static double white = 0.99, green = 0.45, yellow = 0.35, blue = 0.6, purple = 0.666, red = 0.279, orange = 0.16;
     public static double flashOnTime = 0.3, flashOffTime = 0.1;
+    public static double confirmSuccessfulPoseUpdateTime = 0.2;
     private final ServoImplEx left_led;
     private final ServoImplEx right_led;
     private final ElapsedTime timer;
@@ -33,6 +34,12 @@ public class LED extends Component {
             setLed(white);
             return;
         }
+        if (robot.limelight.getPrevState() == Limelight.UpdateState.UPDATING_POSE &&
+                robot.limelight.successfullyFoundPose &&
+                robot.limelight.getStateTime() < confirmSuccessfulPoseUpdateTime) {
+            setLed(blue);
+            return;
+        }
 
         double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
         if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance) {
@@ -50,7 +57,7 @@ public class LED extends Component {
                 setLed(yellow);
         }
         else if (robot.collection.intakeHas3Balls())
-                setLed(blue);
+                setLed(purple);
             else
                 setLed(red);
     }

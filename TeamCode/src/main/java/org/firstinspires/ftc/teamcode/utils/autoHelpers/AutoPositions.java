@@ -31,7 +31,7 @@ public class AutoPositions {
     public static Pose2d redCloseEnd = new Pose2d(0, 45, Math.toRadians(0));
     public static Pose2d redFarEnd = new Pose2d(20, 45, Math.toRadians(180));
 
-    // blue positions
+    // purple positions
     public static Pose2d blueFarShootingPosition = new Pose2d(50, -10, Math.toRadians(180));
     public static Pose2d blueCloseShootPose = new Pose2d(-24, -24, Math.toRadians(-135));
     public static Pose2d blueFirstLine = new Pose2d(-13, -24, Math.toRadians(-90));
@@ -215,7 +215,7 @@ public class AutoPositions {
                 ).build();
     }
 
-    //blue actions
+    //purple actions
     public Action blueDriveCloseShootingPose(Pose2d startPose) {
         TrajectoryActionBuilder moveOffWall = drive.actionBuilder(startPose)
                 .lineToXLinearHeading(-35, Math.toRadians(-125));

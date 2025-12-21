@@ -5,6 +5,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
@@ -66,6 +67,7 @@ public class Turret extends Component {
 
         telemetry.addLine("TURRET------");
         telemetry.addData("state", turretState);
+        telemetry.addData("turret power", turretMotor.getPower());
         telemetry.addData("current encoder", getTurretEncoder());
         telemetry.addData("target encoder", targetEncoder);
         telemetry.addData("encoder error", encoderError);
@@ -91,8 +93,9 @@ public class Turret extends Component {
 
     public void setTurretPosition(int ticks) {
         int offset = robot.alliance == Alliance.RED ? TURRET_PARAMS.RED_ENCODER_OFFSET : TURRET_PARAMS.BLUE_ENCODER_OFFSET;
-        targetEncoder = ticks + offset;
-        double error = getTurretEncoder() - targetEncoder;
+        targetEncoder = Range.clip(ticks + offset, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
+        int currentEncoder = getTurretEncoder();
+        double error = currentEncoder - targetEncoder;
 
         // within threshold - give 0 power
         if (Math.abs(error) < TURRET_PARAMS.noPowerThreshold) {
@@ -108,6 +111,12 @@ public class Turret extends Component {
 
         double newPower = -pidController.updateWithError(error);
         newPower += Math.signum(newPower) * TURRET_PARAMS.smallKf;
+
+        if (currentEncoder < TURRET_PARAMS.RIGHT_BOUND)
+            newPower = Math.max(newPower, 0);
+        else if (currentEncoder > TURRET_PARAMS.LEFT_BOUND)
+            newPower = Math.min(newPower, 0);
+
         turretMotor.setPower(newPower);
     }
 
@@ -167,7 +176,6 @@ public class Turret extends Component {
 
                 int targetTurretPosition = (int)(turretTargetAngleRad * turretTicksPerRadian);
                 targetTurretPosition += adjustment;
-                targetTurretPosition = Math.max(TURRET_PARAMS.RIGHT_BOUND, Math.min(targetTurretPosition, TURRET_PARAMS.LEFT_BOUND));
 
                 if (powerTurret)
                     setTurretPosition(targetTurretPosition);
