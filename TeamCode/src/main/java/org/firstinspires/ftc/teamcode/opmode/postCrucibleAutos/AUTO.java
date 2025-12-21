@@ -498,8 +498,8 @@ public abstract class AUTO extends LinearOpMode {
                     timer.reset();
                 }
 
-                robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
-                robot.collection.collectionState = Collection.CollectionState.OFF;
+                robot.collection.setFlickerState(Collection.FlickerState.FULL_UP_DOWN);
+                robot.collection.setCollectionState(Collection.CollectionState.OFF);
 
                 return timer.seconds() < 0.4;
             }

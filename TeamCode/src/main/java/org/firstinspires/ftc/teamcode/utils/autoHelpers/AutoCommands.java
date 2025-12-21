@@ -120,7 +120,7 @@ public class AutoCommands {
     }
     public Action engageClutch() {
         return packet -> {
-            robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+            robot.collection.setClutchState(Collection.ClutchState.ENGAGED);
             robot.collection.extakeAfterClutchEngage = false;
             robot.collection.clutchStateTimer.reset();
             robot.collection.clutch_timer.reset();
@@ -130,7 +130,7 @@ public class AutoCommands {
 
     public Action disengageClutch() {
         return packet -> {
-            robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            robot.collection.setClutchState(Collection.ClutchState.UNENGAGED);
             robot.collection.clutchStateTimer.reset();
             return false;
         };
@@ -138,21 +138,21 @@ public class AutoCommands {
 
     public Action flickerUp() {
         return packet -> {
-            robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
-            robot.collection.collectionState = Collection.CollectionState.OFF;
+            robot.collection.setFlickerState(Collection.FlickerState.FULL_UP_DOWN);
+            robot.collection.setCollectionState(Collection.CollectionState.OFF);
             return false;
         };
     }
     public Action flickerHalfUp() {
         return packet -> {
-            robot.collection.flickerState = Collection.FlickerState.HALF_UP_DOWN;
+            robot.collection.setFlickerState(Collection.FlickerState.HALF_UP_DOWN);
             return false;
         };
     }
 
     public Action flickerDown() {
         return packet -> {
-            robot.collection.flickerState = Collection.FlickerState.DOWN;
+            robot.collection.setFlickerState(Collection.FlickerState.DOWN);
             return false;
         };
     }
@@ -160,27 +160,27 @@ public class AutoCommands {
 
     public Action runIntake() {
         return packet -> {
-            robot.collection.collectionState = Collection.CollectionState.INTAKE;
+            robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
             return false;
         };
     }
     public Action intakeSlow() {
         return telemetryPacket -> {
-            robot.collection.collectionState = Collection.CollectionState.INTAKE_SLOW;
+            robot.collection.setCollectionState(Collection.CollectionState.INTAKE_SLOW);
             return false;
         };
     }
 
     public Action reverseIntake() {
         return packet -> {
-            robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
+            robot.collection.setCollectionState(Collection.CollectionState.OUTTAKE);
             return false;
         };
     }
 
     public Action stopIntake() {
         return packet -> {
-            robot.collection.collectionState = Collection.CollectionState.OFF;
+            robot.collection.setCollectionState(Collection.CollectionState.OFF);
             return false;
         };
     }

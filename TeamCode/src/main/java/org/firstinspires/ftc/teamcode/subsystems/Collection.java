@@ -15,6 +15,18 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 public class Collection extends Component {
     public static double shootOuttakeTime = 0.15;
     public static boolean activateLasers = true;
+
+    public enum CollectionState {
+        OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
+    }
+
+    public enum ClutchState {
+        ENGAGED, UNENGAGED
+    }
+
+    public enum FlickerState {
+        FULL_UP, DOWN, HALF_UP_DOWN, FULL_UP_DOWN
+    }
     public final DcMotorEx collectorMotor;
     private final ServoImplEx clutchLeft;
     private final ServoImplEx clutchRight;
@@ -24,16 +36,14 @@ public class Collection extends Component {
     private final ElapsedTime flickerTimer = new ElapsedTime();
     private boolean flickerStarted = false;
 
-    //Swyft Sensors (SET BOTH DIP SWITCHES TO 0)
-
     private final AnalogInput frontRightLaser;
     private final AnalogInput frontLeftLaser;
     private final AnalogInput backTopLaser;
     private final AnalogInput backBottomLaser;
 
-    public CollectionState collectionState;
-    public ClutchState clutchState;
-    public FlickerState flickerState;
+    private CollectionState collectionState;
+    private ClutchState clutchState;
+    private FlickerState flickerState;
     public boolean extakeAfterClutchEngage;
     private double timerStart = 0;
     private boolean timerRunning = false;
@@ -82,14 +92,161 @@ public class Collection extends Component {
         backTopLaser = hardwareMap.get(AnalogInput.class, "BRLaser");
         backBottomLaser = hardwareMap.get(AnalogInput.class, "BLLaser");
 
-        collectionState = CollectionState.OFF;
-        clutchState = ClutchState.UNENGAGED;
-        flickerState = FlickerState.DOWN;
+        setCollectionState(CollectionState.OFF);
+        setClutchState(ClutchState.UNENGAGED);
+        setFlickerState(FlickerState.DOWN);
 
         timer.reset();
         clutch_timer.reset();
         clutchStateTimer = new ElapsedTime();
         clutchStateTimer.reset();
+    }
+
+    public CollectionState getCollectionState() { return collectionState; }
+    public void setCollectionState(CollectionState collectionState) {
+        this.collectionState = collectionState;
+        switch (collectionState) {
+            case OFF:
+                collectorMotor.setPower(0);
+                break;
+            case INTAKE_SLOW:
+                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SLOW_SPEED);
+                break;
+            case OUTTAKE:
+                collectorMotor.setPower(COLLECTOR_PARAMS.OUTTAKE_SPEED);
+                break;
+            case TRANSFER:
+                collectorMotor.setPower(0.1);
+                break;
+        }
+    }
+    public ClutchState getClutchState() { return clutchState; }
+    public void setClutchState(ClutchState clutchState) {
+        this.clutchState = clutchState;
+        switch (clutchState) {
+            case ENGAGED:
+                clutchRight.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
+                clutchLeft.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
+                break;
+            case UNENGAGED:
+                clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
+                clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
+                break;
+        }
+    }
+    public FlickerState getFlickerState() { return flickerState; }
+    public void setFlickerState(FlickerState flickerState) {
+        this.flickerState = flickerState;
+        switch (flickerState) {
+            case FULL_UP:
+                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                break;
+            case DOWN:
+                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                break;
+        }
+    }
+
+    public final ElapsedTime clutchStateTimer;
+    @Override
+    public void printInfo() {
+        telemetry.addLine("===COLLECTION======");
+        telemetry.addData("current", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
+        telemetry.addData("power", collectorMotor.getPower());
+        telemetry.addData("flicker state", getFlickerState());
+        telemetry.addData("flicker left pos", flickerLeft.getPosition());
+        telemetry.addData("flicker right pos", flickerRight.getPosition());
+    }
+
+    @Override
+    public void update() {
+        backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
+        backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
+        frontLeftLaserDist = voltageToDistance(frontLeftLaser.getVoltage());
+        frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
+
+        switch (getCollectionState()) {
+            case OFF:
+                break;
+            case INTAKE_SLOW:
+                break;
+            case INTAKE:
+                double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
+                double errorThreshold = robot.shooter.isNear ? Shooter.SHOOTER_PARAMS.maxErrorThresholdNear : Shooter.SHOOTER_PARAMS.maxErrorThresholdFar;
+                if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
+                    collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
+                else
+                    collectorMotor.setPower(COLLECTOR_PARAMS.SHOOTER_ERROR_INTAKE_SPEED);
+                break;
+            case OUTTAKE:
+                break;
+            case TRANSFER:
+                break;
+        }
+
+        switch (getClutchState()) {
+            case ENGAGED:
+                 if(clutch_timer.seconds() < shootOuttakeTime && extakeAfterClutchEngage)
+                    setCollectionState(CollectionState.OUTTAKE);
+                else if(getCollectionState() == CollectionState.OUTTAKE)
+                    setCollectionState(CollectionState.OFF);
+                break;
+
+            case UNENGAGED:
+                extakeAfterClutchEngage = true;
+                clutch_timer.reset();
+                break;
+        }
+
+        switch (getFlickerState()) {
+            case FULL_UP:
+                break;
+            case DOWN:
+                break;
+            case HALF_UP_DOWN:
+                if(!flickerStarted) {
+                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
+                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
+                    flickerTimer.reset();
+                    flickerStarted = true;
+                }
+                else if(flickerTimer.seconds() > 0.3) {
+                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerStarted = false;
+                    setFlickerState(FlickerState.DOWN);
+                }
+                break;
+            case FULL_UP_DOWN:
+                setCollectionState(CollectionState.OFF);
+                if (!flickerStarted) {
+                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                    flickerTimer.reset();
+                    flickerStarted = true;
+                } else if (flickerTimer.seconds() > 0.4) {
+                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerStarted = false;
+                    setCollectionState(CollectionState.INTAKE);
+                    setFlickerState(FlickerState.DOWN);
+                }
+                break;
+        }
+
+        if (activateLasers)
+            checkForIntakeBalls(timer.seconds());
+//        // front 6.087 in
+//
+//        telemetry.addData("Back Ball Detected", isBackBallDetected());
+//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
+//        telemetry.addData("FLICKER State", flickerState.toString());
+//        telemetry.addData("Clutch State", clutchState.toString());
+    }
+    public double getIntakePower() {
+        return collectorMotor.getPower();
     }
 
     private double voltageToDistance(double voltage) {
@@ -103,17 +260,6 @@ public class Collection extends Component {
     private boolean isFrontBallDetected() {
         return frontRightLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
                 frontLeftLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
-    }
-
-    public void startIntake() {
-        collectionState = CollectionState.INTAKE;
-        timerStart = 0;
-        timerRunning = false;
-    }
-
-    public void stopIntake() {
-        collectionState = CollectionState.OFF;
-        timerRunning = false;
     }
 
     public boolean intakeHas3Balls() {
@@ -132,132 +278,5 @@ public class Collection extends Component {
             timerStart = 0;
             has3Balls = false;
         }
-    }
-
-    public enum CollectionState {
-        OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
-    }
-
-    public enum ClutchState {
-        ENGAGED, UNENGAGED
-    }
-
-    public enum FlickerState {
-        FULL_UP, DOWN, HALF_UP_DOWN, FULL_UP_DOWN
-    }
-
-    public final ElapsedTime clutchStateTimer;
-    @Override
-    public void printInfo() {
-        telemetry.addLine("===COLLECTION======");
-        telemetry.addData("current", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
-        telemetry.addData("power", collectorMotor.getPower());
-    }
-
-    @Override
-    public void update() {
-        telemetry.addData("flicker state", flickerState);
-        telemetry.addData("flicker left pos", flickerLeft.getPosition());
-        telemetry.addData("flicker right pos", flickerRight.getPosition());
-
-        backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
-        backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
-        frontLeftLaserDist = voltageToDistance(frontLeftLaser.getVoltage());
-        frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
-
-        switch (collectionState) {
-            case OFF:
-                collectorMotor.setPower(0);
-                break;
-            case INTAKE_SLOW:
-                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SLOW_SPEED);
-            case INTAKE:
-                double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
-                double errorThreshold = robot.shooter.isNear ? Shooter.SHOOTER_PARAMS.maxErrorThresholdNear : Shooter.SHOOTER_PARAMS.maxErrorThresholdFar;
-                telemetry.addData("shooter error", shooterError);
-                if (clutchState == ClutchState.UNENGAGED || shooterError < errorThreshold)
-                    collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
-                else
-                    collectorMotor.setPower(COLLECTOR_PARAMS.SHOOTER_ERROR_INTAKE_SPEED);
-                break;
-
-            case OUTTAKE:
-                collectorMotor.setPower(COLLECTOR_PARAMS.OUTTAKE_SPEED);
-                break;
-
-            case TRANSFER:
-                collectorMotor.setPower(0.1);
-                break;
-        }
-
-        switch (clutchState) {
-            case ENGAGED:
-                 if(clutch_timer.seconds() < shootOuttakeTime && extakeAfterClutchEngage)
-                    collectionState = CollectionState.OUTTAKE;
-                else if(collectionState == CollectionState.OUTTAKE)
-                    collectionState = CollectionState.OFF;
-                clutchRight.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
-                clutchLeft.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
-                break;
-
-            case UNENGAGED:
-                extakeAfterClutchEngage = true;
-                clutch_timer.reset();
-                clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
-                clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
-                break;
-        }
-
-        switch (flickerState) {
-            case FULL_UP:
-                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                break;
-            case DOWN:
-                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                break;
-            case HALF_UP_DOWN:
-                if(!flickerStarted) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
-                    flickerTimer.reset();
-                    flickerStarted = true;
-                }
-                else if(flickerTimer.seconds() > 0.3) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerStarted = false;
-                    flickerState = FlickerState.DOWN;
-                }
-                break;
-            case FULL_UP_DOWN:
-                collectionState = CollectionState.OFF;
-                if (!flickerStarted) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                    flickerTimer.reset();
-                    flickerStarted = true;
-                } else if (flickerTimer.seconds() > 0.4) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerStarted = false;
-                    collectionState = CollectionState.INTAKE;
-                    flickerState = FlickerState.DOWN;
-                }
-                break;
-        }
-
-        if (activateLasers)
-            checkForIntakeBalls(timer.seconds());
-//        // front 6.087 in
-//
-//        telemetry.addData("Back Ball Detected", isBackBallDetected());
-//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
-//        telemetry.addData("FLICKER State", flickerState.toString());
-//        telemetry.addData("Clutch State", clutchState.toString());
-    }
-    public double getIntakePower() {
-        return collectorMotor.getPower();
     }
 }

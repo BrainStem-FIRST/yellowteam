@@ -112,6 +112,6 @@ public class RedClosePartnerAuto extends LinearOpMode {
     }
 
     private Action waitForIntakeOn() {
-        return telemetryPacket -> robot.collection.collectionState != Collection.CollectionState.INTAKE;
+        return telemetryPacket -> robot.collection.getCollectionState() != Collection.CollectionState.INTAKE;
     }
 }

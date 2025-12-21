@@ -20,7 +20,6 @@ import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeed
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.shootingRecording.ShotData;
-import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.Collections;
 import java.util.Set;
@@ -288,7 +287,7 @@ public class Shooter extends Component {
             }
             @Override
             public void execute() {
-                if (shooterState == ShooterState.UPDATE && robot.collection.clutchState == Collection.ClutchState.ENGAGED && robot.collection.collectionState == Collection.CollectionState.INTAKE)
+                if (shooterState == ShooterState.UPDATE && robot.collection.getClutchState() == Collection.ClutchState.ENGAGED && robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     AutomaticShooterSpeedRecorder.addShotData(new ShotData(
                             timer.seconds(),
                             ballsShot,

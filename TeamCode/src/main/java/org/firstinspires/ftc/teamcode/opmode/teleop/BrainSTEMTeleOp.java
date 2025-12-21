@@ -25,7 +25,6 @@ import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
-import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
@@ -142,20 +141,20 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver1() {
-        if(robot.collection.clutchState == Collection.ClutchState.UNENGAGED) {
+        if(robot.collection.getClutchState() == Collection.ClutchState.UNENGAGED) {
             if (gp1.gamepad.right_trigger > 0.2)
-                robot.collection.collectionState = Collection.CollectionState.INTAKE;
+                robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
             else if (gp1.gamepad.left_trigger > 0.2)
-                robot.collection.collectionState = Collection.CollectionState.OUTTAKE;
+                robot.collection.setCollectionState(Collection.CollectionState.OUTTAKE);
             else
-                robot.collection.collectionState = Collection.CollectionState.OFF;
+                robot.collection.setCollectionState(Collection.CollectionState.OFF);
         }
 
         if (gp1.isFirstB()) {
-            if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
-                robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            if (robot.collection.getClutchState() == Collection.ClutchState.ENGAGED)
+                robot.collection.setClutchState(Collection.ClutchState.UNENGAGED);
             else
-                robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+                robot.collection.setClutchState(Collection.ClutchState.ENGAGED);
             robot.collection.clutchStateTimer.reset();
         }
 
@@ -185,23 +184,23 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDriver2() {
-        if(robot.collection.clutchState == Collection.ClutchState.ENGAGED) {
+        if(robot.collection.getClutchState() == Collection.ClutchState.ENGAGED) {
             if (gp2.isFirstA())
-                if (robot.collection.collectionState == Collection.CollectionState.INTAKE)
-                    robot.collection.collectionState = Collection.CollectionState.OFF;
+                if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
+                    robot.collection.setCollectionState(Collection.CollectionState.OFF);
                 else if (Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance)
-                    robot.collection.collectionState = Collection.CollectionState.INTAKE;
+                    robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())
-            if (robot.collection.clutchState == Collection.ClutchState.ENGAGED)
-                robot.collection.clutchState = Collection.ClutchState.UNENGAGED;
+            if (robot.collection.getClutchState() == Collection.ClutchState.ENGAGED)
+                robot.collection.setClutchState(Collection.ClutchState.UNENGAGED);
             else
-                robot.collection.clutchState = Collection.ClutchState.ENGAGED;
+                robot.collection.setClutchState(Collection.ClutchState.ENGAGED);
 
         if (gp2.isFirstLeftBumper())
-            robot.collection.flickerState = Collection.FlickerState.HALF_UP_DOWN;
+            robot.collection.setFlickerState(Collection.FlickerState.HALF_UP_DOWN);
         if(gp2.isFirstLeftTrigger())
-            robot.collection.flickerState = Collection.FlickerState.FULL_UP_DOWN;
+            robot.collection.setFlickerState(Collection.FlickerState.FULL_UP_DOWN);
 
         if (gp2.isFirstDpadLeft())
             robot.turret.adjustment += Turret.TURRET_PARAMS.fineAdjust;
