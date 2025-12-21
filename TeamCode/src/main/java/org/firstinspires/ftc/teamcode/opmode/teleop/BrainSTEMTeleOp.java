@@ -23,6 +23,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
@@ -75,7 +76,6 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         waitForStart();
         int framesRunning = 0;
         long startTimeNano = System.nanoTime();
-        robot.shooter.automaticShooterTrackerCommand().schedule();
 
         while (opModeIsActive()) {
             gp1.update();
@@ -107,15 +107,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
-//            telemetry.addData("back left dist", robot.collection.backLeftLaserDist);
-//            telemetry.addData("back right dist", robot.collection.backRightLaserDist);
-//            telemetry.addData("front left dist", robot.collection.frontLeftLaserDist);
-//            telemetry.addData("front right dist", robot.collection.frontRightLaserDist);
-//            telemetry.addData("turret pos", robot.limelight.getTurretPos());
-//            telemetry.addData("turret heading", Math.floor(robot.limelight.getTurretHeadingRad() * 180 / Math.PI));
-//            telemetry.addData("robot pos", robot.limelight.getRobotPos());
-//            telemetry.addData("robot heading", Math.floor(robot.limelight.getRobotHeading() * 180 / Math.PI));
-//            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
+            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
             telemetry.update();
 
             Pose2d p = robot.drive.localizer.getPose();
@@ -229,8 +221,9 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
     private void updateDashboardField() {
         Pose2d robotPose = robot.drive.pinpoint().getPose();
-        Pose2d turretPose = Turret.getTurretPose(robotPose, robot.turret.getTurretEncoder());
-        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, robot.turret.getTurretEncoder(), robot.shooter.getBallExitAngleRad());
+        int turretEncoder = robot.turret.getTurretEncoder();
+        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, robot.shooter.getBallExitAngleRad());
         Pose2d exitPose = new Pose2d(exitPosition, robot.turret.currentAngleRad);
         Pose2d limelightRobotPose = robot.limelight.getRobotPose();
         if (limelightRobotPose == null)

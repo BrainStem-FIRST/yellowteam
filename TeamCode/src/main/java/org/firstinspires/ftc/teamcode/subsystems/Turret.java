@@ -62,13 +62,14 @@ public class Turret extends Component {
     @Override
     public void printInfo() {
         double turretTicksPerDegree = TURRET_PARAMS.TICKS_PER_REV / 360.;
-        double encoderError = targetEncoder - getTurretEncoder();
+        int turretEncoder = getTurretEncoder();
+        double encoderError = targetEncoder - turretEncoder;
         double angleDegError = encoderError / turretTicksPerDegree;
 
         telemetry.addLine("TURRET------");
         telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
-        telemetry.addData("current encoder", getTurretEncoder());
+        telemetry.addData("current encoder", turretEncoder);
         telemetry.addData("target encoder", targetEncoder);
         telemetry.addData("encoder error", encoderError);
         telemetry.addData("angle degree error", angleDegError);
@@ -76,7 +77,7 @@ public class Turret extends Component {
         telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
         telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
-        telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), getTurretEncoder()));
+        telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
 
 //        if(globalBallExitVelocityMps != null && relativeBallExitVelocityMps != null) {
 //            double globalA = Math.atan2(globalBallExitVelocityMps.y, globalBallExitVelocityMps.x);
@@ -91,10 +92,9 @@ public class Turret extends Component {
         return turretMotor.getCurrentPosition();
     }
 
-    public void setTurretPosition(int ticks) {
+    public void setTurretPosition(int ticks, int currentEncoder) {
         int offset = robot.alliance == Alliance.RED ? TURRET_PARAMS.RED_ENCODER_OFFSET : TURRET_PARAMS.BLUE_ENCODER_OFFSET;
         targetEncoder = Range.clip(ticks + offset, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
-        int currentEncoder = getTurretEncoder();
         double error = currentEncoder - targetEncoder;
 
         // within threshold - give 0 power
@@ -159,6 +159,7 @@ public class Turret extends Component {
         Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
         Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
         double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        int turretEncoder = getTurretEncoder();
 
         switch (turretState) {
             case TRACKING:
@@ -168,8 +169,8 @@ public class Turret extends Component {
                 }
 
                 double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
-                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, getTurretEncoder(), ballExitAngleRad);
-                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, getTurretEncoder(), ballExitAngleRad);
+                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
+                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
                 double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
                 targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
@@ -178,7 +179,7 @@ public class Turret extends Component {
                 targetTurretPosition += adjustment;
 
                 if (powerTurret)
-                    setTurretPosition(targetTurretPosition);
+                    setTurretPosition(targetTurretPosition, turretEncoder);
                 break;
 
             case CENTER:
@@ -187,16 +188,16 @@ public class Turret extends Component {
                     break;
                 }
 
-                setTurretPosition(0);
+                setTurretPosition(0, turretEncoder);
                 targetAngleRad = currentRobotPose.heading.toDouble();
                 break;
 
             case PARK:
-                setTurretPosition(-330);
+                setTurretPosition(-330, turretEncoder);
                 break;
         }
 
-        turretAngleRad = getTurretEncoder() / turretTicksPerRadian;
+        turretAngleRad = turretEncoder / turretTicksPerRadian;
         currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
     }
 }

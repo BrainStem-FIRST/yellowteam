@@ -182,10 +182,12 @@ public class Shooter extends Component {
         else
             increasing = false;
 
+        int turretEncoder = robot.turret.getTurretEncoder();
+
         switch (shooterState) {
             case OFF:
                 setShooterPower(0);
-                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
+                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose, false);
                 break;
 
@@ -198,7 +200,7 @@ public class Shooter extends Component {
                 if(wasPrevIncreasing && !increasing) // means relative max detected
                     lastMax = prevVel;
 
-                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
+                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
                 updateShooterSystem(ballExitPosition, robot.turret.targetPose, true);
                 break;
             case REVERSE_FULL:
