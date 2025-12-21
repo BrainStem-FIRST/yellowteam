@@ -32,7 +32,7 @@ public class Limelight extends Component {
         public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
         public int maxUpdateTurretVelTicksPerSec = 1;
         public boolean allowUpdateAnywhereForFirst = true;
-        public double maxUpdateDist = 110;
+        public double maxUpdateDist = 80;
         public int numPrevFramesToAvg = 10;
         public int minTimeBetweenUpdates = 5;
         public int numPrevPosesToPrint = 0;
