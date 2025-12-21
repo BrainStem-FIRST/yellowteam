@@ -213,10 +213,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             robot.shooter.adjustment -= 10;
 
         if (gp2.isFirstY()) {
-            if (robot.parking.parkState == Parking.ParkState.EXTENDED)
+            if (robot.parking.getParkState() == Parking.ParkState.EXTENDED)
                 robot.turret.turretState = Turret.TurretState.PARK;
             else
-                robot.parking.parkState = Parking.ParkState.EXTENDED;
+                robot.parking.setParkState(Parking.ParkState.EXTENDED);
             robot.shooter.shooterState = REVERSE_FULL;
         }
 

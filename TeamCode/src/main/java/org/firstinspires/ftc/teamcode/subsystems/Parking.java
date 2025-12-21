@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
@@ -10,17 +9,19 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public class Parking extends Component {
-    public ServoImplEx parkLeftServo;
-    public ServoImplEx parkRightServo;
-    public ParkState parkState;
-
-    public static class Params{
+    public static class Params {
         public double RETRACTED_POS = 0.075;
         public double EXTENDED_POS = 0.9;
         public double MIDDLE_POS = 0.5;
     }
 
-    public static Params PARK_PARAMS = new Parking.Params();
+    public static Params PARK_PARAMS = new Params();
+    public enum ParkState {
+        RETRACTED, EXTENDED, MIDDLE
+    }
+    public ServoImplEx parkLeftServo;
+    public ServoImplEx parkRightServo;
+    private ParkState parkState;
 
     public Parking(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
@@ -31,7 +32,7 @@ public class Parking extends Component {
         parkRightServo = hardwareMap.get(ServoImplEx.class, "parkRight");
         parkRightServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
-        parkState = ParkState.RETRACTED;
+        setParkState(ParkState.RETRACTED);
     }
 
     public void setParkServoPosition(double position) {
@@ -39,31 +40,29 @@ public class Parking extends Component {
         parkRightServo.setPosition(position);
     }
 
-    public enum ParkState {
-        RETRACTED, EXTENDED, MIDDLE
-    }
-
     @Override
     public void printInfo() {
         telemetry.addLine("===PARKING===");
-        telemetry.addData("state", parkState);
+        telemetry.addData("state", getParkState());
         telemetry.addData("servo pos (L|R)", parkLeftServo + " | " + parkRightServo);
     }
 
-    @Override
-    public void update() {
+
+    public ParkState getParkState() { return parkState; }
+    public void setParkState(ParkState parkState) {
+        this.parkState = parkState;
         switch (parkState) {
             case RETRACTED:
                 setParkServoPosition(PARK_PARAMS.RETRACTED_POS);
                 break;
-
             case EXTENDED:
                 setParkServoPosition(PARK_PARAMS.EXTENDED_POS);
                 break;
-
             case MIDDLE:
                 setParkServoPosition(PARK_PARAMS.MIDDLE_POS);
                 break;
         }
     }
+    @Override
+    public void update() {}
 }
