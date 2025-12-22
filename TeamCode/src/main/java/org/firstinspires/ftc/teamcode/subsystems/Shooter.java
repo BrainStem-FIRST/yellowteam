@@ -33,6 +33,8 @@ public class Shooter extends Component {
         public double kF = 0.00048;
         public double maxErrorThresholdNear = 75, maxErrorThresholdFar = 60;
         public double shotVelDropThreshold = 70;
+        public double firstShootTolerance = 40;
+
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
@@ -103,11 +105,10 @@ public class Shooter extends Component {
         shooterMotorHigh.setPower(power);
         shooterMotorLow.setPower(power);
     }
-    public void setShooterVelocityPID(double targetVelocityTicksPerSec) {
+    public void setShooterVelocityPID(double targetVelocityTicksPerSec, double currentShooterVelocity) {
         shooterPID.setTarget(targetVelocityTicksPerSec + adjustment);
 
-        double currentVelocity = getAvgMotorVelocity();
-        double pidOutput = -shooterPID.update(currentVelocity);
+        double pidOutput = -shooterPID.update(currentShooterVelocity);
         double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
@@ -119,7 +120,7 @@ public class Shooter extends Component {
 
         setShooterPower(totalPower);
     }
-    public void updateShooterSystem(Vector2d ballExitPosition, Pose2d targetPose, boolean powerShooterAndHood) {
+    public void updateShooterSystem(Vector2d ballExitPosition, Pose2d targetPose, double currentShooterVelocity, boolean powerShooterAndHood) {
         double deltaX = targetPose.position.x - ballExitPosition.x;
         double deltaY = targetPose.position.y - ballExitPosition.y;
         double ballExitPosInchesFromGoal = Math.hypot(deltaX, deltaY);
@@ -132,7 +133,7 @@ public class Shooter extends Component {
         double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
 
         if (powerShooterAndHood)
-            setShooterVelocityPID(targetShooterVelocityTicksPerSec);
+            setShooterVelocityPID(targetShooterVelocityTicksPerSec, currentShooterVelocity);
 
         // update HOOD
         // offset the hood's distance when close
@@ -142,7 +143,7 @@ public class Shooter extends Component {
         else
             hoodBallExitPosInchesFromGoal += isNear ? ShootingMath.shooterSystemParams.lowArcNearGoalOffsetInches : ShootingMath.shooterSystemParams.lowArcFarGoalOffsetInches;
 
-        double shooterSpeed = fixHoodToIdealVelocity ? targetShooterVelocityTicksPerSec : getAvgMotorVelocity();
+        double shooterSpeed = fixHoodToIdealVelocity ? targetShooterVelocityTicksPerSec : currentShooterVelocity;
         double currentBallExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(shooterSpeed);
         double oldBallExitAngleRad = ballExitAngleRad;
         ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(targetPose, ballExitPosition, shootHighArc, isNear, hoodBallExitPosInchesFromGoal, currentBallExitSpeedMps, mostRecentVelocity, telemetry);
@@ -156,7 +157,7 @@ public class Shooter extends Component {
             telemetry.addData("actual distance from goal inches", ballExitPosInchesFromGoal);
             telemetry.addData("distance from goal for hood", hoodBallExitPosInchesFromGoal);
             telemetry.addData("target motor speed", targetShooterVelocityTicksPerSec);
-            telemetry.addData("actual motor speed", getAvgMotorVelocity());
+            telemetry.addData("actual motor speed", currentShooterVelocity);
             telemetry.addData("exit speed mps", currentBallExitSpeedMps);
             telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
             telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
@@ -172,8 +173,8 @@ public class Shooter extends Component {
 
     @Override
     public void update(){
-        double vel = getAvgMotorVelocity();
-        double dif = vel - prevVel;
+        double currentShooterVelocity = getAvgMotorVelocity();
+        double dif = currentShooterVelocity - prevVel;
         boolean increasing;
         if(dif > 0)
             increasing = true;
@@ -188,7 +189,7 @@ public class Shooter extends Component {
             case OFF:
                 setShooterPower(0);
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
-                updateShooterSystem(ballExitPosition, robot.turret.targetPose, false);
+                updateShooterSystem(ballExitPosition, robot.turret.targetPose, currentShooterVelocity, false);
                 break;
 
             case UPDATE:
@@ -201,13 +202,13 @@ public class Shooter extends Component {
                     lastMax = prevVel;
 
                 ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
-                updateShooterSystem(ballExitPosition, robot.turret.targetPose, true);
+                updateShooterSystem(ballExitPosition, robot.turret.targetPose, currentShooterVelocity, true);
                 break;
             case REVERSE_FULL:
                 setShooterPower(-0.99);
                 break;
         }
-        prevVel = vel;
+        prevVel = currentShooterVelocity;
         wasPrevIncreasing = increasing;
 
         updateManualShooterTracking();
@@ -222,13 +223,14 @@ public class Shooter extends Component {
 
     @Override
     public void printInfo() {
+        double avgMotorVel = getAvgMotorVelocity();
         telemetry.addLine("SHOOTER------");
         telemetry.addData("  state", shooterState);
         telemetry.addData("  balls shot", ballsShot);
-        telemetry.addData("  avg motor vel", getAvgMotorVelocity());
+        telemetry.addData("  avg motor vel", avgMotorVel);
         telemetry.addData("  last max", lastMax);
         telemetry.addData("  last min", lastMin);
-        telemetry.addData("shooter error", getAvgMotorVelocity() - shooterPID.getTarget());
+        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  power high", shooterMotorHigh.getPower());
         telemetry.addData("  power low", shooterMotorLow.getPower());

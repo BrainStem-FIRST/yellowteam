@@ -21,7 +21,7 @@ public class Turret extends Component {
         public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 67.5, farRedShotsGoalX = -70, farRedShotsGoalY = 68;
         public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -63.5;
         public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
-        public double smallKP = 0.017, smallKI = 0, smallKD = 0.0003, smallKf = 0.015;
+        public double smallKP = 0.017, smallKI = 0, smallKD = 0.0003, smallKf = 0.01;
         public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
         public double noPowerThreshold = 2;
         public double lookAheadTime = 0.115; // time to look ahead for pose prediction
@@ -29,11 +29,10 @@ public class Turret extends Component {
         public double startLookAheadSmoothValue = 1;
         public double endLookAheadSmoothValue = 0.2;
         public double TICKS_PER_REV = 1228.5;
-        public int RED_ENCODER_OFFSET = 0, BLUE_ENCODER_OFFSET = 0;
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
-    public static boolean powerTurret = true;
+    public static boolean powerTurret = false;
     public static Params TURRET_PARAMS = new Turret.Params();
     public enum TurretState {
         TRACKING, CENTER, PARK
@@ -78,14 +77,6 @@ public class Turret extends Component {
         telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
         telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
-
-//        if(globalBallExitVelocityMps != null && relativeBallExitVelocityMps != null) {
-//            double globalA = Math.atan2(globalBallExitVelocityMps.y, globalBallExitVelocityMps.x);
-//            double localA = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
-//            telemetry.addData("global exit angle", globalA);
-//            telemetry.addData("relative exit angle", localA);
-//            telemetry.addData("offset", globalA - localA);
-//        }
     }
 
     public int getTurretEncoder() {
@@ -93,8 +84,7 @@ public class Turret extends Component {
     }
 
     public void setTurretPosition(int ticks, int currentEncoder) {
-        int offset = robot.alliance == Alliance.RED ? TURRET_PARAMS.RED_ENCODER_OFFSET : TURRET_PARAMS.BLUE_ENCODER_OFFSET;
-        targetEncoder = Range.clip(ticks + offset, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
+        targetEncoder = Range.clip(ticks, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
         double error = currentEncoder - targetEncoder;
 
         // within threshold - give 0 power

@@ -14,7 +14,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 @Config
 public class Collection extends Component {
     public static double shootOuttakeTime = 0.15;
-    public static boolean activateLasers = true;
 
     public enum CollectionState {
         OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
@@ -44,7 +43,7 @@ public class Collection extends Component {
     private CollectionState collectionState;
     private ClutchState clutchState;
     private FlickerState flickerState;
-    public boolean extakeAfterClutchEngage;
+    public boolean outtakeAfterClutchEngage;
     private double timerStart = 0;
     private boolean timerRunning = false;
     private boolean has3Balls = false;
@@ -162,10 +161,12 @@ public class Collection extends Component {
 
     @Override
     public void update() {
-        backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
-        backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
-        frontLeftLaserDist = voltageToDistance(frontLeftLaser.getVoltage());
-        frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
+        if (getCollectionState() != CollectionState.OFF) {
+            backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
+            backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
+            frontLeftLaserDist = voltageToDistance(frontLeftLaser.getVoltage());
+            frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
+        }
 
         switch (getCollectionState()) {
             case OFF:
@@ -188,14 +189,14 @@ public class Collection extends Component {
 
         switch (getClutchState()) {
             case ENGAGED:
-                 if(clutch_timer.seconds() < shootOuttakeTime && extakeAfterClutchEngage)
+                 if(clutch_timer.seconds() < shootOuttakeTime && outtakeAfterClutchEngage)
                     setCollectionState(CollectionState.OUTTAKE);
                 else if(getCollectionState() == CollectionState.OUTTAKE)
                     setCollectionState(CollectionState.OFF);
                 break;
 
             case UNENGAGED:
-                extakeAfterClutchEngage = true;
+                outtakeAfterClutchEngage = true;
                 clutch_timer.reset();
                 break;
         }
@@ -236,14 +237,7 @@ public class Collection extends Component {
                 break;
         }
 
-        if (activateLasers)
-            checkForIntakeBalls(timer.seconds());
-//        // front 6.087 in
-//
-//        telemetry.addData("Back Ball Detected", isBackBallDetected());
-//        telemetry.addData("Front Ball Detected", isFrontBallDetected());
-//        telemetry.addData("FLICKER State", flickerState.toString());
-//        telemetry.addData("Clutch State", clutchState.toString());
+        checkForIntakeBalls(timer.seconds());
     }
     public double getIntakePower() {
         return collectorMotor.getPower();

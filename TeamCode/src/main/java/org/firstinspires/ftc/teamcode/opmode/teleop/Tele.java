@@ -12,37 +12,45 @@ import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.PosePredictionErrorRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
+import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Limelight;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
-import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
+import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 import java.util.List;
 
-public abstract class BrainSTEMTeleOp extends LinearOpMode {
-    public static double firstShootTolerance = 40;
-
+@Config
+public class Tele extends OpMode {
+    public static boolean ranAutoAsLastOpMode = false;
     public enum PosePredictType {
         SIMPLE,
         ADVANCED,
         CONTROL
     }
-    public static PosePredictType posePredictType = PosePredictType.SIMPLE;
-    public static double timeAheadToPredict = 0.075; // if this is -1, it will predict future pose next frame
+    public static class PosePredictParams {
+        public PosePredictType posePredictType = PosePredictType.SIMPLE;
+        public double timeAheadToPredict = 0.075; // if this is -1, it will predict future pose next frame
+    }
+    public static PosePredictParams posePredictParams = new PosePredictParams();
+    public static class TelemetryParams {
+        public boolean showCollector = false, showLimelight = false, showShooter = false, showTurret = false, showParking = false;
+    }
+    public static TelemetryParams telemetryParams = new TelemetryParams();
+    public static LynxModule.BulkCachingMode bulkCachingMode = LynxModule.BulkCachingMode.OFF;
 
     BrainSTEMRobot robot;
 
@@ -54,17 +62,24 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     private boolean currentlyMoving;
     private List<LynxModule> allHubs;
 
-    public BrainSTEMTeleOp(Alliance alliance) {
+    private int framesRunning;
+    private long startTimeNano;
+    public Tele(Alliance alliance) {
         this.alliance = alliance;
     }
 
     @Override
-    public void runOpMode() {
+    public void init() {
+        if (ranAutoAsLastOpMode) {
+            PoseStorage.autoX = 0;
+            PoseStorage.autoY = 0;
+            PoseStorage.autoHeading = 0;
+        }
+        ranAutoAsLastOpMode = false;
 
         allHubs = hardwareMap.getAll(LynxModule.class);
-        for(LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
+        for(LynxModule hub : allHubs)
+            hub.setBulkCachingMode(bulkCachingMode);
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
@@ -80,66 +95,93 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         gp1 = new GamepadTracker(gamepad1);
         gp2 = new GamepadTracker(gamepad2);
         robot.setG1(gp1);
+
         telemetry.addData("starting pose", startPose.position.x + ", " + startPose.position.y + " | " + startPose.heading.toDouble());
         telemetry.update();
-
-        waitForStart();
-        int framesRunning = 0;
-        long startTimeNano = System.nanoTime();
-
-        while (opModeIsActive()) {
-            gp1.update();
-            gp2.update();
-
-            telemetry.addData("TRACKING SHOOTER DATA", robot.shooter.isTrackingData());
-            telemetry.addLine();
-            telemetry.addData("SHOOTER ADJUSTMENT", robot.shooter.adjustment);
-            telemetry.addData("TURRET ADJUSTMENT", robot.turret.adjustment);
-            telemetry.addLine();
-
-            updateDrive();
-            updateDriver2();
-            updateDriver1();
-            CommandScheduler.getInstance().run();
-            robot.collection.printInfo();
-            robot.limelight.printInfo();
-            robot.turret.printInfo();
-            robot.shooter.printInfo();
-
-            robot.update(currentlyMoving);
-
-            updateDashboardField();
-
-            // print delta time
-            framesRunning++;
-            double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
-            if(gp1.isFirstStart()) {
-                framesRunning = 0;
-                startTimeNano = System.nanoTime();
-            }
-            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
-            telemetry.update();
-
-            Pose2d p = robot.drive.localizer.getPose();
-            PoseStorage.autoX = p.position.x;
-            PoseStorage.autoY = p.position.y;
-            PoseStorage.autoHeading = p.heading.toDouble();
-        }
     }
 
+    @Override
+    public void start() {
+        framesRunning = 0;
+        startTimeNano = System.nanoTime();
+    }
+
+    @Override
+    public void loop() {
+        if (bulkCachingMode == LynxModule.BulkCachingMode.MANUAL)
+            for(LynxModule hub : allHubs)
+                hub.clearBulkCache();
+
+        gp1.update();
+        gp2.update();
+
+        telemetry.addData("TRACKING SHOOTER DATA", robot.shooter.isTrackingData());
+        telemetry.addLine();
+        telemetry.addData("SHOOTER ADJUSTMENT", robot.shooter.adjustment);
+        telemetry.addData("TURRET ADJUSTMENT", robot.turret.adjustment);
+        telemetry.addLine();
+
+        updateDrive();
+        updateDriver2();
+        updateDriver1();
+        CommandScheduler.getInstance().run();
+
+        robot.update(currentlyMoving);
+
+        // update telemetry
+        updateDashboardField();
+
+        framesRunning++;
+        double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
+        telemetry.addData("bulk caching mode", bulkCachingMode);
+        telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
+        telemetry.addData("Loop time (ms)", MathUtils.format2(1000 * timeRunning / framesRunning));
+
+        if (telemetryParams.showCollector)
+            robot.collection.printInfo();
+        if (telemetryParams.showLimelight)
+            robot.limelight.printInfo();
+        if (telemetryParams.showShooter)
+            robot.shooter.printInfo();
+        if (telemetryParams.showTurret)
+            robot.turret.printInfo();
+        if (telemetryParams.showParking)
+            robot.parking.printInfo();
+
+        telemetry.update();
+
+//        Pose2d p = robot.drive.localizer.getPose();
+//        PoseStorage.autoX = p.position.x;
+//        PoseStorage.autoY = p.position.y;
+//        PoseStorage.autoHeading = p.heading.toDouble();
+    }
+
+    private double lastLsx, lastLsy, lastRsx;
     private void updateDrive() {
         if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE && robot.limelight.manualPoseUpdate) {
-            stop();
+            if (robot.limelight.getPrevState() != Limelight.UpdateState.UPDATING_POSE)
+                robot.drive.stop();
+
             return;
         }
-        currentlyMoving = gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0;
-        robot.drive.setDrivePowers(new PoseVelocity2d(
-                new Vector2d(
-                        -gamepad1.left_stick_y,
-                        -gamepad1.left_stick_x
-                ),
-                -gamepad1.right_stick_x
-        ));
+
+        double lsx = gamepad1.left_stick_x, lsy = gamepad1.left_stick_y, rsx = gamepad1.right_stick_x;
+        currentlyMoving = lsx != 0 || lsy != 0 || rsx != 0;
+
+        boolean newInputs = lastLsx != lsx || lastLsy != lsy || lastRsx != rsx;
+        if (newInputs) {
+            robot.drive.setDrivePowers(new PoseVelocity2d(
+                    new Vector2d(
+                            -gamepad1.left_stick_y,
+                            -gamepad1.left_stick_x
+                    ),
+                    -gamepad1.right_stick_x
+            ));
+        }
+
+        lastLsx = gamepad1.left_stick_x;
+        lastLsy = gamepad1.left_stick_y;
+        lastRsx = gamepad1.right_stick_x;
     }
 
     private void updateDriver1() {
@@ -190,7 +232,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if (Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance)
+                else if (Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) <= Shooter.SHOOTER_PARAMS.firstShootTolerance)
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())
@@ -276,16 +318,17 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
 
+
     private void updatePosePredict() {
         // show predicted pose on dashboard
         PinpointLocalizer pinpoint = robot.drive.pinpoint();
         Pose2d actualPose = pinpoint.getPose();
-        switch (posePredictType) {
+        switch (posePredictParams.posePredictType) {
             case SIMPLE: TelemetryHelper.sendRobotPoses(actualPose, lastFrameSimplePrediction, pinpoint.lastPose); break;
             case ADVANCED: TelemetryHelper.sendRobotPoses(actualPose, lastFrameAdvancedPrediction, pinpoint.lastPose); break;
             case CONTROL: TelemetryHelper.sendRobotPoses(actualPose, pinpoint.lastPose); break;
         }
-        lastFrameSimplePrediction = pinpoint.getNextPoseSimple(timeAheadToPredict == -1 ? pinpoint.getWeightedDt() : timeAheadToPredict);
+        lastFrameSimplePrediction = pinpoint.getNextPoseSimple(posePredictParams.timeAheadToPredict == -1 ? pinpoint.getWeightedDt() : posePredictParams.timeAheadToPredict);
         lastFrameAdvancedPrediction = pinpoint.getNextPoseAdvanced();
 
         if (gamepad1.back)

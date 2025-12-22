@@ -7,8 +7,11 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.*;
+import com.acmerobotics.roadrunner.AccelConstraint;
+import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.Actions;
 import com.acmerobotics.roadrunner.AngularVelConstraint;
+import com.acmerobotics.roadrunner.Arclength;
 import com.acmerobotics.roadrunner.DualNum;
 import com.acmerobotics.roadrunner.HolonomicController;
 import com.acmerobotics.roadrunner.MecanumKinematics;
@@ -16,12 +19,21 @@ import com.acmerobotics.roadrunner.MinVelConstraint;
 import com.acmerobotics.roadrunner.MotorFeedforward;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Pose2dDual;
+import com.acmerobotics.roadrunner.PoseVelocity2d;
+import com.acmerobotics.roadrunner.PoseVelocity2dDual;
 import com.acmerobotics.roadrunner.ProfileAccelConstraint;
+import com.acmerobotics.roadrunner.ProfileParams;
+import com.acmerobotics.roadrunner.Rotation2d;
 import com.acmerobotics.roadrunner.Time;
 import com.acmerobotics.roadrunner.TimeTrajectory;
 import com.acmerobotics.roadrunner.TimeTurn;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
+import com.acmerobotics.roadrunner.TrajectoryBuilderParams;
 import com.acmerobotics.roadrunner.TurnConstraints;
+import com.acmerobotics.roadrunner.Twist2d;
+import com.acmerobotics.roadrunner.Twist2dDual;
+import com.acmerobotics.roadrunner.Vector2d;
+import com.acmerobotics.roadrunner.Vector2dDual;
 import com.acmerobotics.roadrunner.VelConstraint;
 import com.acmerobotics.roadrunner.ftc.DownsampledWriter;
 import com.acmerobotics.roadrunner.ftc.Encoder;
@@ -46,14 +58,12 @@ import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumCommandMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.teamcode.roadrunner.messages.PoseMessage;
 
-
-import java.lang.Math;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 @Config
-public class MecanumDrive {
+public class BetterMecanumDrive {
 
     public static class Params {
         // IMU orientation
@@ -132,10 +142,10 @@ public class MecanumDrive {
         private Pose2d pose;
 
         public DriveLocalizer(Pose2d pose) {
-            leftFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftFront));
-            leftBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.leftBack));
-            rightBack = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightBack));
-            rightFront = new OverflowEncoder(new RawEncoder(MecanumDrive.this.rightFront));
+            leftFront = new OverflowEncoder(new RawEncoder(BetterMecanumDrive.this.leftFront));
+            leftBack = new OverflowEncoder(new RawEncoder(BetterMecanumDrive.this.leftBack));
+            rightBack = new OverflowEncoder(new RawEncoder(BetterMecanumDrive.this.rightBack));
+            rightFront = new OverflowEncoder(new RawEncoder(BetterMecanumDrive.this.rightFront));
 
             imu = lazyImu.get();
 
@@ -218,7 +228,7 @@ public class MecanumDrive {
         }
     }
 
-    public MecanumDrive(HardwareMap hardwareMap, Pose2d pose) {
+    public BetterMecanumDrive(HardwareMap hardwareMap, Pose2d pose) {
         // TODO: make sure your config has motors with these names (or change them)
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
         leftFront = hardwareMap.get(DcMotorEx.class, "FL");
@@ -265,14 +275,17 @@ public class MecanumDrive {
         rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
     }
 
+    public static boolean useCustomPose2dDualCalculation = true;
     public final class FollowTrajectoryAction implements Action {
         public final TimeTrajectory timeTrajectory;
         private double beginTs = -1;
+        private double displacementAlongPath;
 
         private final double[] xPoints, yPoints;
 
         public FollowTrajectoryAction(TimeTrajectory t) {
             timeTrajectory = t;
+            displacementAlongPath = 0;
 
             List<Double> disps = com.acmerobotics.roadrunner.Math.range(
                     0, t.path.length(),
@@ -304,10 +317,30 @@ public class MecanumDrive {
 
                 return false;
             }
-            Pose2dDual<Time> txWorldTarget = timeTrajectory.get(t);
-            targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
 
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
+
+            Pose2dDual<Time> txWorldTarget;
+            if (useCustomPose2dDualCalculation) {
+                // use previous value as a guess (starting point) to iteratively calculate new value
+                // project() is a kotlin function provided by roadrunner
+                displacementAlongPath = project(timeTrajectory.path, localizer.getPose().position, displacementAlongPath);
+                // use displacement to calculate closest point on path and corresponding position and velocity at that point
+                Pose2dDual<Arclength> txWorldTargetBetterDist = timeTrajectory.path.get(displacementAlongPath, 3);
+
+                // converting position/velocity information at a DISTANCE to at a TIME
+                // displacementAlongPath = s
+                // position goes from x(s) -> x(t)
+                // velocity goes from dx/ds -> dx/dt
+                // acceleration goes from dx^2/d^2s -> dx^2/d^2t
+                // end result is position/velocity information at the actual point in time, not the theoretical point in time
+                DualNum<Time> timeDualNum = timeTrajectory.profile.dispProfile.get(displacementAlongPath);
+                txWorldTarget = txWorldTargetBetterDist.reparam(timeDualNum);
+            }
+            else
+                txWorldTarget = timeTrajectory.get(t);
+            targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
+
 
             PoseVelocity2dDual<Time> command = new HolonomicController(
                     PARAMS.axialGain, PARAMS.lateralGain, PARAMS.headingGain,
@@ -334,6 +367,10 @@ public class MecanumDrive {
             rightBack.setPower(rightBackPower);
             rightFront.setPower(rightFrontPower);
 
+            Vector2dDual<Time> theoreticalPosition = timeTrajectory.get(t).position;
+            double theoreticalDisplacementAlongPath = project(timeTrajectory.path, new Vector2d(theoreticalPosition.x.get(0), theoreticalPosition.y.get(0)), 0);
+            p.put("theoretical path disp", theoreticalDisplacementAlongPath);
+            p.put("actual path disp", displacementAlongPath);
             p.put("x", localizer.getPose().position.x);
             p.put("y", localizer.getPose().position.y);
             p.put("heading (deg)", Math.toDegrees(localizer.getPose().heading.toDouble()));

@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -132,6 +131,9 @@ public class DrivePath implements Action {
             // completely finished drive path
             if (curWaypointIndex >= waypoints.size()) {
                 drivetrain.stop();
+                telemetry.addLine("finished drive path");
+                telemetry.addData("ending drive powers (fl, fr, bl, br)", drivetrain.getDrivePowersString());
+                telemetry.update();
                 return false;
             }
             // finished current waypoint path, moving on to next waypoint
@@ -161,11 +163,21 @@ public class DrivePath implements Action {
         // calculate translational speed
         double speed = 0;
         if (!inPositionTolerance) {
-            double a = Math.abs(totalDistancePID.update(totalDistanceAway));
-            double b = Math.abs(waypointDistancePID.update(waypointDistAway));
+            // aggressive braking
+            double linearError = Math.hypot(xWaypointError, yWaypointError);
+            totalDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
+            waypointDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
+
+            double a = totalDistancePID.update(totalDistanceAway);
+            double b = waypointDistancePID.update(waypointDistAway);
             double t = getCurParams().slowDownPercent;
             speed = a + (b - a) * t;
-            speed = Range.clip(speed, getCurParams().minLinearPower, getCurParams().maxLinearPower);
+
+            if (speed > 0)
+                speed = Range.clip(speed, getCurParams().minLinearPower, getCurParams().maxLinearPower);
+            else if (speed < 0)
+                speed = Range.clip(speed, -getCurParams().maxLinearPower, -getCurParams().minLinearPower);
+
         }
         double lateralPower = targetDir.x * speed * getCurParams().lateralWeight * moveRightSign;
         double axialPower = targetDir.y * speed * getCurParams().axialWeight * moveForwardSign;
@@ -173,6 +185,9 @@ public class DrivePath implements Action {
         // calculate angular speed (heading)
         double headingPower = 0;
         if (!inHeadingTolerance) {
+            // aggressive braking
+            headingRadErrorPID.setKd(Math.abs(headingDegWaypointError) <= getCurParams().applyKdHeadingDegError ? getCurParams().headingKd : 0);
+
             headingPower = headingRadErrorPID.update(headingDegWaypointError);
             double headingSign = Math.signum(headingPower);
             headingPower = -headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
@@ -182,15 +197,6 @@ public class DrivePath implements Action {
         headingPower *= turnLeftSign;
         
         drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
-        /*
-        robot.drive.setDrivePowers(new PoseVelocity2d(
-                new Vector2d(
-                        -gamepad1.left_stick_y,
-                        -gamepad1.left_stick_x
-                ),
-                -gamepad1.right_stick_x
-        ));
-         */
         
         if (telemetry != null) {
             telemetry.addData("current position", MathUtils.format3(rx) + " ," + MathUtils.format3(ry) + ", " + MathUtils.format3(rHeadingDeg));
@@ -199,6 +205,8 @@ public class DrivePath implements Action {
             telemetry.addData("waypoint errors", MathUtils.format3(xWaypointError) + ", " + MathUtils.format3(yWaypointError) + ", " + MathUtils.format3(headingDegWaypointError));
             telemetry.addData("in position tolerance", inPositionTolerance);
             telemetry.addData("in heading tolerance", inHeadingTolerance);
+            telemetry.addData("waypoint dist PID proportional", waypointDistancePID.getProportional());
+            telemetry.addData("waypoint dist PID derivative", waypointDistancePID.getDerivative());
             telemetry.addLine();
             telemetry.addData("speed", MathUtils.format3(speed));
             telemetry.addData("powers (lat, ax, heading)", MathUtils.format3(lateralPower) + ", " + MathUtils.format3(axialPower) + ", " + MathUtils.format2(headingPower));
@@ -211,7 +219,8 @@ public class DrivePath implements Action {
             TelemetryHelper.numPosesToShow = 3;
             TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, pose, prevWaypointPose, getCurWaypoint().pose);
             fieldOverlay.setStroke("black");
-            fieldOverlay.strokeLine(pose.position.x, pose.position.y, pose.position.x + targetDir.x * 10, pose.position.y + targetDir.y * 10);
+            double angle = pose.heading.toDouble() + Math.atan2(targetDir.y, targetDir.x);
+            fieldOverlay.strokeLine(pose.position.x, pose.position.y, pose.position.x + Math.sin(angle) * 10, pose.position.y - Math.cos(angle) * 10);
 
             telemetry.update();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
@@ -240,15 +249,22 @@ public class DrivePath implements Action {
         totalDistancePID.reset();
         totalDistancePID.setTarget(0);
         totalDistancePID.setOutputBounds(0, 1);
+        totalDistancePID.forceKdToBeNegative = true;
+        totalDistancePID.kdErrorPower = getCurParams().speedKdErrorPower;
+
         waypointDistancePID = new PIDController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
         waypointDistancePID.reset();
         waypointDistancePID.setTarget(0);
         waypointDistancePID.setOutputBounds(0, 1);
+        waypointDistancePID.forceKdToBeNegative = true;
+        waypointDistancePID.kdErrorPower = getCurParams().speedKdErrorPower;
 
         headingRadErrorPID = new PIDController(getCurParams().headingKp, getCurParams().headingKi, getCurParams().headingKd);
         headingRadErrorPID.reset();
         headingRadErrorPID.setTarget(0);
         headingRadErrorPID.setOutputBounds(-1, 1);
+        headingRadErrorPID.forceKdToBeNegative = true;
+        headingRadErrorPID.kdErrorPower = getCurParams().headingKdErrorPower;
     }
 }
 

@@ -36,7 +36,6 @@ public class BrainSTEMRobot {
     public LED led;
     public final Alliance alliance;
     private final ArrayList<Component> subsystems;
-    private final List<LynxModule> allHubs;
     private Telemetry telemetry;
     public GamepadTracker g1;
 
@@ -44,10 +43,6 @@ public class BrainSTEMRobot {
         this.telemetry = telemetry;
         this.alliance = alliance;
         subsystems = new ArrayList<>();
-
-        allHubs = hardwareMap.getAll(LynxModule.class);
-        for(LynxModule hub : allHubs)
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
 
         drive = new MecanumDrive(hardwareMap, initialPose);
         limelight = new Limelight(hardwareMap, telemetry, this);
@@ -75,10 +70,6 @@ public class BrainSTEMRobot {
         this.g1 = g1;
     }
     public void update(boolean useTurretLookAhead) {
-        for(LynxModule hub : allHubs)
-            hub.clearBulkCache();
-
-
         turret.updateLookAheadTime(useTurretLookAhead);
 
         if(enablePinpoint)

@@ -24,9 +24,9 @@ public class MultiThreadingTest extends OpMode {
         public double numTrigFunctionsPerCounter = 0;
     }
     public static class HardwareParams {
-        public boolean useBulkCaching = false;
-        public String motorName = "turret";
-        public int numGetPowers = 10;
+        public LynxModule.BulkCachingMode bulkCachingMode = LynxModule.BulkCachingMode.MANUAL;
+        public String[] motorNames = new String[] { "turret", "lowShoot", "highShoot", "intake", "FL", "FR", "BL", "BR" };
+        public int[] numGetPosition = new int[] { 10, 10, 10, 10, 10, 10, 10, 10 };
     }
     public static ThreadParams threadParams = new ThreadParams();
     public static HardwareParams hardwareParams = new HardwareParams();
@@ -35,7 +35,7 @@ public class MultiThreadingTest extends OpMode {
     private int mainCounter;
     private ElapsedTime timer;
     private AtomicBoolean keepRunning;
-    private DcMotorEx motor;
+    private DcMotorEx[] motors;
     private List<LynxModule> allHubs;
     private int numTimesFunctionPerformedPerFrame;
 
@@ -44,11 +44,10 @@ public class MultiThreadingTest extends OpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(20);
 
-        if (hardwareParams.useBulkCaching) {
-            allHubs = hardwareMap.getAll(LynxModule.class);
-            for (LynxModule hub : allHubs)
-                hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
+        allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs)
+            hub.setBulkCachingMode(hardwareParams.bulkCachingMode);
+
         numTimesFunctionPerformedPerFrame = threadParams.numWorkerThreads + (threadParams.performFunctionOnMainThread ? 1 : 0);
 
         threads = new Thread[threadParams.numWorkerThreads];
@@ -56,10 +55,12 @@ public class MultiThreadingTest extends OpMode {
         mainCounter = 0;
         keepRunning = new AtomicBoolean(true);
         for (int i = 0; i< threadParams.numWorkerThreads; i++)
-            threads[i] = new Thread(this::function);
+            threads[i] = new Thread(this::functionWorkerThreads);
         timer = new ElapsedTime();
 
-        motor = hardwareMap.get(DcMotorEx.class, hardwareParams.motorName);
+        motors = new DcMotorEx[hardwareParams.motorNames.length];
+        for (int i=0; i<hardwareParams.motorNames.length; i++)
+            motors[i] = hardwareMap.get(DcMotorEx.class, hardwareParams.motorNames[i]);
 
         telemetry.addLine("ready");
         telemetry.update();
@@ -74,23 +75,21 @@ public class MultiThreadingTest extends OpMode {
 
     @Override
     public void loop() {
-        if (hardwareParams.useBulkCaching)
+        if (hardwareParams.bulkCachingMode == LynxModule.BulkCachingMode.MANUAL)
             for (LynxModule hub : allHubs)
                 hub.clearBulkCache();
 
         if (threadParams.performFunctionOnMainThread) {
-            for (int i = 0; i<threadParams.numTrigFunctionsPerCounter / numTimesFunctionPerformedPerFrame; i++)
-                Math.sin(0.5);
-            for (int i = 0; i<hardwareParams.numGetPowers / numTimesFunctionPerformedPerFrame; i++)
-                motor.getPower();
+            functionOnce();
             mainCounter++;
         }
 
         telemetry.addData("perform function on main thread", threadParams.performFunctionOnMainThread);
         telemetry.addData("num worker threads", threadParams.numWorkerThreads);
-        telemetry.addData("using bulk caching", hardwareParams.useBulkCaching);
+        telemetry.addData("bulk caching mode", hardwareParams.bulkCachingMode);
         telemetry.addData("num trig functions", threadParams.numTrigFunctionsPerCounter);
-        telemetry.addData("num getPower calls", hardwareParams.numGetPowers);
+        for (int i=0; i<motors.length; i++)
+            telemetry.addData(motors[i] + " getPower calls", hardwareParams.numGetPosition[i]);
         telemetry.addLine();
         telemetry.addData("main counter", mainCounter);
         telemetry.addData("worker counter", workerCounter.get());
@@ -103,13 +102,17 @@ public class MultiThreadingTest extends OpMode {
     public void stop() {
         keepRunning.set(false);
     }
-    private void function() {
+    private void functionOnce() {
+        for (int i = 0; i < threadParams.numTrigFunctionsPerCounter / numTimesFunctionPerformedPerFrame; i++)
+            Math.sin(0.5);
+        for (int i = 0; i < motors.length; i++) {
+            for (int j = 0; j < hardwareParams.numGetPosition[i] / numTimesFunctionPerformedPerFrame; j++)
+                motors[i].getCurrentPosition();
+        }
+    }
+    private void functionWorkerThreads() {
         while (keepRunning.get()) {
-            for (int i = 0; i<threadParams.numTrigFunctionsPerCounter / numTimesFunctionPerformedPerFrame; i++)
-                Math.sin(0.5);
-            for (int i = 0; i<hardwareParams.numGetPowers / numTimesFunctionPerformedPerFrame; i++)
-                motor.getPower();
-
+            functionOnce();
             workerCounter.getAndAdd(1);
         }
     }

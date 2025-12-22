@@ -4,14 +4,15 @@ public class PIDController {
 
     private double target;
     private double kP, kI, kD;
-    private double proportional, integral, derivative;
+    private double proportional;
+    private double integral;
+    private double derivative;
     private boolean shouldReset;
 
     private double previousTime, previousError;
 
     private double lowerInputBound = Double.NEGATIVE_INFINITY, higherInputBound = Double.POSITIVE_INFINITY;
     private double lowerOutputBound = Double.NEGATIVE_INFINITY, higherOutputBound = Double.POSITIVE_INFINITY;
-
     public PIDController(double kP, double kI, double kD) {
         this.kP = kP;
         this.kI = kI;
@@ -20,9 +21,27 @@ public class PIDController {
         shouldReset = true;
     }
 
+    public double getProportional() {
+        return proportional;
+    }
+    public double getIntegral() {
+        return integral;
+    }
+    public double getDerivative() {
+        return derivative;
+    }
     public void setPIDValues(double kP, double kI, double kD){
         this.kP = kP;
         this.kI = kI;
+        this.kD = kD;
+    }
+    public void setKp(double kP) {
+        this.kP = kP;
+    }
+    public void setKi(double kI) {
+        this.kI = kI;
+    }
+    public void setKd(double kD) {
         this.kD = kD;
     }
 

@@ -36,7 +36,8 @@ public class ShooterVelocityTest extends OpMode {
         }
 
         if (shooterOn && ManualShooterSpeedRecorder.getCurrentShot() < ManualShooterSpeedRecorder.numShotsToRecord) {
-            shooter.setShooterVelocityPID(startingVelocityTicksPerSec + ManualShooterSpeedRecorder.getCurrentShot() * velocityIncrementAmount);
+            double targetVel = startingVelocityTicksPerSec + ManualShooterSpeedRecorder.getCurrentShot() * velocityIncrementAmount;
+            shooter.setShooterVelocityPID(targetVel, shooter.getAvgMotorVelocity());
 
             if (curShotRecordIndex >= ManualShooterSpeedRecorder.recordAmountForEachShot) {
                 curShotRecordIndex = 0;
