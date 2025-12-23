@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmode.postCrucibleAutos;
 
+import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -51,9 +53,5 @@ public class PidDriveTest extends OpMode {
     }
     @Override
     public void loop() {
-    }
-
-    private Pose2d createPose(double[] pose) {
-        return new Pose2d(pose[0], pose[1], Math.toRadians(pose[2]));
     }
 }

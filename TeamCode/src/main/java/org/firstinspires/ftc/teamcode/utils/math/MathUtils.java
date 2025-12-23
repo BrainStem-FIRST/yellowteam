@@ -5,6 +5,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import java.text.DecimalFormat;
+import java.util.Arrays;
 
 // helps for concise, easy printing to telemetry
 public class MathUtils {
@@ -54,5 +55,12 @@ public class MathUtils {
 
     public static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
+    }
+
+
+    public static Pose2d createPose(double[] pose) {
+        if (pose.length < 3)
+            throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");
+        return new Pose2d(pose[0], pose[1], Math.toRadians(pose[2]));
     }
 }

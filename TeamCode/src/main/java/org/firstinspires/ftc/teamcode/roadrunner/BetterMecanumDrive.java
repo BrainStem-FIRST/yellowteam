@@ -101,6 +101,10 @@ public class BetterMecanumDrive {
         public double axialVelGain = 0.0;
         public double lateralVelGain = 0.0;
         public double headingVelGain = 0.0;
+
+        // path accuracy thresholds
+        public double maxTranslationalError = 2.5;
+        public double maxHeadingRadError = Math.toRadians(4);
     }
 
     public static Params PARAMS = new Params();
@@ -275,7 +279,6 @@ public class BetterMecanumDrive {
         rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
     }
 
-    public static boolean useCustomPose2dDualCalculation = true;
     public final class FollowTrajectoryAction implements Action {
         public final TimeTrajectory timeTrajectory;
         private double beginTs = -1;
@@ -305,40 +308,41 @@ public class BetterMecanumDrive {
             if (beginTs < 0) {
                 beginTs = Actions.now();
                 t = 0;
-            } else {
+            } else
                 t = Actions.now() - beginTs;
-            }
-
             if (t >= timeTrajectory.duration) {
-                leftFront.setPower(0);
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                rightFront.setPower(0);
-
+                stop();
                 return false;
             }
 
             PoseVelocity2d robotVelRobot = updatePoseEstimate();
+            Pose2d robotPose = localizer.getPose();
 
-            Pose2dDual<Time> txWorldTarget;
-            if (useCustomPose2dDualCalculation) {
-                // use previous value as a guess (starting point) to iteratively calculate new value
-                // project() is a kotlin function provided by roadrunner
-                displacementAlongPath = project(timeTrajectory.path, localizer.getPose().position, displacementAlongPath);
-                // use displacement to calculate closest point on path and corresponding position and velocity at that point
-                Pose2dDual<Arclength> txWorldTargetBetterDist = timeTrajectory.path.get(displacementAlongPath, 3);
-
-                // converting position/velocity information at a DISTANCE to at a TIME
-                // displacementAlongPath = s
-                // position goes from x(s) -> x(t)
-                // velocity goes from dx/ds -> dx/dt
-                // acceleration goes from dx^2/d^2s -> dx^2/d^2t
-                // end result is position/velocity information at the actual point in time, not the theoretical point in time
-                DualNum<Time> timeDualNum = timeTrajectory.profile.dispProfile.get(displacementAlongPath);
-                txWorldTarget = txWorldTargetBetterDist.reparam(timeDualNum);
+            // custom end condition - if position is close enough, stop path
+            Pose2dDual<Arclength> endTarget = timeTrajectory.path.end(1);
+            double xError = Math.abs(robotPose.position.x - endTarget.position.x.get(0));
+            double yError = Math.abs(robotPose.position.y - endTarget.position.y.get(0));
+            double hError = Math.abs(robotPose.heading.toDouble() - endTarget.heading.value().toDouble());
+            if (Math.hypot(xError, yError) < PARAMS.maxTranslationalError && hError < PARAMS.maxHeadingRadError) {
+                stop();
+                return false;
             }
-            else
-                txWorldTarget = timeTrajectory.get(t);
+
+            // use previous value as a guess (starting point) to iteratively calculate new value
+            // project() is a kotlin function provided by roadrunner
+            displacementAlongPath = project(timeTrajectory.path, robotPose.position, displacementAlongPath);
+            // use displacement to calculate closest point on path and corresponding position, velocity, and acceleration at that point
+            Pose2dDual<Arclength> txWorldTargetBetterDist = timeTrajectory.path.get(displacementAlongPath, 3);
+
+            // converting position/velocity information at a DISTANCE to at a TIME
+            // displacementAlongPath = s
+            // position goes from x(s) -> x(t)
+            // velocity goes from dx/ds -> dx/dt
+            // acceleration goes from dx^2/d^2s -> dx^2/d^2t
+            // end result is position/velocity information at the actual point in time, not the theoretical point in time
+            DualNum<Time> timeDualNum = timeTrajectory.profile.dispProfile.get(displacementAlongPath);
+            Pose2dDual<Time> txWorldTarget = txWorldTargetBetterDist.reparam(timeDualNum);
+
             targetPoseWriter.write(new PoseMessage(txWorldTarget.value()));
 
 
