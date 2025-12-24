@@ -249,22 +249,16 @@ public class DrivePath implements Action {
         totalDistancePID.reset();
         totalDistancePID.setTarget(0);
         totalDistancePID.setOutputBounds(0, 1);
-        totalDistancePID.forceKdToBeNegative = true;
-        totalDistancePID.kdErrorPower = getCurParams().speedKdErrorPower;
 
         waypointDistancePID = new PIDController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
         waypointDistancePID.reset();
         waypointDistancePID.setTarget(0);
         waypointDistancePID.setOutputBounds(0, 1);
-        waypointDistancePID.forceKdToBeNegative = true;
-        waypointDistancePID.kdErrorPower = getCurParams().speedKdErrorPower;
 
         headingRadErrorPID = new PIDController(getCurParams().headingKp, getCurParams().headingKi, getCurParams().headingKd);
         headingRadErrorPID.reset();
         headingRadErrorPID.setTarget(0);
         headingRadErrorPID.setOutputBounds(-1, 1);
-        headingRadErrorPID.forceKdToBeNegative = true;
-        headingRadErrorPID.kdErrorPower = getCurParams().headingKdErrorPower;
     }
 }
 

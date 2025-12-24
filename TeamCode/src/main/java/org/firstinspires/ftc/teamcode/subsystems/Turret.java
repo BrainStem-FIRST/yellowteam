@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public class Turret extends Component {
+    public static boolean powerTurret = false;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
@@ -32,7 +33,6 @@ public class Turret extends Component {
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
-    public static boolean powerTurret = false;
     public static Params TURRET_PARAMS = new Turret.Params();
     public enum TurretState {
         TRACKING, CENTER, PARK
@@ -84,6 +84,10 @@ public class Turret extends Component {
     }
 
     public void setTurretPosition(int ticks, int currentEncoder) {
+        if (!powerTurret) {
+            turretMotor.setPower(0);
+            return;
+        }
         targetEncoder = Range.clip(ticks, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
         double error = currentEncoder - targetEncoder;
 
@@ -168,7 +172,6 @@ public class Turret extends Component {
                 int targetTurretPosition = (int)(turretTargetAngleRad * turretTicksPerRadian);
                 targetTurretPosition += adjustment;
 
-                if (powerTurret)
                     setTurretPosition(targetTurretPosition, turretEncoder);
                 break;
 

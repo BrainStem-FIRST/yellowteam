@@ -5,6 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -17,6 +18,7 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Config
 public class Limelight extends Component {
@@ -33,9 +35,10 @@ public class Limelight extends Component {
         public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
         public int maxUpdateTurretVelTicksPerSec = 1;
         public boolean allowUpdateAnywhereForFirst = true;
-        public double maxUpdateDist = 80;
-        public int numPrevFramesToAvg = 10;
+        public double maxUpdateDist = 800;
+        public int numPrevFramesToAvg = 5;
         public int minTimeBetweenUpdates = 5;
+        public boolean useMT2 = false;
         public int numPrevPosesToPrint = 0;
     }
     public static class SnapshotParams {
@@ -64,6 +67,7 @@ public class Limelight extends Component {
     private int numSetPoses = 0;
     private double lastUpdateTimeMs = 0;
     public boolean manualPoseUpdate;
+    public List<LLResultTypes.FiducialResult> visibleTagInfo;
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -90,15 +94,22 @@ public class Limelight extends Component {
     public void printInfo() {
         telemetry.addLine("LIMELIGHT");
         telemetry.addData("state", updateState);
+        telemetry.addData("   num set poses", numSetPoses);
+
+        telemetry.addLine();
+
         if(result != null) {
-            telemetry.addData("   num set poses", numSetPoses);
             telemetry.addData("   isValid", result.isValid());
             telemetry.addData("   bot pose is null", result.getBotpose() == null);
             telemetry.addData("   drivetrain good for update", drivetrainGoodForUpdate);
             telemetry.addData("   turret good for update", turretGoodForUpdate);
             telemetry.addData("   successfully found pose", successfullyFoundPose);
-            telemetry.addData("   last update time", MathUtils.format2(lastUpdateTimeMs * 0.001));
             telemetry.addLine();
+            telemetry.addData("   num visible tags", visibleTagInfo.size());
+            StringBuilder tagIDs = new StringBuilder();
+            for (LLResultTypes.FiducialResult result : visibleTagInfo)
+                tagIDs.append(result.getFiducialId()).append(" ");
+            telemetry.addData("   tag IDs", tagIDs);
             telemetry.addData("   max translational error", maxTranslationalError);
             telemetry.addData("   max heading error", maxHeadingErrorDeg);
             telemetry.addData("   turret pose", MathUtils.format2(turretPose.position.x) + " " + MathUtils.format2(turretPose.position.y) + " " + MathUtils.format2(Math.toDegrees(turretPose.heading.toDouble())));
@@ -191,10 +202,16 @@ public class Limelight extends Component {
     private Pose2d updatePoseFromCamera() {
         lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
 
+        if (updatePoseParams.useMT2) {
+            double turretHeadingDeg = Math.toDegrees(robot.turret.currentAngleRad);
+            limelight.updateRobotOrientation(turretHeadingDeg);
+        }
+        
         result = limelight.getLatestResult();
         if (result == null || !result.isValid())
             return null;
 
+        visibleTagInfo = result.getFiducialResults();
         Pose3D curFrameTurretPose = result.getBotpose();
         if (curFrameTurretPose == null)
             return null;
