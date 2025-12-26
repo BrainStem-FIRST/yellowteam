@@ -14,10 +14,12 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Config
@@ -25,6 +27,10 @@ public class Limelight extends Component {
     public enum UpdatePoseType {
         CONTINUOUS,
         ON_COMMAND
+    }
+    public enum Pipeline {
+        APRIL_TAG,
+        OBJECT_DETECTION
     }
     public enum UpdateState {
         OFF,
@@ -46,15 +52,21 @@ public class Limelight extends Component {
         public int snapshotNum = 0;
         public boolean clearSnapshots = false;
     }
+    public static class ObjectDetectionParams {
+        public boolean close = false;
+    }
     public static UpdatePoseType updatePoseType = UpdatePoseType.CONTINUOUS;
     public static UpdateState offUpdateState = UpdateState.PASSIVE_READING;
     public static UpdatePoseParams updatePoseParams = new UpdatePoseParams();
     public static SnapshotParams snapshotParams = new SnapshotParams();
+    public static ObjectDetectionParams objectDetectionParams = new ObjectDetectionParams();
+
     // i should tune the camera so that it gives me the turret center position
     public final Limelight3A limelight;
+    private Pipeline pipeline;
     private Pose2d turretPose, robotPose;
     private Vector2d robotTurretVec;
-    private LLResult result;
+    private LLResult aprilTagResult;
     private Pose2d lastAvgTurretPose;
     private final ArrayList<Pose3D> lastTurretPoses;
     public double maxTranslationalError, maxHeadingErrorDeg;
@@ -68,6 +80,7 @@ public class Limelight extends Component {
     private double lastUpdateTimeMs = 0;
     public boolean manualPoseUpdate;
     public List<LLResultTypes.FiducialResult> visibleTagInfo;
+    public double[] objectDetectionOutput;
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
@@ -88,6 +101,8 @@ public class Limelight extends Component {
         maxTranslationalError = 0;
         maxHeadingErrorDeg = 0;
         numSetPoses = 0;
+        pipeline = Pipeline.APRIL_TAG;
+        objectDetectionOutput = new double[0];
     }
 
     @Override
@@ -97,10 +112,19 @@ public class Limelight extends Component {
         telemetry.addData("   num set poses", numSetPoses);
 
         telemetry.addLine();
-
-        if(result != null) {
-            telemetry.addData("   isValid", result.isValid());
-            telemetry.addData("   bot pose is null", result.getBotpose() == null);
+        switch (pipeline) {
+            case APRIL_TAG:
+                updateAprilTagTelemetry();
+                break;
+            case OBJECT_DETECTION:
+                updateObjectDetectionTelemetry();
+                break;
+        }
+    }
+    private void updateAprilTagTelemetry() {
+        if(aprilTagResult != null) {
+            telemetry.addData("   isValid", aprilTagResult.isValid());
+            telemetry.addData("   bot pose is null", aprilTagResult.getBotpose() == null);
             telemetry.addData("   drivetrain good for update", drivetrainGoodForUpdate);
             telemetry.addData("   turret good for update", turretGoodForUpdate);
             telemetry.addData("   successfully found pose", successfullyFoundPose);
@@ -117,7 +141,7 @@ public class Limelight extends Component {
 
             for (int i=0; i<Math.min(updatePoseParams.numPrevPosesToPrint, lastTurretPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
-                          MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
+                        MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
 
@@ -128,6 +152,9 @@ public class Limelight extends Component {
         else
             telemetry.addLine("   result is null");
     }
+    private void updateObjectDetectionTelemetry() {
+        telemetry.addData("python outputs", Arrays.toString(objectDetectionOutput));
+    }
 
     @Override
     public void update() {
@@ -136,6 +163,17 @@ public class Limelight extends Component {
             snapshotParams.clearSnapshots = false;
         }
 
+        switch (pipeline) {
+            case APRIL_TAG:
+                updateAprilTag();
+                break;
+            case OBJECT_DETECTION:
+                updateObjectDetection();
+                break;
+        }
+    }
+
+    private void updateAprilTag() {
         drivetrainGoodForUpdate = canUpdateDrivetrainReliably();
         turretGoodForUpdate = canUpdateTurretReliably();
 
@@ -165,7 +203,7 @@ public class Limelight extends Component {
                 break;
             case PASSIVE_READING:
                 robotPose = updatePoseFromCamera();
-                if (robotPose == null || !result.isValid()) {
+                if (robotPose == null || !aprilTagResult.isValid()) {
                     robotPose = new Pose2d(0, 0, 0);
                     break;
                 }
@@ -179,7 +217,7 @@ public class Limelight extends Component {
                     break;
                 }
                 robotPose = updatePoseFromCamera();
-                if (!result.isValid()) {
+                if (!aprilTagResult.isValid()) {
                     robotPose = new Pose2d(0, 0, 0);
                     successfullyFoundPose = false;
                     setState(offUpdateState);
@@ -199,6 +237,33 @@ public class Limelight extends Component {
                 break;
         }
     }
+    private void updateObjectDetection() {
+        double[] inputs = new double[2];
+        inputs[0] = robot.alliance == Alliance.RED ? 1 : -1;
+        inputs[1] = objectDetectionParams.close ? 1 : 0;
+
+        limelight.updatePythonInputs(inputs);
+
+        LLResult result = limelight.getLatestResult();
+        objectDetectionOutput = result.getPythonOutput();
+    }
+    public void switchPipeline(Pipeline pipeline) {
+        if (this.pipeline == pipeline)
+            return;
+
+        this.pipeline = pipeline;
+
+        int pipelineIndex;
+        switch (pipeline) {
+            case OBJECT_DETECTION:
+                pipelineIndex = 1;
+                break;
+            case APRIL_TAG:
+            default:
+                pipelineIndex = 0;
+        }
+        limelight.pipelineSwitch(pipelineIndex);
+    }
     private Pose2d updatePoseFromCamera() {
         lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
 
@@ -207,12 +272,12 @@ public class Limelight extends Component {
             limelight.updateRobotOrientation(turretHeadingDeg);
         }
         
-        result = limelight.getLatestResult();
-        if (result == null || !result.isValid())
+        aprilTagResult = limelight.getLatestResult();
+        if (aprilTagResult == null || !aprilTagResult.isValid())
             return null;
 
-        visibleTagInfo = result.getFiducialResults();
-        Pose3D curFrameTurretPose = result.getBotpose();
+        visibleTagInfo = aprilTagResult.getFiducialResults();
+        Pose3D curFrameTurretPose = aprilTagResult.getBotpose();
         if (curFrameTurretPose == null)
             return null;
 
@@ -225,7 +290,6 @@ public class Limelight extends Component {
         turretPose = getAvgTurretPose(lastTurretPoses);
         return calculateRobotPose(turretPose);
     }
-
     private void updateMaxErrors(Pose2d lastAvgTurretPose, Pose2d curAvgTurretPose) {
         double translationalError = Math.hypot(curAvgTurretPose.position.x - lastAvgTurretPose.position.x, curAvgTurretPose.position.y - lastAvgTurretPose.position.y);
         double headingErrorDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - lastAvgTurretPose.heading.toDouble()));
@@ -251,7 +315,6 @@ public class Limelight extends Component {
         robotTurretVec = new Vector2d(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
         return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
     }
-
     public Pose2d getRobotPose() {
         if(robotPose == null)
             return null;
