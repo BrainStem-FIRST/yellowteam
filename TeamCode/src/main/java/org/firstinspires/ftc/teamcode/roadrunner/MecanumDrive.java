@@ -65,6 +65,7 @@ import java.util.List;
 @Config
 public class MecanumDrive {
     public static boolean betterPathCorrection = false;
+    public static double targetMaxVoltage = 14;
 
     public static class Params {
         // IMU orientation
@@ -278,6 +279,21 @@ public class MecanumDrive {
         leftBack.setPower(wheelVels.leftBack.get(0) / maxPowerMag);
         rightBack.setPower(wheelVels.rightBack.get(0) / maxPowerMag);
         rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
+    }
+    public void setBatteryIndependentDrivePowers(PoseVelocity2d powers) {
+        MecanumKinematics.WheelVelocities<Time> wheelVels = new MecanumKinematics(1).inverse(
+                PoseVelocity2dDual.constant(powers, 1));
+
+        double maxPowerMag = 1;
+        double voltageScaler = targetMaxVoltage / voltageSensor.getVoltage();
+        for (DualNum<Time> power : wheelVels.all()) {
+            maxPowerMag = Math.max(maxPowerMag, power.value() * voltageScaler);
+        }
+
+        leftFront.setPower(wheelVels.leftFront.get(0));
+        leftBack.setPower(wheelVels.leftBack.get(0));
+        rightBack.setPower(wheelVels.rightBack.get(0));
+        rightFront.setPower(wheelVels.rightFront.get(0));
     }
 
     public final class FollowTrajectoryAction implements Action {

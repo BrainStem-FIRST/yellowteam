@@ -4,6 +4,7 @@ package org.firstinspires.ftc.teamcode.utils.pidDrive;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
@@ -39,8 +40,8 @@ public class Waypoint {
        return pose.heading.toDouble();
     }
 
-    public void setDistToNextWaypoint(Waypoint waypoint) {
-        distToNextWaypoint = Math.sqrt(Math.pow(waypoint.x() - x(), 2) + Math.pow(waypoint.y() - y(), 2));
+    public void setDistToNextWaypoint(double dist) {
+        distToNextWaypoint = dist;
     }
     public double getDistToNextWaypoint() {
         return distToNextWaypoint;

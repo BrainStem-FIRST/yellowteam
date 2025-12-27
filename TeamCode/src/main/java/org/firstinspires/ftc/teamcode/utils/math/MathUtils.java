@@ -2,26 +2,15 @@ package org.firstinspires.ftc.teamcode.utils.math;
 
 import com.acmerobotics.roadrunner.Pose2d;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
 // helps for concise, easy printing to telemetry
 public class MathUtils {
-    public static double correctRad(double rad) {
-        while (rad < 0)
-            rad += 2 * Math.PI;
-        while (rad >= 2 * Math.PI)
-            rad -= 2 * Math.PI;
-        return rad;
-    }
-    public static double correctDeg(double deg) {
-        while (deg < 0)
-            deg += 360;
-        while (deg >= 360)
-            deg -= 360;
-        return deg;
+    public static double angleNormRad(double rad) {
+        if(rad >= 0 && rad < Math.PI * 2)
+            return rad;
+        return (rad % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
     }
     public static String format1(Number num) {
         return format(num, 1);
