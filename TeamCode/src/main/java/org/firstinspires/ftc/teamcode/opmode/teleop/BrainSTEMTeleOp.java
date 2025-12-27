@@ -4,7 +4,6 @@ import static org.firstinspires.ftc.teamcode.subsystems.Shooter.ShooterState.REV
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
-import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -19,11 +18,11 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.opmode.testing.PosePredictionErrorRecorder;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
-import org.firstinspires.ftc.teamcode.subsystems.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
-import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
@@ -128,7 +127,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     }
 
     private void updateDrive() {
-        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE && robot.limelight.manualPoseUpdate) {
+        if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE && robot.limelight.localization.manualPoseUpdate) {
             stop();
             return;
         }
@@ -180,8 +179,8 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if (gp1.isFirstBack()) {
-            robot.limelight.maxTranslationalError = 0;
-            robot.limelight.maxHeadingErrorDeg = 0;
+            robot.limelight.localization.maxTranslationalError = 0;
+            robot.limelight.localization.maxHeadingErrorDeg = 0;
         }
     }
 
@@ -223,50 +222,17 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if(gp2.isFirstRightBumper()) {
-            robot.limelight.manualPoseUpdate = true;
-            robot.limelight.setState(Limelight.UpdateState.UPDATING_POSE);
+            robot.limelight.localization.manualPoseUpdate = true;
+            robot.limelight.localization.setState(LimelightLocalization.LocalizationState.UPDATING_POSE);
         }
         if (gp2.isFirstBack())
             robot.limelight.takePic();
     }
     private void updateDashboardField() {
-        Pose2d robotPose = robot.drive.pinpoint().getPose();
-        int turretEncoder = robot.turret.getTurretEncoder();
-        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
-        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, robot.shooter.getBallExitAngleRad());
-        Pose2d exitPose = new Pose2d(exitPosition, robot.turret.currentAngleRad);
-        Pose2d limelightRobotPose = robot.limelight.getRobotPose();
-        if (limelightRobotPose == null)
-            limelightRobotPose = new Pose2d(0, 0, 0);
-
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
-        TelemetryHelper.radii[0] = 10;
-        TelemetryHelper.radii[1] = 6;
-        TelemetryHelper.radii[2] = 3;
-        TelemetryHelper.radii[3] = 10;
-        TelemetryHelper.numPosesToShow = 4;
 
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose, limelightRobotPose);
-
-        // draw where turret is pointed
-        fieldOverlay.setAlpha(1);
-        double dist = Math.hypot(exitPosition.x - robot.turret.targetPose.position.x, exitPosition.y - robot.turret.targetPose.position.y);
-
-        fieldOverlay.setStroke("purple");
-        fieldOverlay.strokeLine(
-                exitPosition.x,
-                exitPosition.y,
-                exitPosition.x + dist * Math.cos(robot.turret.currentAngleRad),
-                exitPosition.y + dist * Math.sin(robot.turret.currentAngleRad)
-        );
-        fieldOverlay.setStroke("black");
-        fieldOverlay.strokeLine(
-                exitPosition.x,
-                exitPosition.y,
-                exitPosition.x + dist * Math.cos(robot.turret.targetAngleRad),
-                exitPosition.y + dist * Math.sin(robot.turret.targetAngleRad)
-        );
+        robot.addRobotInfo(fieldOverlay);
 
         // draw goal
         fieldOverlay.setStroke("yellow");

@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 
 @Config
 public class LED extends Component {
@@ -30,13 +32,13 @@ public class LED extends Component {
 
     @Override
     public void update(){
-        if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+        if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
             setLed(white);
             return;
         }
-        if (robot.limelight.getPrevState() == Limelight.UpdateState.UPDATING_POSE &&
-                robot.limelight.successfullyFoundPose &&
-                robot.limelight.getStateTime() < confirmSuccessfulPoseUpdateTime) {
+        if (robot.limelight.localization.getPrevState() == LimelightLocalization.LocalizationState.UPDATING_POSE &&
+                robot.limelight.localization.successfullyFoundPose &&
+                robot.limelight.localization.getStateTime() < confirmSuccessfulPoseUpdateTime) {
             setLed(blue);
             return;
         }

@@ -9,6 +9,8 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
@@ -157,7 +159,7 @@ public class Turret extends Component {
 
         switch (turretState) {
             case TRACKING:
-                if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
                     turretMotor.setPower(0);
                     break;
                 }
@@ -176,7 +178,7 @@ public class Turret extends Component {
                 break;
 
             case CENTER:
-                if (robot.limelight.getState() == Limelight.UpdateState.UPDATING_POSE) {
+                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
                     turretMotor.setPower(0);
                     break;
                 }

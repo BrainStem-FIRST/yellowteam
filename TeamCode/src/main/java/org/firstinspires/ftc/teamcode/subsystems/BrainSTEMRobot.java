@@ -1,24 +1,21 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
-import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.math.Vec;
+import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 
 import java.util.ArrayList;
-import java.util.List;
 
 
 @Config
@@ -83,9 +80,46 @@ public class BrainSTEMRobot {
                 c.update();
     }
 
-    private void drawRobot(BrainSTEMRobot robot) {
-        TelemetryPacket packet = new TelemetryPacket();
-        packet.fieldOverlay().setStroke("#3F51B5");
-        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+    public void addRobotInfo(Canvas fieldOverlay) {
+
+        // draw robot, turret, exit position, and limelight pose
+        Pose2d robotPose = drive.pinpoint().getPose();
+        int turretEncoder = turret.getTurretEncoder();
+        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, shooter.getBallExitAngleRad());
+        Pose2d exitPose = new Pose2d(exitPosition, turret.currentAngleRad);
+        Pose2d limelightRobotPose = limelight.localization.getRobotPose();
+        if (limelightRobotPose == null)
+            limelightRobotPose = new Pose2d(0, 0, 0);
+
+        TelemetryHelper.radii[0] = 10;
+        TelemetryHelper.radii[1] = 6;
+        TelemetryHelper.radii[2] = 3;
+        TelemetryHelper.radii[3] = 10;
+        TelemetryHelper.numPosesToShow = 4;
+
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose, limelightRobotPose);
+
+        // draw where turret is pointed
+        fieldOverlay.setAlpha(1);
+        double dist = Math.hypot(exitPosition.x - turret.targetPose.position.x, exitPosition.y - turret.targetPose.position.y);
+
+        fieldOverlay.setStroke("purple");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(turret.currentAngleRad),
+                exitPosition.y + dist * Math.sin(turret.currentAngleRad)
+        );
+        fieldOverlay.setStroke("black");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + dist * Math.cos(turret.targetAngleRad),
+                exitPosition.y + dist * Math.sin(turret.targetAngleRad)
+        );
+
+        // draw valid classifier update regions from limelight
+        limelight.classifier.drawValidClassifierZones(fieldOverlay);
     }
 }

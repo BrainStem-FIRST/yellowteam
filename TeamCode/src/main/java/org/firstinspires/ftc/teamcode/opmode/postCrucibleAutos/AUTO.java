@@ -20,7 +20,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
-import org.firstinspires.ftc.teamcode.opmode.teleop.Tele;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.AutoCommands;
@@ -78,7 +77,6 @@ public abstract class AUTO extends LinearOpMode {
     private AutoState autoState;
     @Override
     public void runOpMode() throws InterruptedException {
-        Tele.ranAutoAsLastOpMode = true;
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
 
