@@ -6,7 +6,7 @@ public class Tolerance {
     public static class DefaultParams {
         public double xTol = 1;
         public double yTol = 1;
-        public double headingDegTol = 3;
+        public double headingDegTol = 2;
     }
     public static DefaultParams defaultParams = new DefaultParams();
     public double xTol;

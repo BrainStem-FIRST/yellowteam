@@ -6,7 +6,7 @@ import com.acmerobotics.dashboard.config.Config;
 
 import java.util.function.BooleanSupplier;
 
-@Config
+//@Config
 public class PathParams {
     private static final double noMaxTime = -1;
     public static class PIDParams {

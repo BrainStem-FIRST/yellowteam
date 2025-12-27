@@ -9,16 +9,24 @@ import java.util.function.BooleanSupplier;
 
 @Config
 public class PathParams {
+    public enum HeadingLerpType {
+        LINEAR,
+        TANGENT
+    }
     private static final double noMaxTime = -1;
 
     public static class DefaultParams {
-        public double speedKp = 0.03, speedKi = 0, speedKd = 0.003, speedKpErrorPower = 2;
-        public double headingKp = 0.01, headingKi = 0, headingKd = 0.00001, headingKdErrorPower = 2;
-        public double applyKdLinearError = 10, applyKdHeadingRadError = 10;
-        public double lateralWeight = 1.5, axialWeight = 1; // weight the drive powers to correct for differences in driving
-        public double minSpeed = 0.18, maxSpeed = 1;
-        public double minHeadingSpeed = 0.2, maxHeadingSpeed = 1;
+        public double speedKp = 0.03, speedKi = 0, speedKd = 0.01, speedKf = 0.115;
+        public double closeHeadingKp = 0.005, closeHeadingKi = 0, closeHeadingKd = 0.00005, headingKf = 0.17;
+        public double farHeadingKp = 0.015, farHeadingKi = 0, farHeadingKd = 0;
+        public double applyCloseHeadingPIDErrorDeg = 10;
+        public double applyKdLinearError = 10;
+        public double lateralWeight = 1.9, axialWeight = 1; // weight the drive powers to correct for differences in driving
+        public double minSpeed = 0, maxSpeed = 1;
+        public double minHeadingSpeed = 0, maxHeadingSpeed = 1;
         public double maxTime = 100;
+        public HeadingLerpType headingLerpType = HeadingLerpType.LINEAR;
+        public double tangentHeadingActivateThreshold = 10;
     }
     public static DefaultParams defaultParams = new DefaultParams();
     public double lateralWeight, axialWeight;
@@ -33,31 +41,26 @@ public class PathParams {
     public double maxTime;
     public BooleanSupplier customEndCondition = () -> false;
 
-    public double speedKp, speedKi, speedKd, headingKp, headingKi, headingKd;
-    public double speedKdErrorPower, headingKdErrorPower;
-    public double applyKdLinearError, applyKdHeadingDegError;
+    public double speedKp, speedKi, speedKd, speedKf;
+    public double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
+    public double applyKdLinearError;
+    public HeadingLerpType headingLerpType;
+    public double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
     public PathParams() {
-        this(defaultParams.speedKp, defaultParams.speedKi, defaultParams.speedKd, defaultParams.headingKp, defaultParams.headingKi, defaultParams.headingKd);
+        this(defaultParams.speedKp, defaultParams.speedKi, defaultParams.speedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
     }
-    public PathParams(double[] pidCoefficients) {
-        if (pidCoefficients.length != 6)
-            throw new IllegalArgumentException("must pass in 8 PID coefficients. only passed in " + pidCoefficients.length + ": " + Arrays.toString(pidCoefficients));
-        this.speedKp = pidCoefficients[0];
-        this.speedKi = pidCoefficients[1];
-        this.speedKd = pidCoefficients[2];
-        this.headingKp = pidCoefficients[3];
-        this.headingKi = pidCoefficients[4];
-        this.headingKd = pidCoefficients[5];
-
-        initializeDefault();
-    }
-    public PathParams(double speedKp, double speedKi, double speedKd, double headingKp, double headingKi, double headingKd) {
+    public PathParams(double speedKp, double speedKi, double speedKd, double speedKf, double closeHeadingKp, double closeHeadingKi, double closeHeadingKd, double farHeadingKp, double farHeadingKi, double farHeadingKd, double headingKf) {
         this.speedKp = speedKp;
         this.speedKi = speedKi;
         this.speedKd = speedKd;
-        this.headingKp = headingKp;
-        this.headingKi = headingKi;
-        this.headingKd = headingKd;
+        this.speedKf = speedKf;
+        this.closeHeadingKp = closeHeadingKp;
+        this.closeHeadingKi = closeHeadingKi;
+        this.closeHeadingKd = closeHeadingKd;
+        this.farHeadingKp = farHeadingKp;
+        this.farHeadingKi = farHeadingKi;
+        this.farHeadingKd = farHeadingKd;
+        this.headingKf = headingKf;
 
         initializeDefault();
     }
@@ -71,9 +74,9 @@ public class PathParams {
         axialWeight = defaultParams.axialWeight;
         passPosition = false;
         applyKdLinearError = defaultParams.applyKdLinearError;
-        applyKdHeadingDegError = defaultParams.applyKdHeadingRadError;
-        speedKdErrorPower = defaultParams.speedKpErrorPower;
-        headingKdErrorPower = defaultParams.headingKdErrorPower;
+        headingLerpType = defaultParams.headingLerpType;
+        tangentHeadingActivateThreshold = defaultParams.tangentHeadingActivateThreshold;
+        applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
     }
     public boolean hasMaxTime() {
         return maxTime != noMaxTime;
@@ -82,7 +85,7 @@ public class PathParams {
     @NonNull
     @Override
     public PathParams clone() {
-        PathParams newParams = new PathParams(speedKp, speedKi, speedKd, headingKp, headingKi, headingKd);
+        PathParams newParams = new PathParams(speedKp, speedKi, speedKd, speedKf, closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf);
         newParams.maxTime = maxTime;
         newParams.minLinearPower = minLinearPower;
         newParams.maxLinearPower = maxLinearPower;
@@ -93,9 +96,9 @@ public class PathParams {
         newParams.passPosition = passPosition;
         newParams.customEndCondition = customEndCondition;
         newParams.applyKdLinearError = applyKdLinearError;
-        newParams.applyKdHeadingDegError = applyKdHeadingDegError;
-        newParams.speedKdErrorPower = speedKdErrorPower;
-        newParams.headingKdErrorPower = headingKdErrorPower;
+        newParams.headingLerpType = headingLerpType;
+        newParams.tangentHeadingActivateThreshold = tangentHeadingActivateThreshold;
+        newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;
         return newParams;
     }
 }

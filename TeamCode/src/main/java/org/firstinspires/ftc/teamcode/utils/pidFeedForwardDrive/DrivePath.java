@@ -98,7 +98,7 @@ public class DrivePath implements Action {
     public boolean run(@NonNull TelemetryPacket telemetryPacket) {
         drivetrain.updatePoseEstimate();
         Pose2d pose = odo.getPose();
-        double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.correctRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
+        double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.angleNormRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
 
         if (first) {
             first = false;
