@@ -26,7 +26,7 @@ public class Limelight extends Component {
 
     // i should tune the camera so that it gives me the turret center position
     public final Limelight3A limelight;
-    private Pipeline pipeline;
+    public static Pipeline pipeline = Pipeline.OFF;
     public final LimelightLocalization localization;
     public final LimelightClassifier classifier;
 
@@ -34,7 +34,7 @@ public class Limelight extends Component {
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        switchPipeline(Pipeline.APRIL_TAG);
+        limelight.pipelineSwitch(0);
         limelight.start();
 
         localization = new LimelightLocalization(robot, limelight);
@@ -45,8 +45,13 @@ public class Limelight extends Component {
     public void printInfo() {
         telemetry.addLine("LIMELIGHT");
         telemetry.addData("pipeline type", pipeline);
+        telemetry.addData("limelight is running", limelight.isRunning());
+        telemetry.addData("limelight is connected", limelight.isConnected());
+
         telemetry.addLine();
         switch (pipeline) {
+            case OFF:
+                break;
             case APRIL_TAG:
                 localization.updateTelemetry(telemetry);
                 break;
@@ -72,8 +77,8 @@ public class Limelight extends Component {
                 break;
             case CLASSIFIER_DETECTION:
                 classifier.update();
-                if (classifier.getMostCommonNumBalls() != -1)
-                    switchPipeline(Pipeline.OFF);
+                //if (classifier.getMostCommonNumBalls() != -1)
+                 //   switchPipeline(Pipeline.OFF);
                 break;
             case OBJECT_DETECTION:
                 break;
@@ -81,10 +86,10 @@ public class Limelight extends Component {
     }
 
     public void switchPipeline(Pipeline pipeline) {
-        if (this.pipeline == pipeline)
+        if (Limelight.pipeline == pipeline)
             return;
 
-        this.pipeline = pipeline;
+        Limelight.pipeline = pipeline;
 
         int pipelineIndex = -1;
         switch (pipeline) {
@@ -99,7 +104,13 @@ public class Limelight extends Component {
                 pipelineIndex = 2;
                 break;
         }
-        limelight.pipelineSwitch(pipelineIndex);
+        if (pipelineIndex == -1)
+            limelight.stop();
+        else {
+            if (!limelight.isRunning())
+                limelight.start();
+            limelight.pipelineSwitch(pipelineIndex);
+        }
     }
 
     public void takePic() {

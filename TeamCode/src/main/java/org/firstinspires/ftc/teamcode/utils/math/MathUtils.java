@@ -38,15 +38,16 @@ public class MathUtils {
             total.append(format3(num)).append(", ");
         return total.substring(0, total.length() - 2);
     }
-    public static String format2Pose(Pose2d pose) {
-        return MathUtils.format2(pose.position.x) + " " + MathUtils.format2(pose.position.y) + MathUtils.format2(pose.heading.toDouble());
-    }
 
     public static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
     }
 
-
+    public static String formatPose2(Pose2d pose) {
+        if (pose == null)
+            return "null";
+        return format2(pose.position.x) + ", " + format2(pose.position.y) + " " + format2(Math.toDegrees(pose.heading.toDouble()));
+    }
     public static Pose2d createPose(double[] pose) {
         if (pose.length < 3)
             throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");

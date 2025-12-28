@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems.limelight;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -19,14 +20,14 @@ import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+@Config
 public class LimelightLocalization extends LLParent {
-
-
     public enum UpdatePoseType {
         CONTINUOUS,
         ON_COMMAND
     }
     public enum LocalizationState {
+        OFF,
         PASSIVE_READING,
         UPDATING_POSE
     }
@@ -37,13 +38,13 @@ public class LimelightLocalization extends LLParent {
         public boolean allowUpdateAnywhereForFirst = true;
         public double maxUpdateDist = 800;
         public int numPrevFramesToAvg = 5;
-        public int minTimeBetweenUpdates = 5;
+        public double minTimeBetweenUpdates = 5, limelightConnectionBufferTime = 0.5;
         public boolean useMT2 = false;
         public int numPrevPosesToPrint = 0;
+        public LocalizationState offLocalizationState = LocalizationState.PASSIVE_READING;
     }
 
     public static UpdatePoseType updatePoseType = UpdatePoseType.CONTINUOUS;
-    public static LocalizationState offLocalizationState = LocalizationState.PASSIVE_READING;
     public static UpdatePoseParams updatePoseParams = new UpdatePoseParams();
     private Pose2d turretPose, robotPose;
     private Vector2d robotTurretVec;
@@ -69,8 +70,8 @@ public class LimelightLocalization extends LLParent {
         lastAvgTurretPose = new Pose2d(0, 0, 0);
         lastTurretPoses = new ArrayList<>();
         stateTimer = new ElapsedTime();
-        prevState = LocalizationState.PASSIVE_READING;
-        setState(LocalizationState.PASSIVE_READING);
+        prevState = LocalizationState.OFF;
+        setState(LocalizationState.OFF);
         successfullyFoundPose = false;
         drivetrainGoodForUpdate = false;
         turretGoodForUpdate = false;
@@ -78,6 +79,7 @@ public class LimelightLocalization extends LLParent {
         maxTranslationalError = 0;
         maxHeadingErrorDeg = 0;
         numSetPoses = 0;
+        visibleTagInfo = new ArrayList<>();
     }
 
     public LocalizationState getState() {
@@ -107,46 +109,37 @@ public class LimelightLocalization extends LLParent {
     }
 
     public void update() {
-        double curTimeMs = System.currentTimeMillis();
-        double timeSinceUpdate = curTimeMs - lastUpdatePoseTimeMs;
-
-        // pausing the limelight when it doesn't need to update pose
-        if (timeSinceUpdate < updatePoseParams.minTimeBetweenUpdates) {
-            if (limelight.isRunning())
-                limelight.pause();
-            return;
-        }
-        else if (!limelight.isRunning())
-            limelight.start();
-
-        if (!limelight.isConnected())
-            return;
-
-
         drivetrainGoodForUpdate = canUpdateDrivetrainReliably();
         turretGoodForUpdate = canUpdateTurretReliably();
 
         if (!drivetrainGoodForUpdate || !turretGoodForUpdate) {
             // want to update again immediately if current update is interrupted
             if (state == LocalizationState.UPDATING_POSE)
-                lastUpdatePoseTimeMs = 0;
+                lastUpdatePoseTimeMs = -1;
 
-            setState(offLocalizationState);
+            setState(updatePoseParams.offLocalizationState);
             lastTurretPoses.clear();
         }
 
+        // only want to update again if robot moves, not if turret moves
         if (!drivetrainGoodForUpdate)
             successfullyFoundPose = false;
 
-        if (drivetrainGoodForUpdate && turretGoodForUpdate && !successfullyFoundPose &&
-                updatePoseType == UpdatePoseType.CONTINUOUS &&
-                (curTimeMs - lastUpdatePoseTimeMs) * 0.001 > updatePoseParams.minTimeBetweenUpdates) {
-            lastUpdatePoseTimeMs = curTimeMs;
+        double curTimeMs = System.currentTimeMillis();
+        double timeSinceUpdate = (curTimeMs - lastUpdatePoseTimeMs) * 0.001;
+
+        boolean canUpdate = drivetrainGoodForUpdate && turretGoodForUpdate &&
+                !successfullyFoundPose && updatePoseType == UpdatePoseType.CONTINUOUS;
+
+        // if the code has reached this ine, everything is ready to update the pose
+        if (canUpdate && timeSinceUpdate >= updatePoseParams.minTimeBetweenUpdates && state != LocalizationState.UPDATING_POSE) {
             manualPoseUpdate = false;
             setState(LocalizationState.UPDATING_POSE);
         }
 
         switch (state) {
+            case OFF:
+                break;
             case PASSIVE_READING:
                 updatePoseFromCamera();
                 if (robotPose == null || !aprilTagResult.isValid()) {
@@ -157,18 +150,7 @@ public class LimelightLocalization extends LLParent {
 
                 break;
             case UPDATING_POSE:
-                if (!drivetrainGoodForUpdate) {
-                    successfullyFoundPose = false;
-                    setState(offLocalizationState);
-                    break;
-                }
                 updatePoseFromCamera();
-                if (!aprilTagResult.isValid()) {
-                    robotPose = new Pose2d(0, 0, 0);
-                    successfullyFoundPose = false;
-                    setState(offLocalizationState);
-                    break;
-                }
 
                 successfullyFoundPose = robotPose != null;
                 if (!successfullyFoundPose) {
@@ -179,16 +161,19 @@ public class LimelightLocalization extends LLParent {
 
                 robot.drive.localizer.setPose(robotPose);
                 numSetPoses++;
-                setState(offLocalizationState);
+                lastUpdatePoseTimeMs = System.currentTimeMillis();
+                setState(updatePoseParams.offLocalizationState);
                 break;
         }
     }
     public void updateTelemetry(Telemetry telemetry) {
         if(aprilTagResult != null) {
+            telemetry.addData("   localization state", state);
             telemetry.addData("   isValid", aprilTagResult.isValid());
             telemetry.addData("   bot pose is null", aprilTagResult.getBotpose() == null);
             telemetry.addData("   drivetrain good for update", drivetrainGoodForUpdate);
             telemetry.addData("   turret good for update", turretGoodForUpdate);
+            telemetry.addData("   time since last update", (System.currentTimeMillis() - lastUpdatePoseTimeMs) * 0.001);
             telemetry.addData("   successfully found pose", successfullyFoundPose);
             telemetry.addLine();
             telemetry.addData("   num visible tags", visibleTagInfo.size());
@@ -198,8 +183,9 @@ public class LimelightLocalization extends LLParent {
             telemetry.addData("   tag IDs", tagIDs);
             telemetry.addData("   max translational error", maxTranslationalError);
             telemetry.addData("   max heading error", maxHeadingErrorDeg);
-            telemetry.addData("   turret pose", MathUtils.format2(turretPose.position.x) + " " + MathUtils.format2(turretPose.position.y) + " " + MathUtils.format2(Math.toDegrees(turretPose.heading.toDouble())));
-            telemetry.addData("   robot pose", MathUtils.format2(robotPose.position.x) + " " + MathUtils.format2(robotPose.position.y) + " " + MathUtils.format2(Math.toDegrees(robotPose.heading.toDouble())));
+
+            telemetry.addData("turret pose", MathUtils.formatPose2(turretPose));
+            telemetry.addData("robot pose", MathUtils.formatPose2(robotPose));
 
             for (int i=0; i<Math.min(updatePoseParams.numPrevPosesToPrint, lastTurretPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
@@ -213,7 +199,10 @@ public class LimelightLocalization extends LLParent {
             telemetry.addLine("   result is null");
     }
     private void updatePoseFromCamera() {
-        lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
+        if (turretPose != null)
+            lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
+        else
+            lastAvgTurretPose = new Pose2d(0, 0, 0);
 
         if (updatePoseParams.useMT2) {
             double turretHeadingDeg = Math.toDegrees(robot.turret.currentAngleRad);
@@ -226,19 +215,27 @@ public class LimelightLocalization extends LLParent {
 
         visibleTagInfo = aprilTagResult.getFiducialResults();
         Pose3D curFrameTurretPose = aprilTagResult.getBotpose();
-        if (curFrameTurretPose == null)
+        if (curFrameTurretPose == null) {
+            turretPose = null;
+            robotPose = null;
             return;
+        }
 
         lastTurretPoses.add(new Pose3D(curFrameTurretPose.getPosition().toUnit(DistanceUnit.INCH), curFrameTurretPose.getOrientation()));
         if (lastTurretPoses.size() > updatePoseParams.numPrevFramesToAvg)
             lastTurretPoses.remove(0);
-        else
+        else {
+            turretPose = null;
+            robotPose = null;
             return;
+        }
 
         turretPose = getAvgTurretPose(lastTurretPoses);
         robotPose = calculateRobotPose(turretPose);
     }
     private void updateMaxErrors(Pose2d lastAvgTurretPose, Pose2d curAvgTurretPose) {
+        if (lastAvgTurretPose == null || curAvgTurretPose == null)
+            return;
         double translationalError = Math.hypot(curAvgTurretPose.position.x - lastAvgTurretPose.position.x, curAvgTurretPose.position.y - lastAvgTurretPose.position.y);
         double headingErrorDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - lastAvgTurretPose.heading.toDouble()));
         maxTranslationalError = Math.max(maxTranslationalError, translationalError);
@@ -275,6 +272,4 @@ public class LimelightLocalization extends LLParent {
     private boolean canUpdateTurretReliably() {
         return robot.turret.turretMotor.getVelocity() < updatePoseParams.maxUpdateTurretVelTicksPerSec;
     }
-
-
 }
