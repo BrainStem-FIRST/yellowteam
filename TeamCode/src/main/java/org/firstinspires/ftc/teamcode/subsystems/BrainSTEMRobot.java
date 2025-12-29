@@ -79,7 +79,6 @@ public class BrainSTEMRobot {
     }
 
     public void addRobotInfo(Canvas fieldOverlay) {
-
         // draw robot, turret, exit position, and limelight pose
         Pose2d robotPose = drive.pinpoint().getPose();
         int turretEncoder = turret.getTurretEncoder();

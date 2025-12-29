@@ -22,7 +22,7 @@ import java.util.List;
 
 @Config
 public class LimelightLocalization extends LLParent {
-    public enum UpdatePoseType {
+    public enum LocalizationType {
         CONTINUOUS,
         ON_COMMAND
     }
@@ -32,7 +32,7 @@ public class LimelightLocalization extends LLParent {
         UPDATING_POSE
     }
 
-    public static class UpdatePoseParams {
+    public static class Params {
         public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
         public int maxUpdateTurretVelTicksPerSec = 1;
         public boolean allowUpdateAnywhereForFirst = true;
@@ -44,8 +44,8 @@ public class LimelightLocalization extends LLParent {
         public LocalizationState offLocalizationState = LocalizationState.PASSIVE_READING;
     }
 
-    public static UpdatePoseType updatePoseType = UpdatePoseType.CONTINUOUS;
-    public static UpdatePoseParams updatePoseParams = new UpdatePoseParams();
+    public static LocalizationType localizationType = LocalizationType.CONTINUOUS;
+    public static Params params = new Params();
     private Pose2d turretPose, robotPose;
     private Vector2d robotTurretVec;
     private LLResult aprilTagResult;
@@ -117,7 +117,7 @@ public class LimelightLocalization extends LLParent {
             if (state == LocalizationState.UPDATING_POSE)
                 lastUpdatePoseTimeMs = -1;
 
-            setState(updatePoseParams.offLocalizationState);
+            setState(params.offLocalizationState);
             lastTurretPoses.clear();
         }
 
@@ -129,10 +129,10 @@ public class LimelightLocalization extends LLParent {
         double timeSinceUpdate = (curTimeMs - lastUpdatePoseTimeMs) * 0.001;
 
         boolean canUpdate = drivetrainGoodForUpdate && turretGoodForUpdate &&
-                !successfullyFoundPose && updatePoseType == UpdatePoseType.CONTINUOUS;
+                !successfullyFoundPose && localizationType == LocalizationType.CONTINUOUS;
 
         // if the code has reached this ine, everything is ready to update the pose
-        if (canUpdate && timeSinceUpdate >= updatePoseParams.minTimeBetweenUpdates && state != LocalizationState.UPDATING_POSE) {
+        if (canUpdate && timeSinceUpdate >= params.minTimeBetweenUpdates && state != LocalizationState.UPDATING_POSE) {
             manualPoseUpdate = false;
             setState(LocalizationState.UPDATING_POSE);
         }
@@ -162,7 +162,7 @@ public class LimelightLocalization extends LLParent {
                 robot.drive.localizer.setPose(robotPose);
                 numSetPoses++;
                 lastUpdatePoseTimeMs = System.currentTimeMillis();
-                setState(updatePoseParams.offLocalizationState);
+                setState(params.offLocalizationState);
                 break;
         }
     }
@@ -187,7 +187,7 @@ public class LimelightLocalization extends LLParent {
             telemetry.addData("turret pose", MathUtils.formatPose2(turretPose));
             telemetry.addData("robot pose", MathUtils.formatPose2(robotPose));
 
-            for (int i=0; i<Math.min(updatePoseParams.numPrevPosesToPrint, lastTurretPoses.size()); i++)
+            for (int i = 0; i<Math.min(params.numPrevPosesToPrint, lastTurretPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
                         MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
@@ -204,7 +204,7 @@ public class LimelightLocalization extends LLParent {
         else
             lastAvgTurretPose = new Pose2d(0, 0, 0);
 
-        if (updatePoseParams.useMT2) {
+        if (params.useMT2) {
             double turretHeadingDeg = Math.toDegrees(robot.turret.currentAngleRad);
             limelight.updateRobotOrientation(turretHeadingDeg);
         }
@@ -222,7 +222,7 @@ public class LimelightLocalization extends LLParent {
         }
 
         lastTurretPoses.add(new Pose3D(curFrameTurretPose.getPosition().toUnit(DistanceUnit.INCH), curFrameTurretPose.getOrientation()));
-        if (lastTurretPoses.size() > updatePoseParams.numPrevFramesToAvg)
+        if (lastTurretPoses.size() > params.numPrevFramesToAvg)
             lastTurretPoses.remove(0);
         else {
             turretPose = null;
@@ -264,12 +264,12 @@ public class LimelightLocalization extends LLParent {
         OdoInfo odoVel = robot.drive.pinpoint().getMostRecentVelocity();
         Pose2d odoPose = robot.drive.localizer.getPose();
         Pose2d targetPose = robot.turret.targetPose;
-        boolean slowEnough = Math.abs(Math.toDegrees(odoVel.headingRad)) < updatePoseParams.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < updatePoseParams.maxUpdateTranslationalVel;
-        boolean inRange = (numSetPoses == 0 && updatePoseParams.allowUpdateAnywhereForFirst) ||
-                Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < updatePoseParams.maxUpdateDist;
+        boolean slowEnough = Math.abs(Math.toDegrees(odoVel.headingRad)) < params.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < params.maxUpdateTranslationalVel;
+        boolean inRange = (numSetPoses == 0 && params.allowUpdateAnywhereForFirst) ||
+                Math.hypot(odoPose.position.x - targetPose.position.x, odoPose.position.y - targetPose.position.y) < params.maxUpdateDist;
         return slowEnough && inRange;
     }
     private boolean canUpdateTurretReliably() {
-        return robot.turret.turretMotor.getVelocity() < updatePoseParams.maxUpdateTurretVelTicksPerSec;
+        return robot.turret.turretMotor.getVelocity() < params.maxUpdateTurretVelTicksPerSec;
     }
 }

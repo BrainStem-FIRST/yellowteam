@@ -22,9 +22,9 @@ public class Limelight extends Component {
     private final Limelight3A limelight;
     public static int startingPipeline = 2;
     private int pipeline;
-    public final LimelightLocalization localization;
-    public final LimelightClassifier classifier;
-    public final LimelightBallDetection ballDetection;
+    public final LimelightLocalization localization; // april tag localization
+    public final LimelightClassifier classifier; // counts # balls in classifier
+    public final LimelightBallDetection ballDetection; // detects balls in loading zone
 
     // classifier detection data
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
@@ -35,6 +35,7 @@ public class Limelight extends Component {
         classifier = new LimelightClassifier(robot, limelight);
         ballDetection = new LimelightBallDetection(robot, limelight);
 
+        pipeline = -1;
         switchPipeline(startingPipeline);
         limelight.start();
     }
@@ -79,13 +80,21 @@ public class Limelight extends Component {
         }
     }
 
+    public void switchPipeline(int num) {
+        if (pipeline == num)
+            return;
+
+        pipeline = num;
+        if (num == -1)
+            limelight.stop();
+        else if (!limelight.isRunning())
+            limelight.start();
+
+        limelight.pipelineSwitch(num);
+    }
+
     public void takePic() {
         limelight.captureSnapshot(snapshotParams.snapshotName + "-" + snapshotParams.snapshotNum);
         snapshotParams.snapshotNum++;
-    }
-
-    public void switchPipeline(int num) {
-        pipeline = num;
-        limelight.pipelineSwitch(num);
     }
 }

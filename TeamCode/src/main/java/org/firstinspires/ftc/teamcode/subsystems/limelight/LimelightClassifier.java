@@ -15,13 +15,13 @@ import java.util.Arrays;
 
 @Config
 public class LimelightClassifier extends LLParent {
-    public static class ClassifierParams {
+    public static class Params {
         public double forwardDistFromTurret = 0;
         public double closeX = -12, closeY = 24, closeRadius = 12;
         public double farX = 60, farY = 12, farRadius = 6;
         public int numFramesPerRead = 3;
     }
-    public static ClassifierParams classifierParams = new ClassifierParams();
+    public static Params params = new Params();
 
     private boolean inValidClassifierRegion;
     private double[] pythonInputs;
@@ -42,7 +42,7 @@ public class LimelightClassifier extends LLParent {
     }
 
     public int getMostCommonNumBalls() {
-        if (numFramesRunning < classifierParams.numFramesPerRead)
+        if (numFramesRunning < params.numFramesPerRead)
             return -1;
 
         int mostCommonNumBalls = -1;
@@ -90,8 +90,8 @@ public class LimelightClassifier extends LLParent {
 
     public void drawValidClassifierZones(Canvas fieldOverlay) {
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(classifierParams.closeX, classifierParams.closeY, classifierParams.closeRadius);
-        fieldOverlay.strokeCircle(classifierParams.farX, classifierParams.farY, classifierParams.farRadius);
+        fieldOverlay.strokeCircle(params.closeX, params.closeY, params.closeRadius);
+        fieldOverlay.strokeCircle(params.farX, params.farY, params.farRadius);
     }
 
     private boolean inCloseZone(Pose2d robotPose) {
@@ -99,9 +99,9 @@ public class LimelightClassifier extends LLParent {
     }
     private boolean inValidClassifierRegion(Pose2d robotPose) {
         boolean close = inCloseZone(robotPose);
-        double tx = close ? classifierParams.closeX : classifierParams.farX;
-        double ty = close ? classifierParams.closeY : classifierParams.farY;
-        double tr = close ? classifierParams.closeRadius : classifierParams.farRadius;
+        double tx = close ? params.closeX : params.farX;
+        double ty = close ? params.closeY : params.farY;
+        double tr = close ? params.closeRadius : params.farRadius;
 
         double dx = robotPose.position.x - tx;
         double dy = robotPose.position.y - ty;
@@ -113,7 +113,7 @@ public class LimelightClassifier extends LLParent {
         int turretEncoder = robot.turret.getTurretEncoder();
         Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
         double turretAngleRad = Turret.getTurretRelativeAngleRad(turretEncoder) + robotPose.heading.toDouble();
-        double dy = classifierParams.forwardDistFromTurret * Math.sin(turretAngleRad);
+        double dy = params.forwardDistFromTurret * Math.sin(turretAngleRad);
         return turretPose.position.y + dy;
     }
 }
