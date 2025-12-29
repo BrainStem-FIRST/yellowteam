@@ -55,7 +55,7 @@ public class PidDriveTest extends OpMode {
         Waypoint w2 = new Waypoint(pose2, new Tolerance(tol2));
         w2.params.headingLerpType = headingLerpType2;
 
-        d1 = new DrivePath(hardwareMap, drive, telemetry, w1, w2);
+        d1 = new DrivePath(drive, telemetry, w1, w2);
 
     }
     @Override

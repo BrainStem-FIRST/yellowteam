@@ -39,13 +39,11 @@ public class DrivePath implements Action {
     private double curWaypointDirRad, curWaypointDirDeg;
     private boolean first;
     private Pose2d startPose;
-    private final VoltageSensor voltageSensor;
 
-    public DrivePath(HardwareMap hardwareMap, MecanumDrive drivetrain, Waypoint ...waypoints) {
-        this(hardwareMap, drivetrain, null, waypoints);
+    public DrivePath(MecanumDrive drivetrain, Waypoint ...waypoints) {
+        this(drivetrain, null, waypoints);
     }
-    public DrivePath(HardwareMap hardwareMap, MecanumDrive drivetrain, Telemetry telemetry, Waypoint ...waypoints) {
-        voltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
+    public DrivePath(MecanumDrive drivetrain, Telemetry telemetry, Waypoint ...waypoints) {
         this.drivetrain = drivetrain;
         this.odo = drivetrain.pinpoint();
         this.telemetry = telemetry;
@@ -101,7 +99,6 @@ public class DrivePath implements Action {
     public boolean run(@NonNull TelemetryPacket telemetryPacket) {
         drivetrain.updatePoseEstimate();
         Pose2d pose = odo.getPose();
-        double voltage = voltageSensor.getVoltage();
         double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.angleNormRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
 
         if (first) {
@@ -128,7 +125,7 @@ public class DrivePath implements Action {
 
         // tolerance
         boolean inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
-        boolean inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingDegTol;
+        boolean inHeadingTolerance = Math.abs(headingDegWaypointError) <= Math.toDegrees(getCurWaypoint().tolerance.headingRadTol);
         // pass position
         if(getCurParams().passPosition && getDotProductToNextWaypoint(pose) > 0)
                 inPositionTolerance = true;
@@ -142,8 +139,6 @@ public class DrivePath implements Action {
             // completely finished drive path
             if (curWaypointIndex >= waypoints.size()) {
                 drivetrain.stop();
-                telemetry.addLine("finished drive path");
-                telemetry.addData("ending drive powers (fl, fr, bl, br)", drivetrain.getDrivePowersString());
                 return false;
             }
             // finished current waypoint path, moving on to next waypoint
@@ -163,7 +158,7 @@ public class DrivePath implements Action {
 
                 // recalculate new tolerances
                 inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
-                inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingDegTol;
+                inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingRadTol;
             }
         }
 
@@ -208,10 +203,7 @@ public class DrivePath implements Action {
             else
                 headingPower = headingRadFarErrorPID.update(-headingDegWaypointError);
             double headingSign = Math.signum(headingDegWaypointError);
-            telemetry.addData("heading error", headingDegWaypointError);
-            telemetry.addData("pre kf heading power", headingPower);
             double kfPower = -headingSign * getCurWaypoint().params.headingKf;
-            telemetry.addData("kfPower", kfPower);
             headingPower += kfPower;
             headingPower = headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
             if (flipHeadingDirection)
@@ -242,7 +234,6 @@ public class DrivePath implements Action {
             telemetry.addData("ax pow", MathUtils.format3(axialPower));
             telemetry.addData("heading pow", MathUtils.format3(headingPower));
             telemetry.addData("power hypot", powerMag);
-            telemetry.addData("voltage", voltage);
             TelemetryPacket packet = new TelemetryPacket();
             Canvas fieldOverlay = packet.fieldOverlay();
             Pose2d prevWaypointPose = curWaypointIndex == 0 ? startPose : getWaypoint(curWaypointIndex - 1).pose;
