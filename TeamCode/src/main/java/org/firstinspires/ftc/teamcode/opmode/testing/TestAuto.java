@@ -46,7 +46,7 @@ public class TestAuto extends LinearOpMode {
         Action autoAction = new ParallelAction(
                 new SequentialAction(
                         new ParallelAction(
-                                new DrivePath(hardwareMap, drive, telemetry, new Waypoint(shoot1)),
+                                new DrivePath(drive, telemetry, new Waypoint(shoot1)),
                                 autoCommands.speedUpShooter()
                         ),
                         autoCommands.engageClutch(),
@@ -57,10 +57,10 @@ public class TestAuto extends LinearOpMode {
                                 autoCommands.waitTillDoneShooting(1.5, 1)
                         ),
                         autoCommands.disengageClutch(),
-                        new DrivePath(hardwareMap, drive, telemetry, new Waypoint(collect1)),
+                        new DrivePath(drive, telemetry, new Waypoint(collect1)),
                         autoCommands.intakeSlow(),
                         new ParallelAction(
-                                new DrivePath(hardwareMap, drive, telemetry, new Waypoint(shoot2)),
+                                new DrivePath(drive, telemetry, new Waypoint(shoot2)),
                                 new SequentialAction(
                                         new SleepAction(0.15),
                                         autoCommands.stopIntake()
@@ -73,10 +73,10 @@ public class TestAuto extends LinearOpMode {
                                 new SleepAction(0.5),
                                 autoCommands.waitTillDoneShooting(1.5, 1)
                         ),
-                        new DrivePath(hardwareMap, drive, telemetry, collect2w1, new Waypoint(collect2)),
+                        new DrivePath(drive, telemetry, collect2w1, new Waypoint(collect2)),
                         autoCommands.intakeSlow(),
                         new ParallelAction(
-                                new DrivePath(hardwareMap, drive, telemetry, new Waypoint(shoot2)),
+                                new DrivePath(drive, telemetry, new Waypoint(shoot2)),
                                 new SequentialAction(
                                         new SleepAction(0.15),
                                         autoCommands.stopIntake()

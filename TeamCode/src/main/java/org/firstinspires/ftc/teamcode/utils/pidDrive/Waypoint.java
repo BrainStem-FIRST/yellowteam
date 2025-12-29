@@ -14,13 +14,13 @@ public class Waypoint {
     public PathParams params;
     private double distToNextWaypoint;
     public Waypoint(Pose2d pose) {
-        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingDegTol), new PathParams());
+        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingRadTol), new PathParams());
     }
     public Waypoint(Pose2d pose, Tolerance tolerance) {
         this(pose, tolerance, new PathParams());
     }
     public Waypoint(Pose2d pose, PathParams pathParams) {
-        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingDegTol), pathParams);
+        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingRadTol), pathParams);
     }
    public Waypoint(Pose2d pose, Tolerance tolerance, PathParams pathParams) {
         this.pose = pose;
@@ -46,7 +46,30 @@ public class Waypoint {
     public double getDistToNextWaypoint() {
         return distToNextWaypoint;
     }
-
+    public Waypoint setMaxTime(double t) {
+        params.maxTime = t;
+        return this;
+    }
+    public Waypoint setTol(Tolerance tol) {
+        tolerance = tol;
+        return this;
+    }
+    public Waypoint setPassPosition() {
+        params.passPosition = true;
+        return this;
+    }
+    public Waypoint setSlowDown(double s) {
+        params.slowDownPercent = s;
+        return this;
+    }
+    public Waypoint setHeadingLerp(PathParams.HeadingLerpType h) {
+        params.headingLerpType = h;
+        return this;
+    }
+    public Waypoint setMaxPower(double m) {
+        params.maxLinearPower = m;
+        return this;
+    }
 
     @Override
     @NonNull
