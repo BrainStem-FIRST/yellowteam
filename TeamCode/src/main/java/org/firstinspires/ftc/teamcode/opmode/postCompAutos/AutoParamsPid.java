@@ -19,9 +19,12 @@ public class AutoParamsPid {
         public double postLoadingXRed = 68, postLoadingYRed = 60, postLoadingARed = Math.toRadians(16), postLoadingXBlue = 68, postLoadingYBlue = -60, postLoadingABlue = Math.toRadians(-12);
 
 
-        public double gateCollectXRed = 66, gateCollectYRed = 68, gateCollectARed = Math.toRadians(90);
-        public double gateCollectXBlue = 66, gateCollectYBlue = -68, gateCollectABlue = Math.toRadians(-90);
-        public double gateCollectRetryX = 60, gateCollectRetryYRed = 46, gateCollectRetryYBlue = -46;
+        public double cornerCollectXRed = 66, cornerCollectYRed = 68, cornerCollectARed = Math.toRadians(90);
+        public double cornerCollectXBlue = 66, cornerCollectYBlue = -68, cornerCollectABlue = Math.toRadians(-90);
+        public double gateCollectRetryX = 55, cornerCollectRetryYRed = 46, cornerCollectRetryYBlue = -46;
+
+        public double gateCollectXRed = 5, gateCollectYRed = 45, gateCollectARed = Math.toRadians(135);
+        public double gateCollectXBlue = 5, gateCollectYBlue = -45, gateCollectABlue = Math.toRadians(-135);
     }
     public static class Shoot {
         public double waypointTolX = 3, waypointTolY = 3, waypointTolA = Math.toRadians(5);
@@ -57,8 +60,9 @@ public class AutoParamsPid {
         public double parkFarXBlue = 50, parkFarYBlue = -30, parkFarABlue = Math.toRadians(-135);
     }
     public static class TimeConstraints {
-        public double gateWait = 0;
-        public double gateCollectMaxTime = 1.9;
+        public double gateOpeningWait = 0;
+        public double gateCollectMaxTime = 3;
+        public double cornerCollectMaxTime = 1.9;
         public double minShootTime = 0.5;
         public double parkStartTime = 29.5;
         public double stopEverythingTime = 35;
