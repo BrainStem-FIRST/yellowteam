@@ -28,12 +28,11 @@ public class BrainSTEMRobot {
     public Collection collection;
     public Parking parking;
     public MecanumDrive drive;
-//    public Vision vision;
     public Limelight limelight;
     public LED led;
     public final Alliance alliance;
     private final ArrayList<Component> subsystems;
-    private Telemetry telemetry;
+    private final Telemetry telemetry;
     public GamepadTracker g1;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
@@ -59,7 +58,6 @@ public class BrainSTEMRobot {
             subsystems.add(parking);
         if (enableLimelight)
             subsystems.add(limelight);
-//        subsystems.add(vision);
         if (enableLED)
             subsystems.add(led);
     }

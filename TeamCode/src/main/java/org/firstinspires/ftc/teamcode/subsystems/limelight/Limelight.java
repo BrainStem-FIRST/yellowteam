@@ -11,12 +11,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Component;
 
 @Config
 public class Limelight extends Component {
-    public enum Pipeline {
-        OFF,
-        APRIL_TAG,
-        OBJECT_DETECTION,
-        CLASSIFIER_DETECTION,
-    }
     public static class SnapshotParams {
         public String snapshotName = "near zone";
         public int snapshotNum = 0;
@@ -25,20 +19,24 @@ public class Limelight extends Component {
     public static SnapshotParams snapshotParams = new SnapshotParams();
 
     // i should tune the camera so that it gives me the turret center position
-    public final Limelight3A limelight;
-    public static Pipeline pipeline = Pipeline.OFF;
+    private final Limelight3A limelight;
+    public static int startingPipeline = 2;
+    private int pipeline;
     public final LimelightLocalization localization;
     public final LimelightClassifier classifier;
+    public final LimelightBallDetection ballDetection;
 
     // classifier detection data
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(0);
-        limelight.start();
 
         localization = new LimelightLocalization(robot, limelight);
         classifier = new LimelightClassifier(robot, limelight);
+        ballDetection = new LimelightBallDetection(robot, limelight);
+
+        switchPipeline(startingPipeline);
+        limelight.start();
     }
 
     @Override
@@ -50,15 +48,14 @@ public class Limelight extends Component {
 
         telemetry.addLine();
         switch (pipeline) {
-            case OFF:
-                break;
-            case APRIL_TAG:
+            case 0:
                 localization.updateTelemetry(telemetry);
                 break;
-            case CLASSIFIER_DETECTION:
+            case 1:
                 classifier.updateTelemetry(telemetry);
                 break;
-            case OBJECT_DETECTION:
+            case 2:
+                ballDetection.updateTelemetry(telemetry);
                 break;
         }
     }
@@ -70,51 +67,25 @@ public class Limelight extends Component {
         }
 
         switch (pipeline) {
-            case OFF:
-                break;
-            case APRIL_TAG:
+            case 0:
                 localization.update();
                 break;
-            case CLASSIFIER_DETECTION:
+            case 1:
                 classifier.update();
-                //if (classifier.getMostCommonNumBalls() != -1)
-                 //   switchPipeline(Pipeline.OFF);
                 break;
-            case OBJECT_DETECTION:
+            case 2:
+                ballDetection.update();
                 break;
-        }
-    }
-
-    public void switchPipeline(Pipeline pipeline) {
-        if (Limelight.pipeline == pipeline)
-            return;
-
-        Limelight.pipeline = pipeline;
-
-        int pipelineIndex = -1;
-        switch (pipeline) {
-            case APRIL_TAG:
-                pipelineIndex = 0;
-                break;
-            case CLASSIFIER_DETECTION:
-                pipelineIndex = 1;
-                classifier.resetForNewRead();
-                break;
-            case OBJECT_DETECTION:
-                pipelineIndex = 2;
-                break;
-        }
-        if (pipelineIndex == -1)
-            limelight.stop();
-        else {
-            if (!limelight.isRunning())
-                limelight.start();
-            limelight.pipelineSwitch(pipelineIndex);
         }
     }
 
     public void takePic() {
         limelight.captureSnapshot(snapshotParams.snapshotName + "-" + snapshotParams.snapshotNum);
         snapshotParams.snapshotNum++;
+    }
+
+    public void switchPipeline(int num) {
+        pipeline = num;
+        limelight.pipelineSwitch(num);
     }
 }
