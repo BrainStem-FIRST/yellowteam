@@ -10,8 +10,6 @@ import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -168,10 +166,10 @@ public class DrivePath implements Action {
         // calculate translational speed
         double speed = 0;
         if (!inPositionTolerance) {
-            // aggressive braking
-            double linearError = Math.hypot(xWaypointError, yWaypointError);
-            totalDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
-            waypointDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
+            if(waypointDistAway < getCurParams().applyCloseSpeedPIDError)
+                waypointDistancePID.setPIDValues(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
+            if(totalDistanceAway < getCurParams().applyCloseSpeedPIDError)
+                totalDistancePID.setPIDValues(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
 
             double a = totalDistancePID.update(totalDistanceAway);
             double b = waypointDistancePID.update(waypointDistAway);
@@ -211,8 +209,8 @@ public class DrivePath implements Action {
         }
         headingPower *= turnLeftSign;
         
-        drivetrain.setBatteryIndependentDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
-//        drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
+//        drivetrain.setBatteryIndependentDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
+        drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
         
         if (telemetry != null) {
             telemetry.addData("total dist away", totalDistanceAway);
@@ -269,12 +267,12 @@ public class DrivePath implements Action {
     private void resetToNewWaypoint() {
         waypointTimer.reset();
 
-        totalDistancePID = new PIDController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
+        totalDistancePID = new PIDController(getCurParams().farSpeedKp, getCurParams().farSpeedKi, getCurParams().farSpeedKd);
         totalDistancePID.reset();
         totalDistancePID.setTarget(0);
         totalDistancePID.setOutputBounds(0, 1);
 
-        waypointDistancePID = new PIDController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
+        waypointDistancePID = new PIDController(getCurParams().farSpeedKp, getCurParams().farSpeedKi, getCurParams().farSpeedKd);
         waypointDistancePID.reset();
         waypointDistancePID.setTarget(0);
         waypointDistancePID.setOutputBounds(0, 1);

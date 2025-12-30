@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
 
-import java.util.Arrays;
 import java.util.function.BooleanSupplier;
 
 @Config
@@ -16,7 +15,9 @@ public class PathParams {
     private static final double noMaxTime = -1;
 
     public static class DefaultParams {
-        public double speedKp = 0.03, speedKi = 0, speedKd = 0.01, speedKf = 0.115;
+        public double closeSpeedKp = 0.02, closeSpeedKi = 0, closeSpeedKd = 0.01, speedKf = 0.115;
+        public double farSpeedKp = 0.035, farSpeedKi = 0, farSpeedKd = 0;
+        public double applyCloseSpeedPIDError = 5;
         public double closeHeadingKp = 0.005, closeHeadingKi = 0, closeHeadingKd = 0.00005, headingKf = 0.17;
         public double farHeadingKp = 0.015, farHeadingKi = 0, farHeadingKd = 0;
         public double applyCloseHeadingPIDErrorDeg = 10;
@@ -41,19 +42,25 @@ public class PathParams {
     public double maxTime;
     public BooleanSupplier customEndCondition = () -> false;
 
-    public double speedKp, speedKi, speedKd, speedKf;
+    public double closeSpeedKp, closeSpeedKi, closeSpeedKd, speedKf;
+    public double farSpeedKp, farSpeedKi, farSpeedKd;
+    public double applyCloseSpeedPIDError;
     public double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
     public double applyKdLinearError;
     public HeadingLerpType headingLerpType;
     public double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
     public PathParams() {
-        this(defaultParams.speedKp, defaultParams.speedKi, defaultParams.speedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
+        this(defaultParams.closeSpeedKp, defaultParams.closeSpeedKi, defaultParams.closeSpeedKd, defaultParams.farSpeedKp, defaultParams.farSpeedKi, defaultParams.farSpeedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
     }
-    public PathParams(double speedKp, double speedKi, double speedKd, double speedKf, double closeHeadingKp, double closeHeadingKi, double closeHeadingKd, double farHeadingKp, double farHeadingKi, double farHeadingKd, double headingKf) {
-        this.speedKp = speedKp;
-        this.speedKi = speedKi;
-        this.speedKd = speedKd;
+    public PathParams(double closeSpeedKp, double closeSpeedKi, double closeSpeedKd, double farSpeedKp, double farSpeedKi, double farSpeedKd, double speedKf, double closeHeadingKp, double closeHeadingKi, double closeHeadingKd, double farHeadingKp, double farHeadingKi, double farHeadingKd, double headingKf) {
+        this.closeSpeedKp = closeSpeedKp;
+        this.closeSpeedKi = closeSpeedKi;
+        this.closeSpeedKd = closeSpeedKd;
+        this.farSpeedKp = farSpeedKp;
+        this.farSpeedKi = farSpeedKi;
+        this.farSpeedKd = farSpeedKd;
         this.speedKf = speedKf;
+
         this.closeHeadingKp = closeHeadingKp;
         this.closeHeadingKi = closeHeadingKi;
         this.closeHeadingKd = closeHeadingKd;
@@ -74,6 +81,7 @@ public class PathParams {
         axialWeight = defaultParams.axialWeight;
         passPosition = false;
         applyKdLinearError = defaultParams.applyKdLinearError;
+        applyCloseSpeedPIDError = defaultParams.applyCloseSpeedPIDError;
         headingLerpType = defaultParams.headingLerpType;
         tangentHeadingActivateThreshold = defaultParams.tangentHeadingActivateThreshold;
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
@@ -85,7 +93,7 @@ public class PathParams {
     @NonNull
     @Override
     public PathParams clone() {
-        PathParams newParams = new PathParams(speedKp, speedKi, speedKd, speedKf, closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf);
+        PathParams newParams = new PathParams(closeSpeedKp, closeSpeedKi, closeSpeedKd, farSpeedKp, farSpeedKi, farSpeedKd, speedKf, closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf);
         newParams.maxTime = maxTime;
         newParams.minLinearPower = minLinearPower;
         newParams.maxLinearPower = maxLinearPower;

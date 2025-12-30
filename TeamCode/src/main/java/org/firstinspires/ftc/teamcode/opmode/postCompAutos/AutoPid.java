@@ -458,7 +458,6 @@ public abstract class AutoPid extends LinearOpMode {
                         .setHeadingLerp(PathParams.HeadingLerpType.TANGENT)),
                 new SleepAction(timeConstraints.gateCollectMaxTime)
         );
-
         Action gateShootDrive = new DrivePath(robot.drive, new Waypoint(shootPose)
                 .setMaxTime(3));
 
