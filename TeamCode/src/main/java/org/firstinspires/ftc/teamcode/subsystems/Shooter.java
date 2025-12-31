@@ -33,8 +33,9 @@ public class Shooter extends Component {
         public double kF = 0.00048;
         public double maxErrorThresholdNear = 75, maxErrorThresholdFar = 60;
         public double shotVelDropThreshold = 70;
-        public double firstShootTolerance = 40;
 
+        public boolean TESTING = true;
+        public double testingVel = 300;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
@@ -130,7 +131,12 @@ public class Shooter extends Component {
 
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
-        double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
+
+        double targetShooterVelocityTicksPerSec;
+        if(SHOOTER_PARAMS.TESTING)
+            targetShooterVelocityTicksPerSec = SHOOTER_PARAMS.testingVel;
+        else
+            targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
 
         if (powerShooterAndHood)
             setShooterVelocityPID(targetShooterVelocityTicksPerSec, currentShooterVelocity);
