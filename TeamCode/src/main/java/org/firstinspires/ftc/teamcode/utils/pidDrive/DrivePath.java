@@ -14,12 +14,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
-import org.firstinspires.ftc.teamcode.utils.math.PIDController;
-import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,7 +30,7 @@ public class DrivePath implements Action {
     private final Telemetry telemetry;
     private final ArrayList<Waypoint> waypoints; // list of all waypoints in drive path
     private int curWaypointIndex; // the waypoint index the drivetrain is currently trying to go to
-    private PIDController totalDistancePID, waypointDistancePID, headingRadCloseErrorPID, headingRadFarErrorPID;
+    private PidDrivePidController totalDistancePID, waypointDistancePID, headingRadCloseErrorPID, headingRadFarErrorPID;
     private final ElapsedTime waypointTimer;
     private double curWaypointDirRad, curWaypointDirDeg;
     private boolean first;
@@ -123,7 +121,7 @@ public class DrivePath implements Action {
 
         // tolerance
         boolean inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
-        boolean inHeadingTolerance = Math.abs(headingDegWaypointError) <= Math.toDegrees(getCurWaypoint().tolerance.headingRadTol);
+        boolean inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingDegTol;
         // pass position
         if(getCurParams().passPosition && getDotProductToNextWaypoint(pose) > 0)
                 inPositionTolerance = true;
@@ -136,7 +134,9 @@ public class DrivePath implements Action {
             curWaypointIndex++;
             // completely finished drive path
             if (curWaypointIndex >= waypoints.size()) {
-                drivetrain.stop();
+                if (getCurParams().slowDownPercent == 1)
+                    drivetrain.stop();
+                telemetry.addLine("finished drive path");
                 return false;
             }
             // finished current waypoint path, moving on to next waypoint
@@ -156,7 +156,7 @@ public class DrivePath implements Action {
 
                 // recalculate new tolerances
                 inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
-                inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingRadTol;
+                inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingDegTol;
             }
         }
 
@@ -166,10 +166,10 @@ public class DrivePath implements Action {
         // calculate translational speed
         double speed = 0;
         if (!inPositionTolerance) {
-            if(waypointDistAway < getCurParams().applyCloseSpeedPIDError)
-                waypointDistancePID.setPIDValues(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
-            if(totalDistanceAway < getCurParams().applyCloseSpeedPIDError)
-                totalDistancePID.setPIDValues(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
+            // aggressive braking
+            double linearError = Math.hypot(xWaypointError, yWaypointError);
+            totalDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
+            waypointDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
 
             double a = totalDistancePID.update(totalDistanceAway);
             double b = waypointDistancePID.update(waypointDistAway);
@@ -201,7 +201,10 @@ public class DrivePath implements Action {
             else
                 headingPower = headingRadFarErrorPID.update(-headingDegWaypointError);
             double headingSign = Math.signum(headingDegWaypointError);
+            telemetry.addData("heading error", headingDegWaypointError);
+            telemetry.addData("pre kf heading power", headingPower);
             double kfPower = -headingSign * getCurWaypoint().params.headingKf;
+            telemetry.addData("kfPower", kfPower);
             headingPower += kfPower;
             headingPower = headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
             if (flipHeadingDirection)
@@ -215,8 +218,6 @@ public class DrivePath implements Action {
         if (telemetry != null) {
             telemetry.addData("total dist away", totalDistanceAway);
             telemetry.addData("t", getCurParams().slowDownPercent);
-            OdoInfo vel = odo.getMostRecentVelocity();
-            telemetry.addData("velocity", Math.hypot(vel.x, vel.y));
             telemetry.addData("current position", MathUtils.format3(rx) + " ," + MathUtils.format3(ry) + ", " + MathUtils.format3(rHeadingDeg));
             telemetry.addData("target position", MathUtils.format3(getCurWaypoint().x()) + " ," + MathUtils.format3(getCurWaypoint().y()) + ", " + MathUtils.format3(getCurWaypoint().headingDeg()));
             telemetry.addData("target dir", MathUtils.format3(targetDir.x) + ", " + MathUtils.format3(targetDir.y));
@@ -235,14 +236,12 @@ public class DrivePath implements Action {
             TelemetryPacket packet = new TelemetryPacket();
             Canvas fieldOverlay = packet.fieldOverlay();
             Pose2d prevWaypointPose = curWaypointIndex == 0 ? startPose : getWaypoint(curWaypointIndex - 1).pose;
-            TelemetryHelper.radii[0] = 5;
-            TelemetryHelper.radii[1] = 5;
-            TelemetryHelper.radii[2] = 5;
-            TelemetryHelper.numPosesToShow = 3;
-            TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, pose, prevWaypointPose, getCurWaypoint().pose);
             fieldOverlay.setStroke("black");
-            double angle = pose.heading.toDouble() + Math.atan2(lateralPower, axialPower);
-            fieldOverlay.strokeLine(pose.position.x, pose.position.y, pose.position.x + Math.cos(angle) * 10 * powerMag, pose.position.y - Math.sin(angle) * 10 * powerMag);
+            Drawing.drawRobot(fieldOverlay, prevWaypointPose);
+            fieldOverlay.setStroke("green");
+            Drawing.drawRobot(fieldOverlay, pose);
+            fieldOverlay.setStroke("gray");
+            Drawing.drawRobot(fieldOverlay, prevWaypointPose);
 
             telemetry.update();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
@@ -267,22 +266,22 @@ public class DrivePath implements Action {
     private void resetToNewWaypoint() {
         waypointTimer.reset();
 
-        totalDistancePID = new PIDController(getCurParams().farSpeedKp, getCurParams().farSpeedKi, getCurParams().farSpeedKd);
+        totalDistancePID = new PidDrivePidController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
         totalDistancePID.reset();
         totalDistancePID.setTarget(0);
         totalDistancePID.setOutputBounds(0, 1);
 
-        waypointDistancePID = new PIDController(getCurParams().farSpeedKp, getCurParams().farSpeedKi, getCurParams().farSpeedKd);
+        waypointDistancePID = new PidDrivePidController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
         waypointDistancePID.reset();
         waypointDistancePID.setTarget(0);
         waypointDistancePID.setOutputBounds(0, 1);
 
-        headingRadCloseErrorPID = new PIDController(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
+        headingRadCloseErrorPID = new PidDrivePidController(getCurParams().closeHeadingKp, getCurParams().closeHeadingKi, getCurParams().closeHeadingKd);
         headingRadCloseErrorPID.reset();
         headingRadCloseErrorPID.setTarget(0);
         headingRadCloseErrorPID.setOutputBounds(-1, 1);
 
-        headingRadFarErrorPID = new PIDController(getCurParams().farHeadingKp, getCurParams().farHeadingKi, getCurParams().farHeadingKd);
+        headingRadFarErrorPID = new PidDrivePidController(getCurParams().farHeadingKp, getCurParams().farHeadingKi, getCurParams().farHeadingKd);
         headingRadFarErrorPID.reset();
         headingRadFarErrorPID.setTarget(0);
         headingRadFarErrorPID.setOutputBounds(-1, 1);

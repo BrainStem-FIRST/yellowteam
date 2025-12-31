@@ -4,23 +4,24 @@ package org.firstinspires.ftc.teamcode.utils.pidDrive;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.Vector2d;
 
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
+import java.util.function.BooleanSupplier;
+
 public class Waypoint {
-    public Pose2d pose;
     public Tolerance tolerance;
-    public PathParams params;
+    public final Pose2d pose;
+    public final PathParams params;
     private double distToNextWaypoint;
     public Waypoint(Pose2d pose) {
-        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingRadTol), new PathParams());
+        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingDegTol), new PathParams());
     }
     public Waypoint(Pose2d pose, Tolerance tolerance) {
         this(pose, tolerance, new PathParams());
     }
     public Waypoint(Pose2d pose, PathParams pathParams) {
-        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingRadTol), pathParams);
+        this(pose, new Tolerance(Tolerance.defaultParams.xTol, Tolerance.defaultParams.yTol, Tolerance.defaultParams.headingDegTol), pathParams);
     }
    public Waypoint(Pose2d pose, Tolerance tolerance, PathParams pathParams) {
         this.pose = pose;
@@ -40,34 +41,53 @@ public class Waypoint {
        return pose.heading.toDouble();
     }
 
-    public void setDistToNextWaypoint(double dist) {
-        distToNextWaypoint = dist;
-    }
+    // DO NOT CALL THIS FUNCTION YOURSELF
+    public void setDistToNextWaypoint(double dist) { distToNextWaypoint = dist; }
+    // DO NOT CALL THIS FUNCTION YOURSELF
     public double getDistToNextWaypoint() {
         return distToNextWaypoint;
+    }
+
+
+    public Waypoint setLateralAxialWeights(double lat, double ax) {
+        params.lateralWeight = lat;
+        params.axialWeight = ax;
+        return this;
+    }
+    public Waypoint setMaxLinearPower(double maxLinearPower) {
+        params.maxLinearPower = maxLinearPower;
+        return this;
+    }
+    public Waypoint setMaxHeadingPower(double maxHeadingPower) {
+        params.maxHeadingPower = maxHeadingPower;
+        return this;
+    }
+    public Waypoint setMinLinearPower(double minLinearPower) {
+        params.minLinearPower = minLinearPower;
+        return this;
+    }
+    public Waypoint setMinHeadingPower(double minHeadingPower) {
+        params.minHeadingPower = minHeadingPower;
+        return this;
+    }
+    public Waypoint setSlowDownPercent(double percent) {
+        params.slowDownPercent = percent;
+        return this;
+    }
+    public Waypoint setPassPosition(boolean passPosition) {
+        params.passPosition = passPosition;
+        return this;
     }
     public Waypoint setMaxTime(double t) {
         params.maxTime = t;
         return this;
     }
-    public Waypoint setTol(Tolerance tol) {
-        tolerance = tol;
+    public Waypoint setCustomEndCondition(BooleanSupplier endCondition) {
+        params.customEndCondition = endCondition;
         return this;
     }
-    public Waypoint setPassPosition() {
-        params.passPosition = true;
-        return this;
-    }
-    public Waypoint setSlowDown(double s) {
-        params.slowDownPercent = s;
-        return this;
-    }
-    public Waypoint setHeadingLerp(PathParams.HeadingLerpType h) {
-        params.headingLerpType = h;
-        return this;
-    }
-    public Waypoint setMaxPower(double m) {
-        params.maxLinearPower = m;
+    public Waypoint setHeadingLerp(PathParams.HeadingLerpType lerpType) {
+        params.headingLerpType = lerpType;
         return this;
     }
 

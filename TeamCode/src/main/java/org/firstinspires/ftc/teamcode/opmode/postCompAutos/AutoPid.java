@@ -284,18 +284,17 @@ public abstract class AutoPid extends LinearOpMode {
 
         if(fromNear)
             firstCollectDrive = new DrivePath(robot.drive, new Waypoint(collect1Pose)
-                    .setMaxPower(collect.collectMaxPower)
+                    .setMaxLinearPower(collect.collectMaxPower)
                     .setMaxTime(1.4));
         else
             firstCollectDrive = new DrivePath(robot.drive,
-                new Waypoint(preCollect1Pose)
-                    .setPassPosition()
-                    .setSlowDown(collect.waypointSlowDown)
+                new Waypoint(preCollect1Pose, collect.waypointTol)
+                    .setPassPosition(true)
+                    .setSlowDownPercent(collect.waypointSlowDown)
                     .setMaxTime(2)
-                    .setTol(collect.waypointTol)
                     .setHeadingLerp(PathParams.HeadingLerpType.TANGENT),
                 new Waypoint(collect1Pose)
-                        .setPassPosition()
+                        .setPassPosition(true)
                         .setMaxTime(2));
 
         Action firstGateDrive = customizable.openGateOnFirst ?
@@ -313,11 +312,10 @@ public abstract class AutoPid extends LinearOpMode {
                         .setMaxTime(3))
                 :
                 new DrivePath(robot.drive,
-                        new Waypoint(shootFar1WaypointPose)
-                                .setPassPosition()
-                                .setSlowDown(shoot.waypointSlowDown)
-                                .setMaxTime(10)
-                                .setTol(shoot.waypointTol),
+                        new Waypoint(shootFar1WaypointPose, shoot.waypointTol)
+                                .setPassPosition(true)
+                                .setSlowDownPercent(shoot.waypointSlowDown)
+                                .setMaxTime(10),
                         new Waypoint(shootPose)
                                 .setMaxTime(10));
 //                robot.drive.actionBuilder(customizable.openGateOnFirst ? gatePose : collectPose)
@@ -331,14 +329,13 @@ public abstract class AutoPid extends LinearOpMode {
     private Action getSecondCollectAndShoot(Pose2d shootPose, boolean toNear, double minTime) {
 
             Action secondCollectDrive = new DrivePath(robot.drive,
-                    new Waypoint(preCollect2Pose)
-                            .setPassPosition()
-                            .setTol(collect.waypointTol)
+                    new Waypoint(preCollect2Pose, collect.waypointTol)
+                            .setPassPosition(true)
                             .setHeadingLerp(PathParams.HeadingLerpType.TANGENT)
-                            .setSlowDown(collect.waypointSlowDown)
+                            .setSlowDownPercent(collect.waypointSlowDown)
                             .setMaxTime(2),
                     new Waypoint(collect2Pose)
-                            .setPassPosition()
+                            .setPassPosition(true)
                             .setMaxTime(2)
                     );
 
@@ -357,7 +354,7 @@ public abstract class AutoPid extends LinearOpMode {
                 secondShootDrive = new DrivePath(robot.drive,
                         new Waypoint(shootFar2WaypointPose)
                                 .setMaxTime(2)
-                                .setSlowDown(shoot.waypointSlowDown),
+                                .setSlowDownPercent(shoot.waypointSlowDown),
                         new Waypoint(shootPose)
                                 .setMaxTime(2));
 
@@ -365,12 +362,11 @@ public abstract class AutoPid extends LinearOpMode {
     }
     private Action getThirdCollectAndShoot(Pose2d shootPose, double minTime) {
         DrivePath thirdCollectDrive = new DrivePath(robot.drive,
-                new Waypoint(preCollect3Pose)
-                        .setPassPosition()
+                new Waypoint(preCollect3Pose, collect.waypointTol)
+                        .setPassPosition(true)
                         .setMaxTime(3)
-                        .setTol(collect.waypointTol)
                         .setHeadingLerp(PathParams.HeadingLerpType.TANGENT)
-                        .setSlowDown(collect.waypointSlowDown),
+                        .setSlowDownPercent(collect.waypointSlowDown),
                 new Waypoint(collect3Pose)
                         .setMaxTime(2));
 
