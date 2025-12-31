@@ -20,6 +20,8 @@ import java.util.ArrayList;
 
 @Config
 public class BrainSTEMRobot {
+    // TODO: actually find these values
+    public static double width = 10, length = 18; // inches
     public static boolean enablePinpoint = true, enableSubsystems = true;
     public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableLimelight = true, enablePark = true, enableLED = true;
 
