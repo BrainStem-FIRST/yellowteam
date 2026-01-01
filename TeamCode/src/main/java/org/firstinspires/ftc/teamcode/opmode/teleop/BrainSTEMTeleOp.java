@@ -60,10 +60,10 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
 
-        allHubs = hardwareMap.getAll(LynxModule.class);
-        for(LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
+//        allHubs = hardwareMap.getAll(LynxModule.class);
+//        for(LynxModule hub : allHubs) {
+//            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+//        }
 
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
@@ -101,13 +101,13 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDriver1();
             CommandScheduler.getInstance().run();
             //robot.collection.printInfo();
-            robot.limelight.printInfo();
-            //robot.turret.printInfo();
-            //robot.shooter.printInfo();
+//            robot.limelight.printInfo();
+            robot.turret.printInfo();
+            robot.shooter.printInfo();
 
             robot.update(currentlyMoving);
 
-            updateDashboardField();
+//            updateDashboardField();
 
             // print delta time
             framesRunning++;
@@ -116,7 +116,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
                 framesRunning = 0;
                 startTimeNano = System.nanoTime();
             }
-            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
+//            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
             telemetry.update();
 
             Pose2d p = robot.drive.localizer.getPose();

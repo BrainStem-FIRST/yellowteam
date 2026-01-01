@@ -69,17 +69,17 @@ public class Turret extends Component {
         double angleDegError = encoderError / turretTicksPerDegree;
 
         telemetry.addLine("TURRET------");
-        telemetry.addData("state", turretState);
+//        telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
-        telemetry.addData("current encoder", turretEncoder);
-        telemetry.addData("target encoder", targetEncoder);
-        telemetry.addData("encoder error", encoderError);
-        telemetry.addData("angle degree error", angleDegError);
-        telemetry.addData("turret angle deg", Math.toDegrees(turretAngleRad));
-        telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
-        telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
-        telemetry.addData("look ahead time", currentLookAheadTime);
-        telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
+//        telemetry.addData("current encoder", turretEncoder);
+//        telemetry.addData("target encoder", targetEncoder);
+//        telemetry.addData("encoder error", encoderError);
+//        telemetry.addData("angle degree error", angleDegError);
+//        telemetry.addData("turret angle deg", Math.toDegrees(turretAngleRad));
+//        telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
+//        telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
+//        telemetry.addData("look ahead time", currentLookAheadTime);
+//        telemetry.addData("EXIT POSITION", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
     }
 
     public int getTurretEncoder() {
@@ -151,49 +151,53 @@ public class Turret extends Component {
     }
 
     @Override
-    public void update(){
-        targetPose = getDefaultTargetGoalPose();
-        Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
-        Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
-        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-        int turretEncoder = getTurretEncoder();
+    public void update() {
+        turretMotor.setPower(0);
+        if (false) {
 
-        switch (turretState) {
-            case TRACKING:
-                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                    turretMotor.setPower(0);
-                    break;
-                }
+            targetPose = getDefaultTargetGoalPose();
+            Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
+            Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
+            double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+            int turretEncoder = getTurretEncoder();
 
-                double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
-                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
-                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
-                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
-                double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
-                targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
+            switch (turretState) {
+                case TRACKING:
+                    if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
+                        turretMotor.setPower(0);
+                        break;
+                    }
 
-                int targetTurretPosition = (int)(turretTargetAngleRad * turretTicksPerRadian);
-                targetTurretPosition += adjustment;
+                    double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
+                    Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
+                    Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+                    double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
+                    double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
+                    targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
+
+                    int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
+                    targetTurretPosition += adjustment;
 
                     setTurretPosition(targetTurretPosition, turretEncoder);
-                break;
-
-            case CENTER:
-                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                    turretMotor.setPower(0);
                     break;
-                }
 
-                setTurretPosition(0, turretEncoder);
-                targetAngleRad = currentRobotPose.heading.toDouble();
-                break;
+                case CENTER:
+                    if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
+                        turretMotor.setPower(0);
+                        break;
+                    }
 
-            case PARK:
-                setTurretPosition(-330, turretEncoder);
-                break;
+                    setTurretPosition(0, turretEncoder);
+                    targetAngleRad = currentRobotPose.heading.toDouble();
+                    break;
+
+                case PARK:
+                    setTurretPosition(-330, turretEncoder);
+                    break;
+            }
+
+            turretAngleRad = turretEncoder / turretTicksPerRadian;
+            currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
         }
-
-        turretAngleRad = turretEncoder / turretTicksPerRadian;
-        currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
     }
 }
