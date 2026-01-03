@@ -66,8 +66,8 @@ public class Shooter extends Component {
     private int ballsShot;
     public boolean isNear;
     private double avgShotDecel, avgMotorVel, prevVel, lastMax, lastMin, prevMaxTimeMs;
-    private ArrayList<Double> velDrops;
-    private ArrayList<Double> postShotVels;
+    private final ArrayList<Double> velDrops;
+    private final ArrayList<Double> postShotVels;
     private boolean wasPrevIncreasing;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
@@ -182,39 +182,30 @@ public class Shooter extends Component {
 
     @Override
     public void update(){
-        if(!SHOOTER_PARAMS.on) {
-            setShooterPower(0);
-            return;
-        }
-        setHoodPosition(HOOD_PARAMS.testingHoodPos);
-        setShooterVelocityPID(SHOOTER_PARAMS.testingVel, avgMotorVel);
+        avgMotorVel = getAvgMotorVelocity();
+        int turretEncoder = robot.turret.getTurretEncoder();
 
-//
-//        int turretEncoder = robot.turret.getTurretEncoder();
-//
-//        switch (shooterState) {
-//            case OFF:
-//                setShooterPower(0);
-//                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
-//                updateShooterSystem(ballExitPosition, robot.turret.targetPose, currentShooterVelocity, false);
-//                break;
-//
-//            case UPDATE:
-//
-//                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
-//                updateShooterSystem(ballExitPosition, robot.turret.targetPose, currentShooterVelocity, true);
-//                break;
-//            case REVERSE_FULL:
-//                setShooterPower(-0.99);
-//                break;
-//        }
+        switch (shooterState) {
+            case OFF:
+                setShooterPower(0);
+                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
+                updateShooterSystem(ballExitPosition, robot.turret.targetPose, avgMotorVel, false);
+                break;
+
+            case UPDATE:
+                ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), turretEncoder, ballExitAngleRad);
+                updateShooterSystem(ballExitPosition, robot.turret.targetPose, avgMotorVel, true);
+                break;
+            case REVERSE_FULL:
+                setShooterPower(-0.99);
+                break;
+        }
 
         updateBallShotTracking();
 //
 //        updateManualShooterTracking();
     }
     public void updateBallShotTracking() {
-        avgMotorVel = getAvgMotorVelocity();
         double curTimeMs = System.currentTimeMillis();
         double dif = avgMotorVel - prevVel;
         boolean increasing;

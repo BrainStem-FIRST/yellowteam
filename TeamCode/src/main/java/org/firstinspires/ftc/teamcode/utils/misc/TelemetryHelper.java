@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 @Config
 public class TelemetryHelper {
-    public static String[] colors = { "red", "green", "purple", "gray", "gray" };
+    public static String[] colors = { "red", "green", "purple", "black", "gray" };
     public static Integer[] strokeWidths = { 1, 1, 1, 1, 1 };
     public static Integer[] radii = { 10, 6, 3, 1, 1 };
     public static int numPosesToShow = 3;

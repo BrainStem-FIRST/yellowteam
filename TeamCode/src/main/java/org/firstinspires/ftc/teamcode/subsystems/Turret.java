@@ -22,10 +22,6 @@ public class Turret extends Component {
         public int fineAdjust = 5;
         public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 67.5, farRedShotsGoalX = -70, farRedShotsGoalY = 68;
         public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -63.5;
-        public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
-        public double smallKP = 0.017, smallKI = 0, smallKD = 0.0003, smallKf = 0.01;
-        public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
-        public double noPowerThreshold = 2;
         public double lookAheadTime = 0.115; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
@@ -34,12 +30,26 @@ public class Turret extends Component {
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
+    public static class PowerTuning {
+        public double bigKP = 0.0065, bigKI = 0, bigKD = 0.0005;
+        public double smallKP = 0.017, smallKI = 0, smallKD = 0.0003;
+        public double smallPIDValuesErrorThreshold = 15; // if error is less than 20, switch to small pid values
+        public double noPowerThreshold = 2;
+
+//        public double noTensionLowerBound = Math.toRadians(-20);
+//        public double noTensionUpperBound = Math.toRadians(20);
+//        public double staticFrictionMinPow = 0.1;
+//        public double kineticFrictionMinPow = 0.1;
+
+    }
     public static Params TURRET_PARAMS = new Turret.Params();
+    public static PowerTuning powerTuning = new PowerTuning();
     public enum TurretState {
         TRACKING, CENTER, PARK
     }
     public DcMotorEx turretMotor;
     private final PIDController pidController;
+    private double basePower;
     public TurretState turretState;
     public int adjustment = 0;
     public Pose2d targetPose;
@@ -54,7 +64,7 @@ public class Turret extends Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         turretMotor.setPower(0);
 
-        pidController = new PIDController(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
+        pidController = new PIDController(powerTuning.bigKP, powerTuning.bigKI, powerTuning.bigKD);
         turretState = TurretState.CENTER;
         relativeBallExitVelocityMps = new Vec(0, 0);
         globalBallExitVelocityMps = new Vec(0, 0);
@@ -68,13 +78,13 @@ public class Turret extends Component {
         double angleDegError = encoderError / turretTicksPerDegree;
 
         telemetry.addLine("TURRET------");
-//        telemetry.addData("state", turretState);
+        telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
         telemetry.addData("current encoder", turretEncoder);
-//        telemetry.addData("target encoder", targetEncoder);
+        telemetry.addData("target encoder", targetEncoder);
 //        telemetry.addData("encoder error", encoderError);
 //        telemetry.addData("angle degree error", angleDegError);
-//        telemetry.addData("turret angle deg", Math.toDegrees(turretAngleRad));
+        telemetry.addData("turret angle deg", Math.toDegrees(turretAngleRad));
 //        telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
 //        telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
 //        telemetry.addData("look ahead time", currentLookAheadTime);
@@ -86,26 +96,22 @@ public class Turret extends Component {
     }
 
     public void setTurretPosition(int ticks, int currentEncoder) {
-        turretMotor.setPower(0);
-        if(true)
-            return;
         targetEncoder = Range.clip(ticks, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
         double error = currentEncoder - targetEncoder;
 
         // within threshold - give 0 power
-        if (Math.abs(error) < TURRET_PARAMS.noPowerThreshold) {
+        if (Math.abs(error) < powerTuning.noPowerThreshold) {
             turretMotor.setPower(0);
             return;
         }
 
         // use correct pid values based on error
-        if (Math.abs(error) < TURRET_PARAMS.smallPIDValuesErrorThreshold)
-            pidController.setPIDValues(TURRET_PARAMS.smallKP, TURRET_PARAMS.smallKI, TURRET_PARAMS.smallKD);
+        if (Math.abs(error) < powerTuning.smallPIDValuesErrorThreshold)
+            pidController.setPIDValues(powerTuning.smallKP, powerTuning.smallKI, powerTuning.smallKD);
         else
-            pidController.setPIDValues(TURRET_PARAMS.bigKP, TURRET_PARAMS.bigKI, TURRET_PARAMS.bigKD);
+            pidController.setPIDValues(powerTuning.bigKP, powerTuning.bigKI, powerTuning.bigKD);
 
         double newPower = -pidController.updateWithError(error);
-        newPower += Math.signum(newPower) * TURRET_PARAMS.smallKf;
 
         if (currentEncoder < TURRET_PARAMS.RIGHT_BOUND)
             newPower = Math.max(newPower, 0);

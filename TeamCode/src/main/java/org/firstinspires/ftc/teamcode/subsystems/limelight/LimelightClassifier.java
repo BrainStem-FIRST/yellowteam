@@ -88,7 +88,7 @@ public class LimelightClassifier extends LLParent {
         telemetry.addData("most common num balls", getMostCommonNumBalls());
     }
 
-    public void drawValidClassifierZones(Canvas fieldOverlay) {
+    public void addClassifierInfo(Canvas fieldOverlay) {
         fieldOverlay.setStroke("yellow");
         fieldOverlay.strokeCircle(params.closeX, params.closeY, params.closeRadius);
         fieldOverlay.strokeCircle(params.farX, params.farY, params.farRadius);

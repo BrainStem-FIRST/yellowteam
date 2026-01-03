@@ -4,6 +4,7 @@ import static org.firstinspires.ftc.teamcode.subsystems.Shooter.ShooterState.REV
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -32,7 +33,9 @@ import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 
 import java.util.List;
 
-public abstract class BrainSTEMTeleOp extends LinearOpMode {
+@Config
+public class BrainSTEMTeleOp extends LinearOpMode {
+    public static boolean printCollector = false, printShooter = false, printTurret = true, printLimelight = true;
     public static double firstShootTolerance = 40;
 
     public enum PosePredictType {
@@ -100,12 +103,17 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
             updateDriver2();
             updateDriver1();
             CommandScheduler.getInstance().run();
-            //robot.collection.printInfo();
-//            robot.limelight.printInfo();
-            robot.turret.printInfo();
-            robot.shooter.printInfo();
 
             robot.update(currentlyMoving);
+
+            if (printCollector)
+                robot.collection.printInfo();
+            if (printLimelight)
+                robot.limelight.printInfo();
+            if (printTurret)
+                robot.turret.printInfo();
+            if (printShooter)
+                robot.shooter.printInfo();
 
             updateDashboardField();
 

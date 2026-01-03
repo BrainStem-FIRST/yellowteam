@@ -1,6 +1,7 @@
 
 package org.firstinspires.ftc.teamcode.subsystems.limelight;
 
+import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -96,5 +97,18 @@ public class Limelight extends Component {
     public void takePic() {
         limelight.captureSnapshot(snapshotParams.snapshotName + "-" + snapshotParams.snapshotNum);
         snapshotParams.snapshotNum++;
+    }
+
+    public void addLimelightInfo(Canvas fieldOverlay) {
+        switch (pipeline) {
+            case 0:
+                localization.addLocalizationInfo(fieldOverlay);
+                break;
+            case 1:
+                classifier.addClassifierInfo(fieldOverlay);
+                break;
+            case 2:
+                break;
+        }
     }
 }

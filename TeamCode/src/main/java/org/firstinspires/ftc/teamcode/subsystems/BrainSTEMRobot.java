@@ -87,17 +87,18 @@ public class BrainSTEMRobot {
         Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
         Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, shooter.getBallExitAngleRad());
         Pose2d exitPose = new Pose2d(exitPosition, turret.currentAngleRad);
-        Pose2d limelightRobotPose = limelight.localization.getRobotPose();
-        if (limelightRobotPose == null)
-            limelightRobotPose = new Pose2d(0, 0, 0);
 
+
+        TelemetryHelper.colors[0] = "red";
+        TelemetryHelper.colors[1] = "green";
+        TelemetryHelper.colors[2] = "purple";
         TelemetryHelper.radii[0] = 10;
         TelemetryHelper.radii[1] = 6;
         TelemetryHelper.radii[2] = 3;
-        TelemetryHelper.radii[3] = 10;
-        TelemetryHelper.numPosesToShow = 4;
+        TelemetryHelper.numPosesToShow = 3;
+        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose);
 
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose, limelightRobotPose);
+        limelight.addLimelightInfo(fieldOverlay);
 
         // draw where turret is pointed
         fieldOverlay.setAlpha(1);
@@ -117,8 +118,5 @@ public class BrainSTEMRobot {
                 exitPosition.x + dist * Math.cos(turret.targetAngleRad),
                 exitPosition.y + dist * Math.sin(turret.targetAngleRad)
         );
-
-        // draw valid classifier update regions from limelight
-        limelight.classifier.drawValidClassifierZones(fieldOverlay);
     }
 }
