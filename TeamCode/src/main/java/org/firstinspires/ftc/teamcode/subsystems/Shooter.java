@@ -34,10 +34,8 @@ public class Shooter extends Component {
         public double kD = 0.0;
         public double kF = 0.00048;
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 600;
-        public double shotVelDropThreshold = 50, shotDecelThreshold = 1000;
-
-        public boolean TESTING = true;
-        public double testingVel = 1740, noiseVariance = 30;
+        public double shotVelDropThreshold = 50, shotDecelThreshold = 0;
+        public double testingVel = 2005, noiseVariance = 40;
         public boolean on = true;
     }
     public static class HoodParams {
@@ -69,6 +67,7 @@ public class Shooter extends Component {
     public boolean isNear;
     private double avgShotDecel, avgMotorVel, prevVel, lastMax, lastMin, prevMaxTimeMs;
     private ArrayList<Double> velDrops;
+    private ArrayList<Double> postShotVels;
     private boolean wasPrevIncreasing;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
@@ -103,6 +102,7 @@ public class Shooter extends Component {
         adjustment = startingShooterSpeedAdjustment;
 
         velDrops = new ArrayList<>();
+        postShotVels = new ArrayList<>();
         prevMaxTimeMs = System.currentTimeMillis();
     }
 
@@ -139,11 +139,7 @@ public class Shooter extends Component {
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
 
-        double targetShooterVelocityTicksPerSec;
-        if(SHOOTER_PARAMS.TESTING)
-            targetShooterVelocityTicksPerSec = SHOOTER_PARAMS.testingVel;
-        else
-            targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
+        double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
 
         if (powerShooterAndHood)
             setShooterVelocityPID(targetShooterVelocityTicksPerSec, currentShooterVelocity);
@@ -238,6 +234,7 @@ public class Shooter extends Component {
                     && avgShotDecel > SHOOTER_PARAMS.shotDecelThreshold) {
                 ballsShot++;
                 velDrops.add(velDrop);
+                postShotVels.add(lastMin);
             }
         }
         if(wasPrevIncreasing && !increasing) { // means relative max detected
@@ -261,6 +258,7 @@ public class Shooter extends Component {
 //        telemetry.addData("  state", shooterState);
         telemetry.addData("  balls shot", ballsShot);
         telemetry.addData("  ball vel drops", Arrays.toString(velDrops.toArray()));
+        telemetry.addData("  post shot vels", Arrays.toString(postShotVels.toArray()));
         telemetry.addData("  motor vel", avgMotorVel);
         telemetry.addData("  last max", lastMax);
         telemetry.addData("  last min", lastMin);

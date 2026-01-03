@@ -17,7 +17,6 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public class Turret extends Component {
-    public static boolean powerTurret = false;
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
@@ -71,7 +70,7 @@ public class Turret extends Component {
         telemetry.addLine("TURRET------");
 //        telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
-//        telemetry.addData("current encoder", turretEncoder);
+        telemetry.addData("current encoder", turretEncoder);
 //        telemetry.addData("target encoder", targetEncoder);
 //        telemetry.addData("encoder error", encoderError);
 //        telemetry.addData("angle degree error", angleDegError);
@@ -87,10 +86,9 @@ public class Turret extends Component {
     }
 
     public void setTurretPosition(int ticks, int currentEncoder) {
-        if (!powerTurret) {
-            turretMotor.setPower(0);
+        turretMotor.setPower(0);
+        if(true)
             return;
-        }
         targetEncoder = Range.clip(ticks, TURRET_PARAMS.RIGHT_BOUND, TURRET_PARAMS.LEFT_BOUND);
         double error = currentEncoder - targetEncoder;
 
@@ -152,52 +150,49 @@ public class Turret extends Component {
 
     @Override
     public void update() {
-        turretMotor.setPower(0);
-        if (false) {
+        targetPose = getDefaultTargetGoalPose();
+        Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
+        Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
+        double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
+        int turretEncoder = getTurretEncoder();
 
-            targetPose = getDefaultTargetGoalPose();
-            Pose2d currentRobotPose = robot.drive.pinpoint().getPose();
-            Pose2d futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAheadTime);
-            double turretTicksPerRadian = (TURRET_PARAMS.TICKS_PER_REV) / (2 * Math.PI);
-            int turretEncoder = getTurretEncoder();
-
-            switch (turretState) {
-                case TRACKING:
-                    if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                        turretMotor.setPower(0);
-                        break;
-                    }
-
-                    double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
-                    Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
-                    Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
-                    double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
-                    double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
-                    targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
-
-                    int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
-                    targetTurretPosition += adjustment;
-
-                    setTurretPosition(targetTurretPosition, turretEncoder);
+        switch (turretState) {
+            case TRACKING:
+                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
+                    turretMotor.setPower(0);
                     break;
+                }
 
-                case CENTER:
-                    if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                        turretMotor.setPower(0);
-                        break;
-                    }
+                double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
+                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
+                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity());
+                double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
+                targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
 
-                    setTurretPosition(0, turretEncoder);
-                    targetAngleRad = currentRobotPose.heading.toDouble();
+                int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
+                targetTurretPosition += adjustment;
+
+                setTurretPosition(targetTurretPosition, turretEncoder);
+                break;
+
+            case CENTER:
+                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
+                    turretMotor.setPower(0);
                     break;
+                }
 
-                case PARK:
-                    setTurretPosition(-330, turretEncoder);
-                    break;
-            }
+                setTurretPosition(0, turretEncoder);
+                targetAngleRad = currentRobotPose.heading.toDouble();
+                break;
 
-            turretAngleRad = turretEncoder / turretTicksPerRadian;
-            currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
+            case PARK:
+                setTurretPosition(-330, turretEncoder);
+                break;
         }
+
+        turretAngleRad = turretEncoder / turretTicksPerRadian;
+        currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
+
     }
 }

@@ -136,7 +136,7 @@ public class DrivePath implements Action {
             if (curWaypointIndex >= waypoints.size()) {
                 if (getCurParams().slowDownPercent == 1)
                     drivetrain.stop();
-                telemetry.addLine("finished drive path");
+//                telemetry.addLine("finished drive path");
                 return false;
             }
             // finished current waypoint path, moving on to next waypoint
@@ -201,10 +201,10 @@ public class DrivePath implements Action {
             else
                 headingPower = headingRadFarErrorPID.update(-headingDegWaypointError);
             double headingSign = Math.signum(headingDegWaypointError);
-            telemetry.addData("heading error", headingDegWaypointError);
-            telemetry.addData("pre kf heading power", headingPower);
+//            telemetry.addData("heading error", headingDegWaypointError);
+//            telemetry.addData("pre kf heading power", headingPower);
             double kfPower = -headingSign * getCurWaypoint().params.headingKf;
-            telemetry.addData("kfPower", kfPower);
+//            telemetry.addData("kfPower", kfPower);
             headingPower += kfPower;
             headingPower = headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
             if (flipHeadingDirection)

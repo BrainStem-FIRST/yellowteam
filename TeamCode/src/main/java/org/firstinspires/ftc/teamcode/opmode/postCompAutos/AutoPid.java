@@ -150,7 +150,6 @@ public abstract class AutoPid extends LinearOpMode {
                 case "c": actionOrder.add(getRepeatedCornerCollectAndShoot(shootPose, fromNear, minTime)); break;
                 case "g": actionOrder.add(getGateCollectAndShoot(shootPose, minTime)); break;
             }
-            prevShootPose = new Pose2d(shootPose.position, shootPose.heading);
         }
 
         Action autoAction = new SequentialAction(

@@ -107,7 +107,7 @@ public abstract class BrainSTEMTeleOp extends LinearOpMode {
 
             robot.update(currentlyMoving);
 
-//            updateDashboardField();
+            updateDashboardField();
 
             // print delta time
             framesRunning++;
