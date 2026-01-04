@@ -220,8 +220,8 @@ public class Shooter extends Component {
     @Override
     public void printInfo() {
         telemetry.addLine("SHOOTER------");
-        telemetry.addData("  state", shooterState);
-        telemetry.addData("isNear", isNear);
+//        telemetry.addData("  state", shooterState);
+//        telemetry.addData("isNear", isNear);
         telemetry.addData("  ball exit pos dist from goal", MathUtils.format3(ballExitPosInchesFromGoal));
         telemetry.addData("  lookup motor vel", targetMotorVel);
         telemetry.addData("  avg motor vel", avgMotorVel);
@@ -232,7 +232,7 @@ public class Shooter extends Component {
 //        telemetry.addData("  last max", lastMax);
 //        telemetry.addData("  last min", lastMin);
         telemetry.addData("  balls shot", ballsShot);
-        telemetry.addData("  last extrema dif", MathUtils.format3(lastMax - lastMin));
+//        telemetry.addData("  last extrema dif", MathUtils.format3(lastMax - lastMin));
 //        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());
 
         telemetry.addLine();
