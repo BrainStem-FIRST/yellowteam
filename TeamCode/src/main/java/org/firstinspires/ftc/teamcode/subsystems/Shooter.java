@@ -35,19 +35,18 @@ public class Shooter extends Component {
         public double kF = 0.00048;
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 600;
         public double shotVelDropThreshold = 50, shotDecelThreshold = 0;
-        public double testingVel = 2005, noiseVariance = 40;
-        public boolean on = true;
+        public double testingVel = 1500, noiseVariance = 40;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
-        public double testingHoodPos = 0.99;
+        public double testingExitAngleRad = 1.0472, testingHoodPos = 0.7;
     }
 
     public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
     public static HoodParams HOOD_PARAMS = new HoodParams();
-    public static boolean printShootInfo = false;
-    public static boolean fixHoodToIdealVelocity = true;
-    public static int startingShooterSpeedAdjustment = -20;
+    public static boolean printShootInfo = true;
+    public static boolean fixHoodToIdealVelocity = false;
+    public static int startingShooterSpeedAdjustment = 0;
 
     public enum ShooterState {
         OFF, UPDATE, REVERSE_FULL
@@ -139,7 +138,8 @@ public class Shooter extends Component {
         // update FLYWHEEL
         OdoInfo mostRecentVelocity = robot.drive.pinpoint().getMostRecentVelocity();
 
-        double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
+//        double targetShooterVelocityTicksPerSec = ShootingMath.calculateShooterMotorSpeedTicksPerSec(telemetry, targetPose, isNear, shootHighArc, ballExitPosInchesFromGoal, ballExitPosition, mostRecentVelocity);
+        double targetShooterVelocityTicksPerSec = SHOOTER_PARAMS.testingVel;
 
         if (powerShooterAndHood)
             setShooterVelocityPID(targetShooterVelocityTicksPerSec, currentShooterVelocity);
@@ -170,6 +170,7 @@ public class Shooter extends Component {
             telemetry.addData("exit speed mps", currentBallExitSpeedMps);
             telemetry.addData("ball exit position inches", ballExitPosition.x + ", " + ballExitPosition.y);
             telemetry.addData("ball exit angle deg", Math.toDegrees(ballExitAngleRad));
+            telemetry.addData("hood servo pos", hoodLeftServo.getPosition());
             if (ballExitAngleRad == -1)
                 telemetry.addLine("NO SOLUTION FOR HOOD=====================");
         }
@@ -183,6 +184,9 @@ public class Shooter extends Component {
     @Override
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
+//        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
+        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel));
+
         int turretEncoder = robot.turret.getTurretEncoder();
 
         switch (shooterState) {
@@ -200,7 +204,6 @@ public class Shooter extends Component {
                 setShooterPower(-0.99);
                 break;
         }
-
         updateBallShotTracking();
 //
 //        updateManualShooterTracking();
@@ -221,8 +224,7 @@ public class Shooter extends Component {
             double velDrop = lastMax - lastMin;
             avgShotDecel = velDrop / (curTimeMs - prevMaxTimeMs) * 1000;
             if(velDrop > SHOOTER_PARAMS.shotVelDropThreshold
-                    && SHOOTER_PARAMS.testingVel - lastMin > SHOOTER_PARAMS.noiseVariance
-                    && avgShotDecel > SHOOTER_PARAMS.shotDecelThreshold) {
+                    && shooterPID.getTarget() - lastMin > SHOOTER_PARAMS.noiseVariance) {
                 ballsShot++;
                 velDrops.add(velDrop);
                 postShotVels.add(lastMin);
@@ -254,7 +256,7 @@ public class Shooter extends Component {
         telemetry.addData("  last max", lastMax);
         telemetry.addData("  last min", lastMin);
         telemetry.addData("  last extrema dif", lastMax - lastMin);
-        telemetry.addData("  avg accel", avgShotDecel);
+//        telemetry.addData("  avg accel", avgShotDecel);
 //        telemetry.addData("  last max", lastMax);
 //        telemetry.addData("  last min", lastMin);
 //        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());

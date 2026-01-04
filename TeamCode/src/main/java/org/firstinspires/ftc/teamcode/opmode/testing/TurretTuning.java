@@ -8,15 +8,15 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @Config
 @TeleOp(name="turret tuner")
 public class TurretTuning extends LinearOpMode {
-    public static double power;
+    public static double powerCoeff;
     @Override
     public void runOpMode() throws InterruptedException {
         DcMotorEx turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
 
         waitForStart();
         while(opModeIsActive()) {
-            turretMotor.setPower(power);
-            telemetry.addData("power", power);
+            turretMotor.setPower(powerCoeff);
+            telemetry.addData("power", powerCoeff);
             telemetry.addData("encoder", turretMotor.getCurrentPosition());
             telemetry.update();
         }

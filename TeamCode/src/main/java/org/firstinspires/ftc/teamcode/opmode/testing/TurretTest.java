@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmode.testing;
 
-import static org.firstinspires.ftc.teamcode.subsystems.Turret.TURRET_PARAMS;
+import static org.firstinspires.ftc.teamcode.subsystems.Turret.turretParams;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -27,7 +27,7 @@ public class TurretTest extends OpMode {
     public void loop() {
         shooter.setHoodPosition(hoodPosition);
 
-        double turretAngleDeg = turret.getTurretEncoder() * 1.0 / TURRET_PARAMS.TICKS_PER_REV * 360;
+        double turretAngleDeg = turret.getTurretEncoder() * 1.0 / turretParams.TICKS_PER_REV * 360;
         telemetry.addData("turret encoder", turret.getTurretEncoder());
         telemetry.addData("turret angle deg", turretAngleDeg);
         telemetry.update();

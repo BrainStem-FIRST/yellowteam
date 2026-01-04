@@ -20,11 +20,11 @@ public class ShootingMath {
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
-        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 46, lowArcFarTargetHeightInches = 46.5;
+        public double highArcTargetHeightInches = 38, lowArcNearTargetHeightInches = 46.5, lowArcFarTargetHeightInches = 46.5;
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
-        public double powerLossCoefficient = 0.572; // actual exit velocity / theoretical exit velocity
+        public double powerLossCoefficient = 0.45; // actual exit velocity / theoretical exit velocity
         public double shooterMotorTicksPerRev = 28;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
@@ -37,7 +37,7 @@ public class ShootingMath {
         public double flywheelSpeedRelativeVelocityMultiplier = 1;
         public double closeToFarZoneThresholdInches = 130;
         public double highToLowArcThresholdInches = 56; // old: 62
-        public double highArcGoalOffsetInches = 30, lowArcNearGoalOffsetInches = 0, lowArcFarGoalOffsetInches = 0;
+        public double highArcGoalOffsetInches = 0, lowArcNearGoalOffsetInches = 0, lowArcFarGoalOffsetInches = 0;
     }
     public static class HoodSystemParams {
         public double restingDistanceMm = 82;
@@ -97,8 +97,7 @@ public class ShootingMath {
         double flywheelAngularVel = flywheelMps / shooterSystemParams.flywheelRadiusMeters;
         double revPerSec = flywheelAngularVel / (2 * Math.PI);
         double flywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;
-        double motorTicksPerSec = flywheelTicksPerSec * 38.5 / 28;
-        return motorTicksPerSec;
+        return flywheelTicksPerSec * 38.5 / 28;
     }
 
     // calculates the component of robot velocity that is towards the goal
@@ -224,8 +223,8 @@ public class ShootingMath {
         double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
         double linearDistanceToExtendMm = totalLinearDistanceMm - hoodSystemParams.restingDistanceMm;
         if (telemetry != null) {
-            telemetry.addLine("HOOD SERVO POS CALCULATION");
-            telemetry.addData("hood Angle from x deg", Math.toDegrees(hoodAngleFromXAxisRadians));
+//            telemetry.addLine("HOOD SERVO POS CALCULATION");
+//            telemetry.addData("hood Angle from x deg", Math.toDegrees(hoodAngleFromXAxisRadians));
             telemetry.addData("total linear distance mm", totalLinearDistanceMm);
         }
         return linearDistanceToExtendMm / hoodSystemParams.servoRangeMm;
