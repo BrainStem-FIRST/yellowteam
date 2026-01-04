@@ -41,7 +41,7 @@ public class LimelightLocalization extends LLParent {
         public double[] nearZoneLocalizeCircle = { -36, 0, 48 };
         public double[] validLocalizeYRange = { -24, 24 };
         public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
-        public int maxUpdateTurretVelTicksPerSec = 1;
+        public int maxUpdateTurretVelTicksPerSec = 1, turretUpdateEncoderRange = 3;
         public boolean allowUpdateAnywhereForFirst = true;
         public double ableToUpdateConfirmationTime = 0.2;
         public int numPrevFramesToAvg = 5;
@@ -308,7 +308,7 @@ public class LimelightLocalization extends LLParent {
         return Math.abs(Math.toDegrees(odoVel.headingRad)) < params.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < params.maxUpdateTranslationalVel;
     }
     private boolean canUpdateTurretReliably() {
-        return robot.turret.turretMotor.getVelocity() < params.maxUpdateTurretVelTicksPerSec;
+        return robot.turret.turretMotor.getVelocity() < params.maxUpdateTurretVelTicksPerSec && Math.abs(robot.turret.getTurretEncoder()) <= params.turretUpdateEncoderRange;
     }
     private boolean isInLocalizationZone() {
         Pose2d odoPose = robot.drive.localizer.getPose();

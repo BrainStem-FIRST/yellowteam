@@ -19,8 +19,8 @@ public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
-        public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 67.5, farRedShotsGoalX = -70, farRedShotsGoalY = 68;
-        public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -70, farBlueShotsGoalY = -63.5;
+        public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 64.5, farRedShotsGoalX = -68, farRedShotsGoalY = 64.5;
+        public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -68, farBlueShotsGoalY = -64.5;
         public double lookAheadTime = 0.115; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
@@ -35,7 +35,7 @@ public class Turret extends Component {
         public double smallPIDValuesErrorThreshold = 0;
         public double noPowerThreshold = 2;
 
-        public double moveRightKfSlope = 0.000294795, moveRightKfYInt = -0.113908;
+        public double moveRightKfSlope = 0, moveRightKfYInt = 0;
         public double moveLeftKfSlope = 0, moveLeftKfYInt = 0;
 
 
