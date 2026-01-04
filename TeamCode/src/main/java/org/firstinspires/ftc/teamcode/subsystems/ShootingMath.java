@@ -11,12 +11,6 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public class ShootingMath {
-    public enum ShotType {
-        HIGH_ARC,
-        LOW_ARC,
-        DYNAMIC_ARC
-    }
-    public static ShotType shotType = ShotType.DYNAMIC_ARC;
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
@@ -102,41 +96,41 @@ public class ShootingMath {
 
     // calculates the component of robot velocity that is towards the goal
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateSpeedTowardGoalMps(Pose2d targetPose, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
-        double dx = targetPose.position.x - ballExitPosition.x;
-        double dy = targetPose.position.y - ballExitPosition.y;
-
-        double distanceFromGoal = Math.hypot(dx, dy);
-        double ux = dx / distanceFromGoal;
-        double uy = dy / distanceFromGoal;
-
-        double vx = mostRecentVelocity.x;
-        double vy = mostRecentVelocity.y;
-
-        return -(vx * ux + vy * uy) * 0.0254;
-    }
+//    public static double calculateSpeedTowardGoalMps(Pose2d targetPose, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
+//        double dx = targetPose.position.x - ballExitPosition.x;
+//        double dy = targetPose.position.y - ballExitPosition.y;
+//
+//        double distanceFromGoal = Math.hypot(dx, dy);
+//        double ux = dx / distanceFromGoal;
+//        double uy = dy / distanceFromGoal;
+//
+//        double vx = mostRecentVelocity.x;
+//        double vy = mostRecentVelocity.y;
+//
+//        return -(vx * ux + vy * uy) * 0.0254;
+//    }
 
     // calculate flywheel speed (encoder ticks per sec) given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, boolean inCloseZone, boolean useHighArc, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
-        double ticksPerSecond;
-        if (inCloseZone) {
-            double highTicksPerSecond = shooterSystemParams.highShotTicksPerSecSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecYInt;
-            double lowTicksPerSecond = shooterSystemParams.lowShotNearZoneTicksPerSec * inchesFromGoal + shooterSystemParams.lowShotNearZoneTicksPerSecYInt;
-            ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
-        }
-        else
-            ticksPerSecond = shooterSystemParams.lowShotFarZoneTicksPerSecSlope * inchesFromGoal + shooterSystemParams.lowShotFarZoneTicksPerSecYInt;
-
-        if (!enableRelativeVelocity) {
-            return ticksPerSecond;
-        }
-        // SHOULD return positive value
-        double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
-        double relativeExitSpeedMps = ticksPerSecond - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
-        return exitMpsToMotorTicksPerSec(relativeExitSpeedMps);
-    }
+//    public static double calculateShooterMotorSpeedTicksPerSec(Telemetry telemetry, Pose2d targetPose, boolean inCloseZone, boolean useHighArc, double inchesFromGoal, Vector2d ballExitPosition, OdoInfo mostRecentVelocity) {
+//        double ticksPerSecond;
+//        if (inCloseZone) {
+//            double highTicksPerSecond = shooterSystemParams.highShotTicksPerSecSlope * inchesFromGoal + shooterSystemParams.highShotTicksPerSecYInt;
+//            double lowTicksPerSecond = shooterSystemParams.lowShotNearZoneTicksPerSec * inchesFromGoal + shooterSystemParams.lowShotNearZoneTicksPerSecYInt;
+//            ticksPerSecond = Math.max(highTicksPerSecond, lowTicksPerSecond);
+//        }
+//        else
+//            ticksPerSecond = shooterSystemParams.lowShotFarZoneTicksPerSecSlope * inchesFromGoal + shooterSystemParams.lowShotFarZoneTicksPerSecYInt;
+//
+//        if (!enableRelativeVelocity) {
+//            return ticksPerSecond;
+//        }
+//        // SHOULD return positive value
+//        double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
+//        double relativeExitSpeedMps = ticksPerSecond - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
+//        return exitMpsToMotorTicksPerSec(relativeExitSpeedMps);
+//    }
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     public static double calculateTurretTargetAngleRad(Pose2d targetPose, Pose2d futureRobotPose, Vector2d currentExitPosition, Vector2d futureExitPosition, double ballExitSpeedMps) {
@@ -183,37 +177,37 @@ public class ShootingMath {
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, boolean isNear, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
-        // get the EXACT exit height of the ball (depends on hood position)
-        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(useHighArc);
-        double targetHeightInches;
-        if (useHighArc)
-            targetHeightInches = shooterSystemParams.highArcTargetHeightInches;
-        else
-            targetHeightInches = isNear ? shooterSystemParams.lowArcNearTargetHeightInches : shooterSystemParams.lowArcFarTargetHeightInches;
-
-        double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
-
-        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
-        double g = 9.81;
-        double x = distanceInches * 0.0254; // convert inches to meters
-        double y = heightToTargetMeters;
-
-        double v = ballExitSpeedMps;
-        if (enableRelativeVelocity) {
-            double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
-            v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
-        }
-        double sign = useHighArc ? 1 : -1;
-
-        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
-        if (discriminant <= 0)
-            return -1;
-
-
-        double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
-        return Math.atan(tanTheta);
-    }
+//    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, boolean isNear, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
+//        // get the EXACT exit height of the ball (depends on hood position)
+//        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(useHighArc);
+//        double targetHeightInches;
+//        if (useHighArc)
+//            targetHeightInches = shooterSystemParams.highArcTargetHeightInches;
+//        else
+//            targetHeightInches = isNear ? shooterSystemParams.lowArcNearTargetHeightInches : shooterSystemParams.lowArcFarTargetHeightInches;
+//
+//        double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
+//
+//        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
+//        double g = 9.81;
+//        double x = distanceInches * 0.0254; // convert inches to meters
+//        double y = heightToTargetMeters;
+//
+//        double v = ballExitSpeedMps;
+//        if (enableRelativeVelocity) {
+//            double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
+//            v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
+//        }
+//        double sign = useHighArc ? 1 : -1;
+//
+//        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
+//        if (discriminant <= 0)
+//            return -1;
+//
+//
+//        double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
+//        return Math.atan(tanTheta);
+//    }
 
     // calculates the position to put the linear actuators to on the shooter hood
     public static double calculateHoodServoPosition(double ballExitAngleRadians, Telemetry telemetry) {
