@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
+import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 @Config
 public class BrainSTEMRobot {
     // TODO: actually find these values
-    public static double width = 10, length = 18; // inches
+    public static double width = 13, length = 16; // inches
     public static boolean enablePinpoint = true, enableSubsystems = true;
     public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableLimelight = true, enablePark = true, enableLED = true;
 
@@ -88,15 +89,12 @@ public class BrainSTEMRobot {
         Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, shooter.getBallExitAngleRad());
         Pose2d exitPose = new Pose2d(exitPosition, turret.currentAngleRad);
 
-
-        TelemetryHelper.colors[0] = "red";
-        TelemetryHelper.colors[1] = "green";
-        TelemetryHelper.colors[2] = "purple";
-        TelemetryHelper.radii[0] = 10;
-        TelemetryHelper.radii[1] = 6;
-        TelemetryHelper.radii[2] = 3;
-        TelemetryHelper.numPosesToShow = 3;
-        TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPose, turretPose, exitPose);
+        fieldOverlay.setStroke("red");
+        Drawing.drawRobot(fieldOverlay, robotPose);
+        fieldOverlay.setStroke("green");
+        Drawing.drawRobotSimple(fieldOverlay, turretPose, 5);
+        fieldOverlay.setStroke("purple");
+        Drawing.drawRobotSimple(fieldOverlay, exitPose, 3);
 
         limelight.addLimelightInfo(fieldOverlay);
 

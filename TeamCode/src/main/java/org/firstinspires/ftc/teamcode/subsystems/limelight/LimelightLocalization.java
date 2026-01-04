@@ -14,6 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
@@ -36,7 +37,7 @@ public class LimelightLocalization extends LLParent {
     }
 
     public static class Params {
-        public boolean showTurretPoses = false;
+        public boolean showTurretPoses = false, showValidLocalizationZones = false;
         public double[] nearZoneLocalizeCircle = { -36, 0, 48 };
         public double[] validLocalizeYRange = { -24, 24 };
         public double maxUpdateTranslationalVel = 2, maxUpdateHeadingDegVel = 2; // inches and degrees
@@ -320,27 +321,25 @@ public class LimelightLocalization extends LLParent {
     }
 
     public void addLocalizationInfo(Canvas fieldOverlay) {
-        fieldOverlay.setStroke("yellow");
-        fieldOverlay.setStrokeWidth(1);
-        fieldOverlay.strokeCircle(params.nearZoneLocalizeCircle[0], params.nearZoneLocalizeCircle[1], params.nearZoneLocalizeCircle[2]);
-        fieldOverlay.strokeRect(-72, params.validLocalizeYRange[0], 144, params.validLocalizeYRange[1] - params.validLocalizeYRange[0]);
-        fieldOverlay.setStrokeWidth(2);
+
+        if (params.showValidLocalizationZones) {
+            fieldOverlay.setStroke("yellow");
+            fieldOverlay.strokeCircle(params.nearZoneLocalizeCircle[0], params.nearZoneLocalizeCircle[1], params.nearZoneLocalizeCircle[2]);
+            fieldOverlay.strokeRect(-72, params.validLocalizeYRange[0], 144, params.validLocalizeYRange[1] - params.validLocalizeYRange[0]);
+        }
 
         if (params.showTurretPoses) {
             Pose2d limelightTurretPose = turretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(turretPose.position, turretPose.heading);
             Pose2d rawLimelightTurretPose = rawTurretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(rawTurretPose.position, rawTurretPose.heading);
-            TelemetryHelper.radii[0] = 5;
-            TelemetryHelper.radii[1] = 5;
-            TelemetryHelper.colors[0] = "black";
-            TelemetryHelper.colors[1] = "gray";
-            TelemetryHelper.numPosesToShow = 2;
-            TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, limelightTurretPose, rawLimelightTurretPose);
+            fieldOverlay.setStroke("black");
+            Drawing.drawRobotSimple(fieldOverlay, limelightTurretPose, 5);
+            fieldOverlay.setStroke("gray");
+            Drawing.drawRobotSimple(fieldOverlay, rawLimelightTurretPose, 5);
         }
         else {
-            TelemetryHelper.colors[0] = "gray";
-            TelemetryHelper.numPosesToShow = 1;
             Pose2d robotPoseToDraw = robotPose == null ? new Pose2d(0, 0, 0) : new Pose2d(robotPose.position, robotPose.heading);
-            TelemetryHelper.addRobotPoseToCanvas(fieldOverlay, robotPoseToDraw);
+            fieldOverlay.setStroke("gray");
+            Drawing.drawRobot(fieldOverlay, robotPoseToDraw);
         }
     }
 }

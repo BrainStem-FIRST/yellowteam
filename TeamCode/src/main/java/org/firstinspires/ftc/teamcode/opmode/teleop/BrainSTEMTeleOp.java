@@ -241,46 +241,4 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         fieldOverlay.strokeCircle(defaultGoalPose.position.x, defaultGoalPose.position.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
-
-    private void updatePosePredict() {
-        // show predicted pose on dashboard
-        PinpointLocalizer pinpoint = robot.drive.pinpoint();
-        Pose2d actualPose = pinpoint.getPose();
-        switch (posePredictType) {
-            case SIMPLE: TelemetryHelper.sendRobotPoses(actualPose, lastFrameSimplePrediction, pinpoint.lastPose); break;
-            case ADVANCED: TelemetryHelper.sendRobotPoses(actualPose, lastFrameAdvancedPrediction, pinpoint.lastPose); break;
-            case CONTROL: TelemetryHelper.sendRobotPoses(actualPose, pinpoint.lastPose); break;
-        }
-        lastFrameSimplePrediction = pinpoint.getNextPoseSimple(timeAheadToPredict == -1 ? pinpoint.getWeightedDt() : timeAheadToPredict);
-        lastFrameAdvancedPrediction = pinpoint.getNextPoseAdvanced();
-
-        if (gamepad1.back)
-            trackPosePredict(actualPose);
-    }
-    private void trackPosePredict(Pose2d actualPose) {
-        // save simple and advanced errors
-        OdoInfo simpleError = new OdoInfo(lastFrameSimplePrediction.position.x - actualPose.position.x,
-                lastFrameSimplePrediction.position.y - actualPose.position.y,
-                HeadingCorrect.correctHeadingErrorRad(lastFrameSimplePrediction.heading.toDouble() - actualPose.heading.toDouble()));
-        PosePredictionErrorRecorder.predictionErrorsSimple.add(simpleError);
-        OdoInfo advancedError = new OdoInfo(lastFrameAdvancedPrediction.position.x - actualPose.position.x,
-                lastFrameAdvancedPrediction.position.y - actualPose.position.y,
-                HeadingCorrect.correctHeadingErrorRad(lastFrameAdvancedPrediction.heading.toDouble() - actualPose.heading.toDouble()));
-        PosePredictionErrorRecorder.predictionErrorsAdvanced.add(advancedError);
-
-        // save current velocity and acceleration
-        PinpointLocalizer pinpoint = robot.drive.pinpoint();
-        if (!pinpoint.previousAccelerations.isEmpty())
-            PosePredictionErrorRecorder.acceleration.add(pinpoint.previousAccelerations.get(0));
-        if (!pinpoint.previousVelocities.isEmpty())
-            PosePredictionErrorRecorder.velocity.add(pinpoint.previousVelocities.get(0));
-
-        // save control group errors
-        Pose2d lastPose = pinpoint.lastPose;
-        OdoInfo controlGroupError = new OdoInfo(lastPose.position.x - actualPose.position.x,
-                lastPose.position.y - actualPose.position.y,
-                lastPose.heading.toDouble() - actualPose.heading.toDouble()
-        );
-        PosePredictionErrorRecorder.controlGroupError.add(controlGroupError);
-    }
 }

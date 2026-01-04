@@ -4,17 +4,44 @@ import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 
+import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
+
 public final class Drawing {
     private Drawing() {}
 
-
     public static void drawRobot(Canvas c, Pose2d t) {
-        final double ROBOT_RADIUS = 9;
+        double halfW = BrainSTEMRobot.width * 0.5;
+        double halfH = BrainSTEMRobot.length * 0.5;
+
+        double x = t.position.x;
+        double y = t.position.y;
+        double a = t.heading.toDouble();
+
+        double cos = Math.cos(a);
+        double sin = Math.sin(a);
+
+        // Robot-frame corners (forward = +x, left = +y)
+        double[] rx = {  halfH,  halfH, -halfH, -halfH };
+        double[] ry = {  halfW, -halfW, -halfW,  halfW };
+
+        double[] xPoints = new double[4];
+        double[] yPoints = new double[4];
+
+        for (int i = 0; i < 4; i++) {
+            xPoints[i] = x + rx[i] * cos - ry[i] * sin;
+            yPoints[i] = y + rx[i] * sin + ry[i] * cos;
+        }
 
         c.setStrokeWidth(1);
-        c.strokeCircle(t.position.x, t.position.y, ROBOT_RADIUS);
+        c.strokePolygon(xPoints, yPoints);
+    }
 
-        Vector2d halfv = t.heading.vec().times(0.5 * ROBOT_RADIUS);
+    public static void drawRobotSimple(Canvas c, Pose2d t, double radius) {
+
+        c.setStrokeWidth(1);
+        c.strokeCircle(t.position.x, t.position.y, radius);
+
+        Vector2d halfv = t.heading.vec().times(0.5 * radius);
         Vector2d p1 = t.position.plus(halfv);
         Vector2d p2 = p1.plus(halfv);
         c.strokeLine(p1.x, p1.y, p2.x, p2.y);
