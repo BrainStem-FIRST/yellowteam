@@ -532,13 +532,6 @@ public abstract class AutoPid extends LinearOpMode {
             }
         };
     }
-    private Action decideEarlyRunIntake(double minTime) {
-        return packet -> {
-            if (minTime == -1)
-                return autoCommands.runIntake().run(packet);
-            return false;
-        };
-    }
     private void declareShootPoses() {
         shootNearSetup1Pose = isRed ? shootNearRed(shoot.shootNearSetup1ARed) : shootNearBlue(shoot.shootNearSetup1ABlue);
         shootFarSetup1Pose = isRed ? shootFarRed(shoot.shootFarSetup1ARed) : shootFarBlue(shoot.shootFarSetup1ABlue);
@@ -613,4 +606,31 @@ public abstract class AutoPid extends LinearOpMode {
     public Pose2d shootFarRed(double angleRad) { return new Pose2d(shoot.shootFarXRed, shoot.shootFarYRed, angleRad); }
     public Pose2d shootNearBlue(double angleRad) { return new Pose2d(shoot.shootNearXBlue, shoot.shootNearYBlue, angleRad); }
     public Pose2d shootFarBlue(double angleRad) { return new Pose2d(shoot.shootFarXBlue, shoot.shootFarYBlue, angleRad); }
+
+
+    public Vector2d estimateBestShootingPos(Pose2d prev, Pose2d next) {
+        double minDist = Double.MAX_VALUE;
+        double bestX = -100, bestY = -100;
+        double dist1, dist2, totalDist;
+        double shootX, shootY;
+        for(int i = 0; i < shoot.bestPoseNumComputations; i++) {
+            shootX = lerp(-72, 0, i * 1./shoot.bestPoseNumComputations);
+            shootY = launchLineY(shootX);
+            dist1 = Math.hypot(prev.position.x - shootX, prev.position.y - shootY);
+            dist2 = Math.hypot(next.position.x - shootX, next.position.x - shootY);
+            totalDist = dist1 + dist2;
+            if(totalDist < minDist) {
+                minDist = totalDist;
+                bestX = shootX;
+                bestY = shootY;
+            }
+        }
+        return new Vector2d(bestX, bestY);
+    }
+    public double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
+    }
+    public double launchLineY(double x) {
+        return isRed ? -x : x;
+    }
 }

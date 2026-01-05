@@ -30,6 +30,7 @@ public class AutoParamsPid {
         public double gateCollectXBlue = 9.5, gateCollectYBlue = -61.5, gateCollectABlue = Math.toRadians(-114.5);
     }
     public static class Shoot {
+        public int bestPoseNumComputations = 50;
         public double waypointTolX = 3, waypointTolY = 3, waypointTolA = Math.toRadians(5);
         public Tolerance waypointTol = new Tolerance(waypointTolX, waypointTolY, waypointTolA);
         public double waypointSlowDown = 0.3;
