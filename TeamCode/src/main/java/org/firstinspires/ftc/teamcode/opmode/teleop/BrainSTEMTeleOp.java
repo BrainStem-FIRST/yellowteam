@@ -33,7 +33,7 @@ import java.util.List;
 
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
-    public static boolean printCollector = false, printShooter = false, printTurret = true, printLimelight = false;
+    public static boolean printCollector = false, printShooter = true, printTurret = false, printLimelight = false;
     public static double firstShootTolerance = 40;
 
     public enum PosePredictType {
@@ -81,6 +81,10 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         gp2 = new GamepadTracker(gamepad2);
         robot.setG1(gp1);
         telemetry.addData("starting pose", startPose.position.x + ", " + startPose.position.y + " | " + startPose.heading.toDouble());
+        if (!robot.limelight.limelight.isConnected())
+            telemetry.addLine("WARNING - LIMELIGHT IS NOT CONNECTED");
+        if (!robot.limelight.limelight.isRunning())
+            telemetry.addLine("WARNING - LIMELIGHT IS NOT RUNNING");
         telemetry.update();
 
         waitForStart();

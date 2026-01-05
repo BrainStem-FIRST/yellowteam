@@ -83,9 +83,9 @@ public class RawSubsystemTest extends LinearOpMode {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         ServoImplEx hoodLeft = hardwareMap.get(ServoImplEx.class, "hoodLeft");
-        hoodLeft.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
+        hoodLeft.setPwmRange(new PwmControl.PwmRange(Shooter.hoodParams.downPWM, Shooter.hoodParams.upPWM));
         ServoImplEx hoodRight = hardwareMap.get(ServoImplEx.class, "hoodRight");
-        hoodRight.setPwmRange(new PwmControl.PwmRange(Shooter.HOOD_PARAMS.downPWM, Shooter.HOOD_PARAMS.upPWM));
+        hoodRight.setPwmRange(new PwmControl.PwmRange(Shooter.hoodParams.downPWM, Shooter.hoodParams.upPWM));
 
         shooterLow.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooterHigh.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

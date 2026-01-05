@@ -340,6 +340,9 @@ public class LimelightLocalization extends LLParent {
             Pose2d robotPoseToDraw = robotPose == null ? new Pose2d(0, 0, 0) : new Pose2d(robotPose.position, robotPose.heading);
             fieldOverlay.setStroke("gray");
             Drawing.drawRobot(fieldOverlay, robotPoseToDraw);
+
+            Pose2d limelightTurretPose = turretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(turretPose.position, turretPose.heading);
+            Drawing.drawRobotSimple(fieldOverlay, limelightTurretPose, 5);
         }
     }
 }

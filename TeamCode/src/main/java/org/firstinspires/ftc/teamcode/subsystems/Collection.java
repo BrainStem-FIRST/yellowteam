@@ -9,11 +9,10 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @Config
 public class Collection extends Component {
-    public static double shootOuttakeTime = 0.15;
+    public static double shootOuttakeTime = 0.08;
 
     public enum CollectionState {
         OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
@@ -152,7 +151,7 @@ public class Collection extends Component {
     @Override
     public void printInfo() {
         telemetry.addLine("===COLLECTION======");
-        telemetry.addData("current", collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
+        telemetry.addData("collection state", collectionState);
         telemetry.addData("power", collectorMotor.getPower());
         telemetry.addData("flicker state", getFlickerState());
         telemetry.addData("flicker left pos", flickerLeft.getPosition());
@@ -175,7 +174,7 @@ public class Collection extends Component {
                 break;
             case INTAKE:
                 double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
-                double errorThreshold = robot.shooter.isNear ? Shooter.SHOOTER_PARAMS.maxErrorThresholdNear : Shooter.SHOOTER_PARAMS.maxErrorThresholdFar;
+                double errorThreshold = robot.shooter.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
                 if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
                 else

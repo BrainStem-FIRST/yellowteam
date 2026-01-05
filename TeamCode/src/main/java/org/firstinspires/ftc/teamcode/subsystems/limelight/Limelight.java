@@ -20,7 +20,7 @@ public class Limelight extends Component {
     public static SnapshotParams snapshotParams = new SnapshotParams();
 
     // i should tune the camera so that it gives me the turret center position
-    private final Limelight3A limelight;
+    public final Limelight3A limelight;
     public static int startingPipeline = 0;
     private int pipeline;
     public final LimelightLocalization localization; // april tag localization

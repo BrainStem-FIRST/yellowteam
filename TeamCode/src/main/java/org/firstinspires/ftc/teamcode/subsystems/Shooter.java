@@ -5,29 +5,19 @@ import static org.firstinspires.ftc.teamcode.subsystems.ShooterLookup.dists;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
-import com.arcrobotics.ftclib.command.Command;
-import com.arcrobotics.ftclib.command.Subsystem;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
-import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.shootingRecording.AutomaticShooterSpeedRecorder;
-import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeedRecorder;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
-import org.firstinspires.ftc.teamcode.utils.shootingRecording.ShotData;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
 
 @Config
 public class Shooter extends Component {
@@ -36,18 +26,22 @@ public class Shooter extends Component {
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.00048;
-        public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 600;
+        public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 100;
         public double shotVelDropThreshold = 40;
-        public double testingVel = 1500, noiseVariance = 40;
-        public boolean TESTING = false;
+        public double noiseVariance = 40;
     }
     public static class HoodParams {
-        public double downPWM = 900, upPWM = 2065, moveThresholdAngleDeg = 0.5;
+        public double downPWM = 900, upPWM = 2065;
+    }
+    public static class TestingParams {
+        public boolean testing = false;
+        public double testingVel = 1500;
         public double testingExitAngleRad = 1.0472;
     }
 
-    public static ShooterParams SHOOTER_PARAMS = new ShooterParams();
-    public static HoodParams HOOD_PARAMS = new HoodParams();
+    public static ShooterParams shooterParams = new ShooterParams();
+    public static HoodParams hoodParams = new HoodParams();
+    public static TestingParams testingParams = new TestingParams();
     public static boolean printShootInfo = true;
     public static int startingShooterSpeedAdjustment = 0;
 
@@ -89,12 +83,12 @@ public class Shooter extends Component {
         shooterMotorHigh.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         hoodLeftServo = hardwareMap.get(ServoImplEx.class, "hoodLeft");
-        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(HOOD_PARAMS.downPWM, HOOD_PARAMS.upPWM));
+        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(hoodParams.downPWM, hoodParams.upPWM));
 
         hoodRightServo = hardwareMap.get(ServoImplEx.class, "hoodRight");
-        hoodRightServo.setPwmRange(new PwmControl.PwmRange(HOOD_PARAMS.downPWM, HOOD_PARAMS.upPWM));
+        hoodRightServo.setPwmRange(new PwmControl.PwmRange(hoodParams.downPWM, hoodParams.upPWM));
 
-        shooterPID = new PIDController(SHOOTER_PARAMS.kP, SHOOTER_PARAMS.kI, SHOOTER_PARAMS.kD);
+        shooterPID = new PIDController(shooterParams.kP, shooterParams.kI, shooterParams.kD);
 
         shooterState = ShooterState.OFF;
         lastMax = 0;
@@ -119,7 +113,7 @@ public class Shooter extends Component {
         shooterPID.setTarget(targetVelocityTicksPerSec + adjustment);
 
         double pidOutput = -shooterPID.update(currentShooterVelocity);
-        double feedForward = SHOOTER_PARAMS.kF * targetVelocityTicksPerSec;
+        double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
         totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
@@ -132,9 +126,9 @@ public class Shooter extends Component {
     }
     public void updateShooterSystem(double dist) {
         dist = Range.clip(dist, dists[0] + 0.01, dists[dists.length-1] - 0.01);
-        if(SHOOTER_PARAMS.TESTING) {
-            targetMotorVel = SHOOTER_PARAMS.testingVel;
-            ballExitAngleRad = HOOD_PARAMS.testingExitAngleRad;
+        if(testingParams.testing) {
+            targetMotorVel = testingParams.testingVel;
+            ballExitAngleRad = testingParams.testingExitAngleRad;
         }
         else {
             targetMotorVel = shooterLookup.lookupVelocityTicksPerSec(dist);
@@ -195,8 +189,8 @@ public class Shooter extends Component {
         if(increasing && !wasPrevIncreasing) {  // means relative min detected
             lastMin = prevVel;
             double velDrop = lastMax - lastMin;
-            if(velDrop >= SHOOTER_PARAMS.shotVelDropThreshold
-            || shooterPID.getTarget() - lastMin >= SHOOTER_PARAMS.noiseVariance) {
+            if(velDrop >= shooterParams.shotVelDropThreshold
+            || shooterPID.getTarget() - lastMin >= shooterParams.noiseVariance) {
                 ballsShot++;
                 velDrops.add(velDrop);
                 postShotVels.add(lastMin);
@@ -233,6 +227,7 @@ public class Shooter extends Component {
         telemetry.addData(" scaled motor vel", avgMotorVel / 1500 * 40);
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  shooter high power", shooterMotorHigh.getPower());
+        telemetry.addData("shooter velocity error", targetMotorVel - avgMotorVel);
 //        telemetry.addData("  ball vel drops", Arrays.toString(velDrops.toArray()));
 //        telemetry.addData("  post shot vels", Arrays.toString(postShotVels.toArray()));
 //        telemetry.addData("  last max", lastMax);
@@ -240,8 +235,8 @@ public class Shooter extends Component {
         telemetry.addData("increasing", increasing ? 50 : -50);
         telemetry.addData("  balls shot", ballsShot);
         telemetry.addData("dist from target", targetMotorVel - lastMin);
-        telemetry.addData("noise variance", SHOOTER_PARAMS.noiseVariance);
-        telemetry.addData("shot vel threshold", SHOOTER_PARAMS.shotVelDropThreshold);
+        telemetry.addData("noise variance", shooterParams.noiseVariance);
+        telemetry.addData("shot vel threshold", shooterParams.shotVelDropThreshold);
         telemetry.addData("  last extrema dif", MathUtils.format3(lastMax - lastMin));
 //        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());
 

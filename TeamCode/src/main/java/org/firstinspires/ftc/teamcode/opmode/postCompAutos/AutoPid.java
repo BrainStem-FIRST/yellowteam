@@ -608,7 +608,7 @@ public abstract class AutoPid extends LinearOpMode {
     public Pose2d shootFarBlue(double angleRad) { return new Pose2d(shoot.shootFarXBlue, shoot.shootFarYBlue, angleRad); }
 
 
-    public Vector2d estimateBestShootingPos(Pose2d prev, Pose2d next) {
+    public Vector2d estimateBestNearShootingPos(Pose2d prev, Pose2d next) {
         double minDist = Double.MAX_VALUE;
         double bestX = -100, bestY = -100;
         double dist1, dist2, totalDist;
