@@ -19,24 +19,25 @@ public class Turret extends Component {
     public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class Params {
         public int fineAdjust = 5;
-        public double nearRedShotsGoalX = -68, nearRedShotsGoalY = 64.5, farRedShotsGoalX = -68, farRedShotsGoalY = 64.5;
-        public double nearBlueShotsGoalX = -68, nearBlueShotsGoalY = -64.5, farBlueShotsGoalX = -68, farBlueShotsGoalY = -64.5;
-        public double lookAheadTime = 0.115; // time to look ahead for pose prediction
+        public double nearRedShotsGoalX = -67, nearRedShotsGoalY = 62, farRedShotsGoalX = -68, farRedShotsGoalY = 60.5;
+        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -62, farBlueShotsGoalX = -68, farBlueShotsGoalY = -60.5;
+        public double lookAheadTime = 0; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
-        public double endLookAheadSmoothValue = 0.2;
+        public double endLookAheadSmoothValue = 0.;
         public double TICKS_PER_REV = 1228.5;
-        public int RIGHT_BOUND = -300;
+        public int RIGHT_BOUND = -320;
         public int LEFT_BOUND = 300;
     }
     public static class PowerTuning {
-        public double bigKP = 0.003, bigKI = 0, bigKD = 0;
-        public double smallKP = 0, smallKI = 0, smallKD = 0;
-        public double smallPIDValuesErrorThreshold = 0;
+        public double moveRightKp = 0.0043, moveLeftKp = 0.0043,
+                kI = 0.0005, kD = 0.0005;
         public double noPowerThreshold = 2;
+        public double linearDistToResetKiThreshold = 1;
+        public double headingDegToResetKiThreshold = 1;
 
-        public double moveRightKfSlope = 0, moveRightKfYInt = 0;
-        public double moveLeftKfSlope = 0, moveLeftKfYInt = 0;
+        public double moveRightKf = -0.1;
+        public double moveLeftKf = 0;
 
 
 //        public double noTensionLowerBound = Math.toRadians(-20);
@@ -68,7 +69,7 @@ public class Turret extends Component {
         turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         turretMotor.setPower(0);
 
-        pidController = new PIDController(powerTuning.bigKP, powerTuning.bigKI, powerTuning.bigKD);
+        pidController = new PIDController(powerTuning.moveRightKp, powerTuning.kI, powerTuning.kD);
         turretState = TurretState.CENTER;
         relativeBallExitVelocityMps = new Vec(0, 0);
         globalBallExitVelocityMps = new Vec(0, 0);
@@ -84,6 +85,8 @@ public class Turret extends Component {
         telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
         telemetry.addData("turret kF", kF);
+        telemetry.addData("turret PID integral", pidController.getIntegral());
+        telemetry.addData("turret PID derivative", pidController.getDerivative());
         telemetry.addData("current encoder", turretEncoder);
         telemetry.addData("target encoder", targetEncoder);
         telemetry.addData("encoder error", motorError);
@@ -110,21 +113,20 @@ public class Turret extends Component {
             return;
         }
 
-        // use correct pid values based on error
-        if (Math.abs(motorError) < powerTuning.smallPIDValuesErrorThreshold)
-            pidController.setPIDValues(powerTuning.smallKP, powerTuning.smallKI, powerTuning.smallKD);
-        else
-            pidController.setPIDValues(powerTuning.bigKP, powerTuning.bigKI, powerTuning.bigKD);
+        // reset kI whenever the robot moves significantly
+        Pose2d prevPose = robot.drive.pinpoint().lastPose;
+        Pose2d curPose = robot.drive.pinpoint().getPose();
+        double positionChange = Math.hypot(curPose.position.x - prevPose.position.x, curPose.position.y - prevPose.position.y);
+        double headingDegChange = Math.toDegrees(curPose.heading.toDouble() - prevPose.heading.toDouble());
+        if (positionChange > powerTuning.linearDistToResetKiThreshold || headingDegChange >= powerTuning.headingDegToResetKiThreshold)
+            pidController.reset();
 
-        double newPower = -pidController.updateWithError(motorError);
         boolean movingRight = motorError > 0;
-        if (movingRight) {
-            kF = turretMotor.getCurrentPosition() * powerTuning.moveRightKfSlope + powerTuning.moveRightKfYInt;
-            newPower += Math.min(kF, 0);
-        }
-        else {
-            newPower += turretMotor.getCurrentPosition() * powerTuning.moveLeftKfSlope + powerTuning.moveLeftKfYInt;
-        }
+        double kP = movingRight ? powerTuning.moveRightKp : powerTuning.moveLeftKp;
+        pidController.setPIDValues(kP, powerTuning.kI, powerTuning.kD);
+        double newPower = -pidController.updateWithError(motorError);
+        kF = movingRight ? powerTuning.moveRightKf : powerTuning.moveLeftKf;
+        newPower += kF;
 
         if (currentEncoder < turretParams.RIGHT_BOUND)
             newPower = Math.max(newPower, 0);

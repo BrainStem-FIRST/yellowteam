@@ -28,7 +28,7 @@ public class AutoCommands {
 
     public Action waitTillDoneShooting(double maxTimeBetweenShots, double intakeCurrentValidationTime) {
         return new Action() {
-            private final ElapsedTime timer = new ElapsedTime();
+//            private final ElapsedTime timer = new ElapsedTime();
             private final ElapsedTime timeSinceLastVelDrop = new ElapsedTime();
             private int oldBallsShot;
             private boolean first = true;
@@ -37,26 +37,27 @@ public class AutoCommands {
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
                 if (first) {
                     first = false;
-                    timer.reset();
+//                    timer.reset();
                     timeSinceLastVelDrop.reset();
                     oldBallsShot = robot.shooter.getBallsShot();
                 }
-                if (robot.collection.collectorMotor.getPower() != Collection.COLLECTOR_PARAMS.INTAKE_SPEED) {
-                    timer.reset();
-                    timeSinceLastVelDrop.reset();
-                }
+//                if (robot.collection.collectorMotor.getPower() != Collection.COLLECTOR_PARAMS.INTAKE_SPEED) {
+//                    timer.reset();
+//                    timeSinceLastVelDrop.reset();
+//                }
 
-                if (robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
-                    timer.reset();
+//                if (robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
+//                    timer.reset();
 
-                if (oldBallsShot != robot.shooter.getBallsShot())
-                    timeSinceLastVelDrop.reset();
+//                if (oldBallsShot != robot.shooter.getBallsShot())
+//                    timeSinceLastVelDrop.reset();
 
                 oldBallsShot = robot.shooter.getBallsShot();
                 telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());
 
 
-                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
+                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3;
+//                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }
         };
     }

@@ -15,17 +15,18 @@ public class PathParams {
     private static final double noMaxTime = -1;
 
     public static class DefaultParams {
-        public double speedKp = 0.013, speedKi = 0, speedKd = 0.0001, speedKf = 0.075;
-        public double closeHeadingKp = 0.005, closeHeadingKi = 0, closeHeadingKd = 0.001, headingKf = 0.1;
-        public double farHeadingKp = 0.01, farHeadingKi = 0, farHeadingKd = 0;
+        public double bigSpeedKp = 0.02, smallSpeedKp = 0.013, bigSpeedKd = 0, smallSpeedKd = 0.0001;
+        public double speedKi = 0, speedKf = 0.075;
+        public double applyCloseSpeedPIDError = 5;
+        public double closeHeadingKp = 0.01, closeHeadingKi = 0, closeHeadingKd = 0.001, headingKf = 0.1;
+        public double farHeadingKp = 0.012, farHeadingKi = 0, farHeadingKd = 0;
         public double applyCloseHeadingPIDErrorDeg = 10;
-        public double applyKdLinearError = 10;
         public double lateralWeight = 1.9, axialWeight = 1; // weight the drive powers to correct for differences in driving
         public double minSpeed = 0, maxSpeed = 1;
         public double minHeadingSpeed = 0, maxHeadingSpeed = 1;
         public double maxTime = 100;
         public HeadingLerpType headingLerpType = HeadingLerpType.LINEAR;
-        public double tangentHeadingActivateThreshold = 10;
+        public double tangentHeadingActivateThreshold = 15;
     }
     public static DefaultParams defaultParams = new DefaultParams();
     public double lateralWeight, axialWeight;
@@ -40,18 +41,21 @@ public class PathParams {
     public double maxTime;
     public BooleanSupplier customEndCondition = () -> false;
 
-    public double speedKp, speedKi, speedKd, speedKf;
+    public double bigSpeedKp, smallSpeedKp, bigSpeedKd, smallSpeedKd;
+    public double speedKi, speedKf;
     public double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
-    public double applyKdLinearError;
+    public double applyCloseSpeedPIDError;
     public HeadingLerpType headingLerpType;
     public double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
     public PathParams() {
-        this(defaultParams.speedKp, defaultParams.speedKi, defaultParams.speedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
+        this(defaultParams.bigSpeedKp, defaultParams.smallSpeedKp, defaultParams.speedKi, defaultParams.bigSpeedKd, defaultParams.smallSpeedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
     }
-    public PathParams(double speedKp, double speedKi, double speedKd, double speedKf, double closeHeadingKp, double closeHeadingKi, double closeHeadingKd, double farHeadingKp, double farHeadingKi, double farHeadingKd, double headingKf) {
-        this.speedKp = speedKp;
+    public PathParams(double bigSpeedKp, double smallSpeedKp, double speedKi, double bigSpeedKd, double smallSpeedKd, double speedKf, double closeHeadingKp, double closeHeadingKi, double closeHeadingKd, double farHeadingKp, double farHeadingKi, double farHeadingKd, double headingKf) {
+        this.bigSpeedKp = bigSpeedKp;
+        this.smallSpeedKp = smallSpeedKp;
         this.speedKi = speedKi;
-        this.speedKd = speedKd;
+        this.bigSpeedKd = bigSpeedKd;
+        this.smallSpeedKd = smallSpeedKd;
         this.speedKf = speedKf;
         this.closeHeadingKp = closeHeadingKp;
         this.closeHeadingKi = closeHeadingKi;
@@ -72,7 +76,7 @@ public class PathParams {
         lateralWeight = defaultParams.lateralWeight;
         axialWeight = defaultParams.axialWeight;
         passPosition = false;
-        applyKdLinearError = defaultParams.applyKdLinearError;
+        applyCloseSpeedPIDError = defaultParams.applyCloseSpeedPIDError;
         headingLerpType = defaultParams.headingLerpType;
         tangentHeadingActivateThreshold = defaultParams.tangentHeadingActivateThreshold;
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
@@ -85,7 +89,7 @@ public class PathParams {
     @NonNull
     @Override
     public PathParams clone() {
-        PathParams newParams = new PathParams(speedKp, speedKi, speedKd, speedKf, closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf);
+        PathParams newParams = new PathParams(bigSpeedKp, smallSpeedKp, speedKi, bigSpeedKd, smallSpeedKd, speedKf, closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf);
         newParams.maxTime = maxTime;
         newParams.minLinearPower = minLinearPower;
         newParams.maxLinearPower = maxLinearPower;
@@ -95,7 +99,7 @@ public class PathParams {
         newParams.axialWeight = axialWeight;
         newParams.passPosition = passPosition;
         newParams.customEndCondition = customEndCondition;
-        newParams.applyKdLinearError = applyKdLinearError;
+        newParams.applyCloseSpeedPIDError = applyCloseSpeedPIDError;
         newParams.headingLerpType = headingLerpType;
         newParams.tangentHeadingActivateThreshold = tangentHeadingActivateThreshold;
         newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;

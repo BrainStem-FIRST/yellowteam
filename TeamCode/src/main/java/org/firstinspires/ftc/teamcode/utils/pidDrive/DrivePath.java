@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.opmode.postCompAutos.AutoPid;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
@@ -166,10 +167,16 @@ public class DrivePath implements Action {
         // calculate translational speed
         double speed = 0;
         if (!inPositionTolerance) {
-            // aggressive braking
-            double linearError = Math.hypot(xWaypointError, yWaypointError);
-            totalDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
-            waypointDistancePID.setKd(linearError <= getCurParams().applyKdLinearError ? getCurParams().speedKd : 0);
+            if(totalDistanceAway < getCurParams().applyCloseSpeedPIDError)
+                totalDistancePID.setPIDValues(getCurParams().smallSpeedKp, getCurParams().speedKi, getCurParams().smallSpeedKd);
+            else
+                totalDistancePID.setPIDValues(getCurParams().bigSpeedKp, getCurParams().speedKi, getCurParams().bigSpeedKd);
+
+            if(waypointDistAway < getCurParams().applyCloseSpeedPIDError)
+                waypointDistancePID.setPIDValues(getCurParams().smallSpeedKp, getCurParams().speedKi, getCurParams().smallSpeedKd);
+            else
+                waypointDistancePID.setPIDValues(getCurParams().bigSpeedKp, getCurParams().speedKi, getCurParams().bigSpeedKd);
+
 
             double a = totalDistancePID.update(totalDistanceAway);
             double b = waypointDistancePID.update(waypointDistAway);
@@ -213,7 +220,10 @@ public class DrivePath implements Action {
         headingPower *= turnLeftSign;
         
 //        drivetrain.setBatteryIndependentDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
-        drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
+        if(AutoPid.paused)
+            drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0));
+        else
+            drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
         
         if (telemetry != null) {
             telemetry.addData("total dist away", totalDistanceAway);
@@ -221,7 +231,12 @@ public class DrivePath implements Action {
             telemetry.addData("current position", MathUtils.format3(rx) + " ," + MathUtils.format3(ry) + ", " + MathUtils.format3(rHeadingDeg));
             telemetry.addData("target position", MathUtils.format3(getCurWaypoint().x()) + " ," + MathUtils.format3(getCurWaypoint().y()) + ", " + MathUtils.format3(getCurWaypoint().headingDeg()));
             telemetry.addData("target dir", MathUtils.format3(targetDir.x) + ", " + MathUtils.format3(targetDir.y));
-            telemetry.addData("waypoint errors", MathUtils.format3(xWaypointError) + ", " + MathUtils.format3(yWaypointError) + ", " + MathUtils.format3(headingDegWaypointError));
+            telemetry.addData("x waypoint error", MathUtils.format3(xWaypointError));
+            telemetry.addData("y waypoint error", MathUtils.format3(yWaypointError));
+            telemetry.addData("heading waypoint error", MathUtils.format3(headingDegWaypointError));
+            telemetry.addData("x waypoint tolerance", getCurWaypoint().tolerance.xTol);
+            telemetry.addData("y waypoint tolerance", getCurWaypoint().tolerance.yTol);
+            telemetry.addData("heading waypoint tolerance", getCurWaypoint().tolerance.headingDegTol);
             telemetry.addData("in position tolerance", inPositionTolerance);
             telemetry.addData("in heading tolerance", inHeadingTolerance);
             telemetry.addData("waypoint dist PID proportional", waypointDistancePID.getProportional());
@@ -266,12 +281,12 @@ public class DrivePath implements Action {
     private void resetToNewWaypoint() {
         waypointTimer.reset();
 
-        totalDistancePID = new PidDrivePidController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
+        totalDistancePID = new PidDrivePidController(getCurParams().bigSpeedKp, getCurParams().speedKi, getCurParams().bigSpeedKd);
         totalDistancePID.reset();
         totalDistancePID.setTarget(0);
         totalDistancePID.setOutputBounds(0, 1);
 
-        waypointDistancePID = new PidDrivePidController(getCurParams().speedKp, getCurParams().speedKi, getCurParams().speedKd);
+        waypointDistancePID = new PidDrivePidController(getCurParams().bigSpeedKp, getCurParams().speedKi, getCurParams().bigSpeedKd);
         waypointDistancePID.reset();
         waypointDistancePID.setTarget(0);
         waypointDistancePID.setOutputBounds(0, 1);

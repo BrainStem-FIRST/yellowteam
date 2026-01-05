@@ -53,8 +53,12 @@ public class LED extends Component {
             }
         }
         if (robot.collection.getClutchState() == Collection.ClutchState.ENGAGED) {
-            if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
-                setLed(green);
+            if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE) {
+                if(robot.shooter.getBallsShot() < 3)
+                    setLed(green);
+                else
+                    setLed(orange);
+            }
             else
                 setLed(yellow);
         }
