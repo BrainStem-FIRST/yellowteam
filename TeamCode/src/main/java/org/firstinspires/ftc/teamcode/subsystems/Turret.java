@@ -23,8 +23,8 @@ public class Turret extends Component {
     }
     public static class Params {
         public int fineAdjust = 5;
-        public double nearRedShotsGoalX = -67, nearRedShotsGoalY = 62, farRedShotsGoalX = -68, farRedShotsGoalY = 59.5;
-        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -62, farBlueShotsGoalX = -68, farBlueShotsGoalY = -59.5;
+        public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 62, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
+        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -62, farBlueShotsGoalX = -67, farBlueShotsGoalY = -65.5;
         public double lookAheadTime = 0; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
@@ -34,16 +34,16 @@ public class Turret extends Component {
         public int LEFT_BOUND = 300;
     }
     public static class PowerTuning {
-        public double rightKp = 0.0043, rightKi = 0.0005, rightKd = 0.0005;
-        public double leftKp = 0.0043, leftKi = 0.0005, leftKd = 0.001;
+        public double rightKp = 0.0043, rightKi = 0, rightKd = 0.0005;
+        public double leftKp = 0.0043, leftKi = 0, leftKd = 0.001;
         public double noPowerThreshold = 2;
         public double linearDistToResetKiThreshold = 1;
         public double headingDegToResetKiThreshold = 1;
 
-        public double moveRightKfEncoder1 = 0, moveRightKf1 = -0.06;
-        public double moveRightKfEncoder2 = 200, moveRightKf2 = -0.12;
-        public double moveLeftKfEncoder1 = 0, moveLeftKf1 = 0.02;
-        public double moveLeftKfEncoder2 = -200, moveLeftKf2 = 0.1;
+        public double moveRightKfEncoder1 = 0, moveRightKf1 = -0.1;
+        public double moveRightKfEncoder2 = 200, moveRightKf2 = 0;
+        public double moveLeftKfEncoder1 = 0, moveLeftKf1 = 0.04;
+        public double moveLeftKfEncoder2 = -200, moveLeftKf2 = 0;
         public double smallKfThreshold = 8, smallKfMultiplier = 0.5;
     }
     public static TestingParams testingParams = new TestingParams();
@@ -74,31 +74,6 @@ public class Turret extends Component {
         turretState = TurretState.CENTER;
         relativeBallExitVelocityMps = new Vec(0, 0);
         globalBallExitVelocityMps = new Vec(0, 0);
-    }
-
-    @Override
-    public void printInfo() {
-        double turretTicksPerDegree = turretParams.TICKS_PER_REV / 360.;
-        int turretEncoder = getTurretEncoder();
-        double angleDegError = motorError / turretTicksPerDegree;
-
-        telemetry.addLine("TURRET------");
-        telemetry.addData("actually power turret", testingParams.actuallyPowerTurret);
-        telemetry.addData("state", turretState);
-        telemetry.addData("turret power", turretMotor.getPower());
-        telemetry.addData("turret kF", kF);
-        telemetry.addData("turret PID integral", pidController.getIntegral());
-        telemetry.addData("turret PID derivative", pidController.getDerivative());
-        telemetry.addData("current encoder", turretEncoder);
-        telemetry.addData("target encoder", targetEncoder);
-        telemetry.addData("encoder error", motorError);
-        telemetry.addData("moving right", motorError > 0);
-        telemetry.addData("angle degree error", angleDegError);
-        telemetry.addData("turret angle deg", Math.toDegrees(turretAngleRad));
-        telemetry.addData("current absolute angle deg", Math.toDegrees(currentAngleRad));
-        telemetry.addData("target absolute angle deg", Math.toDegrees(targetAngleRad));
-        telemetry.addData("look ahead time", currentLookAheadTime);
-        telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
     }
 
     public int getTurretEncoder() {
@@ -142,18 +117,22 @@ public class Turret extends Component {
         double kI = movingRight ? powerTuning.rightKi : powerTuning.leftKi;
         double kD = movingRight ? powerTuning.rightKd : powerTuning.leftKd;
         pidController.setPIDValues(kP, kI, kD);
-        double x1 = powerTuning.moveRightKfEncoder1, y1 = powerTuning.moveRightKf1;
-        double x2 = powerTuning.moveRightKfEncoder2, y2 = powerTuning.moveRightKf2;
-        if (!movingRight) {
-            x1 = powerTuning.moveLeftKfEncoder1;
-            y1 = powerTuning.moveLeftKf1;
-            x2 = powerTuning.moveLeftKfEncoder2;
-            y2 = powerTuning.moveLeftKf2;
-        }
-        TwoPointLine equation = new TwoPointLine(x1, y1, x2, y2);
-        telemetry.addData("TURRET KF SLOPE", equation.slope);
-        telemetry.addData("TURRET KF Y INT", equation.yInt);
-        kF = equation.calculate(currentEncoder);
+        if (movingRight)
+            kF = powerTuning.moveRightKf1;
+        else
+            kF = powerTuning.moveLeftKf1;
+//        double x1 = powerTuning.moveRightKfEncoder1, y1 = powerTuning.moveRightKf1;
+//        double x2 = powerTuning.moveRightKfEncoder2, y2 = powerTuning.moveRightKf2;
+//        if (!movingRight) {
+//            x1 = powerTuning.moveLeftKfEncoder1;
+//            y1 = powerTuning.moveLeftKf1;
+//            x2 = powerTuning.moveLeftKfEncoder2;
+//            y2 = powerTuning.moveLeftKf2;
+//        }
+//        TwoPointLine equation = new TwoPointLine(x1, y1, x2, y2);
+//        telemetry.addData("TURRET KF SLOPE", equation.slope);
+//        telemetry.addData("TURRET KF Y INT", equation.yInt);
+//        kF = equation.calculate(currentEncoder);
         if (movingRight)
             kF = Math.min(kF, 0);
         else
@@ -185,7 +164,7 @@ public class Turret extends Component {
     }
 
     private Pose2d getDefaultTargetGoalPose() {
-        if (robot.alliance == Alliance.RED) {
+        if (BrainSTEMRobot.alliance == Alliance.RED) {
             if (robot.shooter.isNear)
                 return new Pose2d(turretParams.nearRedShotsGoalX, turretParams.nearRedShotsGoalY, 0);
             return new Pose2d(turretParams.farRedShotsGoalX, turretParams.farRedShotsGoalY, 0);
@@ -241,6 +220,31 @@ public class Turret extends Component {
 
         turretAngleRad = turretEncoder / turretTicksPerRadian;
         currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
+    }
 
+    @Override
+    public void printInfo() {
+        double turretTicksPerDegree = turretParams.TICKS_PER_REV / 360.;
+        int turretEncoder = getTurretEncoder();
+        double angleDegError = motorError / turretTicksPerDegree;
+
+        telemetry.addLine("TURRET------");
+        telemetry.addData("target pose", MathUtils.formatPose2(targetPose));
+        telemetry.addData("actually power turret", testingParams.actuallyPowerTurret);
+        telemetry.addData("state", turretState);
+        telemetry.addData("turret power", turretMotor.getPower());
+//        telemetry.addData("turret kF", kF);
+//        telemetry.addData("turret PID integral", pidController.getIntegral());
+//        telemetry.addData("turret PID derivative", pidController.getDerivative());
+        telemetry.addData("current encoder", turretEncoder);
+        telemetry.addData("target encoder", targetEncoder);
+        telemetry.addData("encoder error", motorError);
+        telemetry.addData("moving right", motorError > 0);
+        telemetry.addData("angle degree error", angleDegError);
+        telemetry.addData("turret current relative angle deg", Math.toDegrees(turretAngleRad));
+        telemetry.addData("turret current absolute angle deg", Math.toDegrees(currentAngleRad));
+        telemetry.addData("turret target absolute angle deg", Math.toDegrees(targetAngleRad));
+        telemetry.addData("look ahead time", currentLookAheadTime);
+        telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
     }
 }

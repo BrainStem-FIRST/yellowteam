@@ -25,7 +25,7 @@ public class Shooter extends Component {
         public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kF = 0.00048;
+        public double kF = 0.00045;
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 100;
         public double shotVelDropThreshold = 40;
         public double noiseVariance = 40;

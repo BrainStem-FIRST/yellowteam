@@ -108,6 +108,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
             robot.update(currentlyMoving);
 
+            telemetry.addData("Alliance", BrainSTEMRobot.alliance);
+
             if (printCollector)
                 robot.collection.printInfo();
             if (printLimelight)

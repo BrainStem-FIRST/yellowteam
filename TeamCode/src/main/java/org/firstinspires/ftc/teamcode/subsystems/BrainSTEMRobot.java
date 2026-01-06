@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
+import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 
 @Config
 public class BrainSTEMRobot {
-    // TODO: actually find these values
     public static double width = 13, length = 16; // inches
     public static boolean enablePinpoint = true, enableSubsystems = true;
     public static boolean enableTurret = true, enableShooter = true, enableCollection = true, enableLimelight = true, enablePark = true, enableLED = true;
@@ -33,14 +33,14 @@ public class BrainSTEMRobot {
     public MecanumDrive drive;
     public Limelight limelight;
     public LED led;
-    public final Alliance alliance;
+    public static Alliance alliance;
     private final ArrayList<Component> subsystems;
     private final Telemetry telemetry;
     public GamepadTracker g1;
 
     public BrainSTEMRobot(Alliance alliance, Telemetry telemetry, HardwareMap hardwareMap, Pose2d initialPose){
         this.telemetry = telemetry;
-        this.alliance = alliance;
+        BrainSTEMRobot.alliance = alliance;
         subsystems = new ArrayList<>();
 
         drive = new MecanumDrive(hardwareMap, initialPose);
