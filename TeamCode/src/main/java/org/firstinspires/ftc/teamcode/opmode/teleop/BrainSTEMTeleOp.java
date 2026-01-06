@@ -16,18 +16,13 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
-import org.firstinspires.ftc.teamcode.opmode.testing.PosePredictionErrorRecorder;
-import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
-import org.firstinspires.ftc.teamcode.utils.math.HeadingCorrect;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
-import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 
 import java.util.List;
 
@@ -210,14 +205,14 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             robot.collection.setFlickerState(Collection.FlickerState.FULL_UP_DOWN);
 
         if (gp2.isFirstDpadLeft())
-            robot.turret.adjustment += Turret.turretParams.fineAdjust;
+            robot.turret.changeEncoderAdjustment(Turret.turretParams.fineAdjust);
         if (gp2.isFirstDpadRight())
-            robot.turret.adjustment -= Turret.turretParams.fineAdjust;
+            robot.turret.changeEncoderAdjustment(-Turret.turretParams.fineAdjust);
 
         if (gp2.isFirstDpadUp())
-            robot.shooter.adjustment += 10;
+            robot.shooter.changeVelocityAdjustment(10);
         if (gp2.isFirstDpadDown())
-            robot.shooter.adjustment -= 10;
+            robot.shooter.changeVelocityAdjustment(-10);
 
         if (gp2.isFirstY()) {
             if (robot.parking.getParkState() == Parking.ParkState.EXTENDED)

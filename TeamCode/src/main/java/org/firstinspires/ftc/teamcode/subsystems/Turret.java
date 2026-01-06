@@ -12,19 +12,21 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
-import org.firstinspires.ftc.teamcode.utils.math.TwoPointLine;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
 public class Turret extends Component {
-    public static double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
     public static class TestingParams {
         public boolean actuallyPowerTurret = true;
     }
-    public static class Params {
-        public int fineAdjust = 5;
+    public static class GoalParams {
         public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 62, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
         public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -62, farBlueShotsGoalX = -67, farBlueShotsGoalY = -65.5;
+    }
+    public static class Params {
+        public double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
+
+        public int fineAdjust = 5;
         public double lookAheadTime = 0; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
         public double startLookAheadSmoothValue = 1;
@@ -47,6 +49,7 @@ public class Turret extends Component {
         public double smallKfThreshold = 8, smallKfMultiplier = 0.5;
     }
     public static TestingParams testingParams = new TestingParams();
+    public static GoalParams goalParams = new GoalParams();
     public static Params turretParams = new Params();
     public static PowerTuning powerTuning = new PowerTuning();
     public enum TurretState {
@@ -55,7 +58,7 @@ public class Turret extends Component {
     public DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
-    public int adjustment = 0;
+    private int encoderAdjustment = 0;
     public Pose2d targetPose;
     public Vec relativeBallExitVelocityMps, globalBallExitVelocityMps;
     public double targetAngleRad, currentAngleRad, turretAngleRad;
@@ -152,8 +155,8 @@ public class Turret extends Component {
     }
     public static Pose2d getTurretPose(Pose2d robotPose, int turretPosition) {
         double robotHeading = robotPose.heading.toDouble();
-        double xOffset = -Math.cos(robotHeading) * offsetFromCenter;
-        double yOffset = -Math.sin(robotHeading) * offsetFromCenter;
+        double xOffset = -Math.cos(robotHeading) * turretParams.offsetFromCenter;
+        double yOffset = -Math.sin(robotHeading) * turretParams.offsetFromCenter;
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad(turretPosition));
     }
 
@@ -166,13 +169,12 @@ public class Turret extends Component {
     private Pose2d getDefaultTargetGoalPose() {
         if (BrainSTEMRobot.alliance == Alliance.RED) {
             if (robot.shooter.isNear)
-                return new Pose2d(turretParams.nearRedShotsGoalX, turretParams.nearRedShotsGoalY, 0);
-            return new Pose2d(turretParams.farRedShotsGoalX, turretParams.farRedShotsGoalY, 0);
+                return new Pose2d(goalParams.nearRedShotsGoalX, goalParams.nearRedShotsGoalY, 0);
+            return new Pose2d(goalParams.farRedShotsGoalX, goalParams.farRedShotsGoalY, 0);
         }
         if (robot.shooter.isNear)
-            return new Pose2d(turretParams.nearBlueShotsGoalX, turretParams.nearBlueShotsGoalY, 0);
-        return new Pose2d(turretParams.farBlueShotsGoalX, turretParams.farBlueShotsGoalY, 0);
-
+            return new Pose2d(goalParams.nearBlueShotsGoalX, goalParams.nearBlueShotsGoalY, 0);
+        return new Pose2d(goalParams.farBlueShotsGoalX, goalParams.farBlueShotsGoalY, 0);
     }
 
     @Override
@@ -198,7 +200,7 @@ public class Turret extends Component {
                 targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
 
                 int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
-                targetTurretPosition += adjustment;
+                targetTurretPosition += encoderAdjustment;
 
                 setTurretPosition(targetTurretPosition, turretEncoder);
                 break;
@@ -246,5 +248,9 @@ public class Turret extends Component {
         telemetry.addData("turret target absolute angle deg", Math.toDegrees(targetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
         telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
+    }
+
+    public void changeEncoderAdjustment(int amount) {
+        encoderAdjustment += amount;
     }
 }

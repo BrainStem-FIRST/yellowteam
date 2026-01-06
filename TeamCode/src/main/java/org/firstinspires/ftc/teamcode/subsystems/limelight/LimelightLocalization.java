@@ -300,7 +300,7 @@ public class LimelightLocalization extends LLParent {
         double robotHeading = turretPose.heading.toDouble() - relTurretAngleRad;
         if(robotHeading > Math.PI)
             robotHeading -= Math.PI * 2;
-        robotTurretVec = new Vector2d(Turret.offsetFromCenter * Math.cos(robotHeading), Turret.offsetFromCenter * Math.sin(robotHeading));
+        robotTurretVec = new Vector2d(Turret.turretParams.offsetFromCenter * Math.cos(robotHeading), Turret.turretParams.offsetFromCenter * Math.sin(robotHeading));
         return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
     }
     private boolean canUpdateDrivetrainReliably() {

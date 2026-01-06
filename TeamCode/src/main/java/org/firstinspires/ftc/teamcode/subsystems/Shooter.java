@@ -29,6 +29,8 @@ public class Shooter extends Component {
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 100;
         public double shotVelDropThreshold = 40;
         public double noiseVariance = 40;
+        public boolean printShootInfo = true;
+        public int startingShooterSpeedAdjustment = 0;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065;
@@ -42,8 +44,6 @@ public class Shooter extends Component {
     public static ShooterParams shooterParams = new ShooterParams();
     public static HoodParams hoodParams = new HoodParams();
     public static TestingParams testingParams = new TestingParams();
-    public static boolean printShootInfo = true;
-    public static int startingShooterSpeedAdjustment = 0;
 
     public enum ShooterState {
         OFF, UPDATE, REVERSE_FULL
@@ -56,7 +56,7 @@ public class Shooter extends Component {
 
     public final PIDController shooterPID;
     private double ballExitAngleRad;
-    public double adjustment;
+    private double nearVelocityAdjustment, farVelocityAdjustment;
     public Vector2d ballExitPosition;
     private int ballsShot;
     private double targetMotorVel, avgMotorVel, prevVel, lastMax, lastMin;
@@ -94,7 +94,8 @@ public class Shooter extends Component {
         lastMax = 0;
         lastMin = Double.MAX_VALUE;
         ballsShot = 0;
-        adjustment = startingShooterSpeedAdjustment;
+        nearVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
+        farVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
 
         velDrops = new ArrayList<>();
         postShotVels = new ArrayList<>();
@@ -110,14 +111,17 @@ public class Shooter extends Component {
         shooterMotorLow.setPower(power);
     }
     public void setShooterVelocityPID(double targetVelocityTicksPerSec, double currentShooterVelocity) {
-        shooterPID.setTarget(targetVelocityTicksPerSec + adjustment);
+        if (isNear)
+            shooterPID.setTarget(targetVelocityTicksPerSec + nearVelocityAdjustment);
+        else
+            shooterPID.setTarget(targetVelocityTicksPerSec + farVelocityAdjustment);
 
         double pidOutput = -shooterPID.update(currentShooterVelocity);
         double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
         totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
-        if (printShootInfo) {
+        if (shooterParams.printShootInfo) {
             telemetry.addData("pid output", pidOutput);
             telemetry.addData("total power", totalPower);
         }
@@ -135,7 +139,7 @@ public class Shooter extends Component {
             ballExitAngleRad = shooterLookup.lookupExitAngleRad(dist);
         }
         setShooterVelocityPID(targetMotorVel, avgMotorVel);
-        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, printShootInfo ? telemetry : null);
+        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, shooterParams.printShootInfo ? telemetry : null);
         setHoodPosition(hoodServoPos);
     }
 
@@ -256,5 +260,11 @@ public class Shooter extends Component {
     }
     public int getBallsShot() {
         return ballsShot;
+    }
+
+    public void changeVelocityAdjustment(double amount) {
+        if (isNear)
+            nearVelocityAdjustment += amount;
+        farVelocityAdjustment += amount;
     }
 }
