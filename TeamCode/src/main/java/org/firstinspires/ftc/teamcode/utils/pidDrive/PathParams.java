@@ -20,7 +20,7 @@ public class PathParams {
         public double applyCloseSpeedPIDError = 5;
         public double closeHeadingKp = 0.01, closeHeadingKi = 0, closeHeadingKd = 0.001, headingKf = 0.1;
         public double farHeadingKp = 0.012, farHeadingKi = 0, farHeadingKd = 0;
-        public double applyCloseHeadingPIDErrorDeg = 10;
+        public double applyCloseHeadingPIDErrorDeg = 15;
         public double lateralWeight = 1.9, axialWeight = 1; // weight the drive powers to correct for differences in driving
         public double minSpeed = 0, maxSpeed = 1;
         public double minHeadingSpeed = 0, maxHeadingSpeed = 1;

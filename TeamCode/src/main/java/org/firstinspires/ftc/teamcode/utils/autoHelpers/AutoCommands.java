@@ -49,8 +49,8 @@ public class AutoCommands {
 //                if (robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS) > Collection.COLLECTOR_PARAMS.hasBallCurrentThreshold)
 //                    timer.reset();
 
-//                if (oldBallsShot != robot.shooter.getBallsShot())
-//                    timeSinceLastVelDrop.reset();
+                if (oldBallsShot != robot.shooter.getBallsShot())
+                    timeSinceLastVelDrop.reset();
 
                 oldBallsShot = robot.shooter.getBallsShot();
                 telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());

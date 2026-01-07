@@ -4,6 +4,8 @@ public class PIDController {
 
     private double target;
     private double kP, kI, kD;
+    private boolean permanentKDSign;
+    private int kDMult;
     private double proportional;
     private double integral;
     private double derivative;
@@ -34,6 +36,10 @@ public class PIDController {
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;
+    }
+    public void setPermanentKdSign(int kDMult) {
+        permanentKDSign = true;
+        this.kDMult = kDMult;
     }
     public void setKp(double kP) {
         this.kP = kP;
@@ -103,7 +109,8 @@ public class PIDController {
             integral += kI * error * dT;
 
             derivative = kD * (error - previousError) / dT;
-            derivative = -Math.abs(derivative);
+            if(permanentKDSign)
+                derivative = Math.abs(derivative) * kDMult;
         }
 
         previousTime = currentTime;

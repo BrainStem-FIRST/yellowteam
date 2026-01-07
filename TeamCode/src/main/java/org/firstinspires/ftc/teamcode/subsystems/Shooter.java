@@ -117,13 +117,13 @@ public class Shooter extends Component {
             shooterPID.setTarget(targetVelocityTicksPerSec + farVelocityAdjustment);
 
         double pidOutput = -shooterPID.update(currentShooterVelocity);
-        double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
+        double feedForward = Range.clip(shooterParams.kF * targetVelocityTicksPerSec, -1, 1);
         double totalPower = pidOutput + feedForward;
 
         totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
         if (shooterParams.printShootInfo) {
-            telemetry.addData("pid output", pidOutput);
-            telemetry.addData("total power", totalPower);
+            telemetry.addData("PID output", pidOutput);
+            telemetry.addData("TOTAL power", totalPower);
         }
 
         setShooterPower(totalPower);
@@ -152,7 +152,7 @@ public class Shooter extends Component {
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
 //        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
-        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel));
+//        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel));
 
         int turretEncoder = robot.turret.getTurretEncoder();
 

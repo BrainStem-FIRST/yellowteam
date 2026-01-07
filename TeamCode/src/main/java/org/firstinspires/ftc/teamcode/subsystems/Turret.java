@@ -21,7 +21,7 @@ public class Turret extends Component {
     }
     public static class GoalParams {
         public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 62, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
-        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -62, farBlueShotsGoalX = -67, farBlueShotsGoalY = -65.5;
+        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -64, farBlueShotsGoalX = -67, farBlueShotsGoalY = -64;
     }
     public static class Params {
         public double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
@@ -36,17 +36,17 @@ public class Turret extends Component {
         public int LEFT_BOUND = 300;
     }
     public static class PowerTuning {
-        public double rightKp = 0.0043, rightKi = 0, rightKd = 0.0005;
-        public double leftKp = 0.0043, leftKi = 0, leftKd = 0.001;
-        public double noPowerThreshold = 2;
+        public double rightKp = 0.0033, rightKi = 0, rightKd = 0.000; // old kD: 0.0005
+        public double leftKp = 0.0033, leftKi = 0, leftKd = 0.000; // old kD: 0.001
+        public double noPowerThreshold = 3;
         public double linearDistToResetKiThreshold = 1;
         public double headingDegToResetKiThreshold = 1;
 
-        public double moveRightKfEncoder1 = 0, moveRightKf1 = -0.1;
-        public double moveRightKfEncoder2 = 200, moveRightKf2 = 0;
-        public double moveLeftKfEncoder1 = 0, moveLeftKf1 = 0.04;
-        public double moveLeftKfEncoder2 = -200, moveLeftKf2 = 0;
-        public double smallKfThreshold = 8, smallKfMultiplier = 0.5;
+        public int kDSignMult = -1;
+
+        public double moveRightKf = -0.08;
+        public double moveLeftKf = 0.08;
+        public double inThresholdKfPower = 0.01;
     }
     public static TestingParams testingParams = new TestingParams();
     public static GoalParams goalParams = new GoalParams();
@@ -86,10 +86,10 @@ public class Turret extends Component {
     public void setTurretPosition(int ticks, int currentEncoder) {
         targetEncoder = Range.clip(ticks, turretParams.RIGHT_BOUND, turretParams.LEFT_BOUND);
         motorError = currentEncoder - targetEncoder;
-
+        boolean movingRight = motorError > 0;
         // within threshold - give 0 power
         if (Math.abs(motorError) <= powerTuning.noPowerThreshold) {
-            turretMotor.setPower(0);
+            turretMotor.setPower(-Math.signum(motorError) * powerTuning.inThresholdKfPower);
             return;
         }
 
@@ -101,8 +101,7 @@ public class Turret extends Component {
         if (positionChange > powerTuning.linearDistToResetKiThreshold || headingDegChange >= powerTuning.headingDegToResetKiThreshold)
             pidController.reset();
 
-        boolean movingRight = motorError > 0;
-        updatePIDFValues(movingRight, currentEncoder, motorError);
+        updatePIDFValues(movingRight, motorError);
 
         double newPower = -pidController.updateWithError(motorError);
         newPower += kF;
@@ -115,15 +114,16 @@ public class Turret extends Component {
         if (testingParams.actuallyPowerTurret)
             turretMotor.setPower(newPower);
     }
-    private void updatePIDFValues(boolean movingRight, int currentEncoder, double encoderError) {
+    private void updatePIDFValues(boolean movingRight, double encoderError) {
         double kP = movingRight ? powerTuning.rightKp : powerTuning.leftKp;
         double kI = movingRight ? powerTuning.rightKi : powerTuning.leftKi;
         double kD = movingRight ? powerTuning.rightKd : powerTuning.leftKd;
         pidController.setPIDValues(kP, kI, kD);
+        pidController.setPermanentKdSign(movingRight ? powerTuning.kDSignMult : -powerTuning.kDSignMult);
         if (movingRight)
-            kF = powerTuning.moveRightKf1;
+            kF = powerTuning.moveRightKf;
         else
-            kF = powerTuning.moveLeftKf1;
+            kF = powerTuning.moveLeftKf;
 //        double x1 = powerTuning.moveRightKfEncoder1, y1 = powerTuning.moveRightKf1;
 //        double x2 = powerTuning.moveRightKfEncoder2, y2 = powerTuning.moveRightKf2;
 //        if (!movingRight) {
@@ -140,9 +140,6 @@ public class Turret extends Component {
             kF = Math.min(kF, 0);
         else
             kF = Math.max(kF, 0);
-
-        if (Math.abs(encoderError) <= powerTuning.smallKfThreshold)
-            kF *= powerTuning.smallKfMultiplier;
     }
 
     public void resetEncoders() {
