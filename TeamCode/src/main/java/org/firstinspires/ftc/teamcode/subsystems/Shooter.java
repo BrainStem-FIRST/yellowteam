@@ -60,10 +60,8 @@ public class Shooter extends Component {
     private double nearVelocityAdjustment, farVelocityAdjustment;
     public Vector2d ballExitPosition;
     private int ballsShot;
-    private double targetMotorVel, avgMotorVel, prevVel, lastMax, lastMin, lastDecel;
-    private final ArrayList<Double> velDrops;
-    private final ArrayList<Double> postShotVels;
-    private final ArrayList<Double> postShotDecels;
+    private double targetMotorVel, avgMotorVel, prevVel, lastMax, lastMin, lastDecel, velDropTime;
+    private final ArrayList<Double> allVelDrops, allPostShotVels, allLastDecels, allVelDropTimes;
     private double mSOfLastMax;
     private boolean increasing, wasPrevIncreasing;
     private final ShooterLookup shooterLookup;
@@ -100,9 +98,10 @@ public class Shooter extends Component {
         nearVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
         farVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
 
-        velDrops = new ArrayList<>();
-        postShotVels = new ArrayList<>();
-        postShotDecels = new ArrayList<>();
+        allVelDrops = new ArrayList<>();
+        allPostShotVels = new ArrayList<>();
+        allLastDecels = new ArrayList<>();
+        allVelDropTimes = new ArrayList<>();
 
         shooterLookup = new ShooterLookup();
     }
@@ -197,14 +196,15 @@ public class Shooter extends Component {
         if(increasing && !wasPrevIncreasing) {  // means relative min detected
             lastMin = prevVel;
             double velDrop = lastMax - lastMin;
-
-            lastDecel = velDrop / (System.currentTimeMillis() - mSOfLastMax) * 1000;
+            velDropTime = (System.currentTimeMillis() - mSOfLastMax) / 1000;
+            lastDecel = velDrop / velDropTime;
             if(velDrop >= shooterParams.shotVelDropThreshold
             || shooterPID.getTarget() - lastMin >= shooterParams.noiseVariance) {
                 ballsShot++;
-                velDrops.add(velDrop);
-                postShotVels.add(lastMin);
-                postShotDecels.add(lastDecel);
+                allVelDrops.add(velDrop);
+                allPostShotVels.add(lastMin);
+                allLastDecels.add(lastDecel);
+                allVelDropTimes.add(velDropTime);
             }
         }
         if(wasPrevIncreasing && !increasing) { // means relative max detected
@@ -217,9 +217,9 @@ public class Shooter extends Component {
 
         if(robot.collection.getClutchState() != Collection.ClutchState.ENGAGED) {
             ballsShot = 0;
-            velDrops.clear();
-            postShotVels.clear();
-            postShotDecels.clear();
+            allVelDrops.clear();
+            allPostShotVels.clear();
+            allLastDecels.clear();
         }
     }
 
@@ -245,9 +245,12 @@ public class Shooter extends Component {
 //        telemetry.addData("  post shot vels", Arrays.toString(postShotVels.toArray()));
 //        telemetry.addData("  last max", lastMax);
 //        telemetry.addData("  last min", lastMin);
+        telemetry.addLine();
         telemetry.addData("increasing", increasing ? 50 : -50);
         telemetry.addData("lastDecel", lastDecel);
-        telemetry.addData("post shot decels", Arrays.toString(postShotDecels.toArray()));
+        telemetry.addData("ALL lastDecels", Arrays.toString(allLastDecels.toArray()));
+        telemetry.addData("vel drop time", velDropTime);
+        telemetry.addData("vel drop times", Arrays.toString(allVelDropTimes.toArray()));
         telemetry.addData("balls shot", ballsShot);
         telemetry.addData("dist from target", targetMotorVel - lastMin);
         telemetry.addData("noise variance", shooterParams.noiseVariance);
