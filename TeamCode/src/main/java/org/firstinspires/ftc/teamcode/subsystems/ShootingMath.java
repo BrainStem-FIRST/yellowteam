@@ -77,12 +77,12 @@ public class ShootingMath {
     }
 
     // finds exit speed of ball (meters per sec) if flywheel is spinning at ticksPerSec
-    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec) {
+    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double powerLossCoefficient) {
         double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
         double motorAngularVel = motorRevPerSec * 2 * Math.PI;
         double flywheelAngularVel = motorAngularVel * 28 / 38.5;
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
-        return flywheelTangentialVel * shooterSystemParams.powerLossCoefficient;
+        return flywheelTangentialVel * powerLossCoefficient;
     }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
@@ -210,17 +210,12 @@ public class ShootingMath {
 //    }
 
     // calculates the position to put the linear actuators to on the shooter hood
-    public static double calculateHoodServoPosition(double ballExitAngleRadians, Telemetry telemetry) {
+    public static double calculateHoodServoPosition(double ballExitAngleRadians) {
         double hoodAngleFromXAxisRadians = Math.PI * 0.5 - ballExitAngleRadians;
         double hoodExitAngleDeg = Range.clip(Math.toDegrees(hoodAngleFromXAxisRadians), hoodSystemParams.minAngleDeg, hoodSystemParams.maxAngleDeg);
         double hoodPivotAngleDeg = hoodExitAngleDeg + hoodSystemParams.hoodPivotAngleOffsetFromHoodExitAngleDeg;
         double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
         double linearDistanceToExtendMm = totalLinearDistanceMm - hoodSystemParams.restingDistanceMm;
-        if (telemetry != null) {
-//            telemetry.addLine("HOOD SERVO POS CALCULATION");
-//            telemetry.addData("hood Angle from x deg", Math.toDegrees(hoodAngleFromXAxisRadians));
-            telemetry.addData("total linear distance mm", totalLinearDistanceMm);
-        }
         return linearDistanceToExtendMm / hoodSystemParams.servoRangeMm;
     }
 }

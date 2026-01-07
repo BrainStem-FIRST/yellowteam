@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.utils.shootingRecording.ManualShooterSpeedRecorder;
 
-@TeleOp(name="Shooter Velocity Test", group="Data Recording")
+@TeleOp(name="Shooter Velocity Test", group="Testing")
 @Config
 public class ShooterVelocityTest extends OpMode {
     public static double startingVelocityTicksPerSec = 1250;
