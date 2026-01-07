@@ -28,10 +28,10 @@ public class AutoParamsPid {
         public Tolerance gateCollectWaypointTol = new Tolerance(gateCollectWaypointDistTol, gateCollectWaypointHeadingTol);
         public double gateCollectWaypointXRed = -3, gateCollectWaypointYRed = 39;
         public double gateCollectWaypointXBlue = 0, gateCollectWaypointYBlue = -34;
-        public double gateCollectOpenXRed = 11, gateCollectOpenYRed = 62, gateCollectOpenARed = Math.toRadians(114.5);
-        public double gateCollectOpenXBlue = 11, gateCollectOpenYBlue = -62.5, gateCollectOpenABlue = Math.toRadians(-116);
-        public double gateCollectXRed = 12, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
-        public double gateCollectXBlue = 12, gateCollectYBlue = -62, gateCollectABlue = Math.toRadians(-135);
+        public double gateCollectOpenXRed = 9.5, gateCollectOpenYRed = 62.2, gateCollectOpenARed = Math.toRadians(116);
+        public double gateCollectOpenXBlue = 9.5, gateCollectOpenYBlue = -62.2, gateCollectOpenABlue = Math.toRadians(-116);
+        public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
+        public double gateCollectXBlue = 13, gateCollectYBlue = -62, gateCollectABlue = Math.toRadians(-135);
         public double gateCollectBackupXRed = 8, gateCollectBackupYRed = -60;
         public double gateCollectBackupXBlue = 8, gateCollectBackupYBlue = 60;
 
