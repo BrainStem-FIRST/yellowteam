@@ -58,7 +58,7 @@ public class Turret extends Component {
     public DcMotorEx turretMotor;
     private final PIDController pidController;
     public TurretState turretState;
-    private int encoderAdjustment = 0;
+    private int nearEncoderAdjustment, farEncoderAdjustment;
     public Pose2d targetPose;
     public Vec relativeBallExitVelocityMps, globalBallExitVelocityMps;
     public double targetAngleRad, currentAngleRad, turretAngleRad;
@@ -197,7 +197,7 @@ public class Turret extends Component {
                 targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
 
                 int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
-                targetTurretPosition += encoderAdjustment;
+                targetTurretPosition += robot.shooter.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
 
                 setTurretPosition(targetTurretPosition, turretEncoder);
                 break;
@@ -248,6 +248,9 @@ public class Turret extends Component {
     }
 
     public void changeEncoderAdjustment(int amount) {
-        encoderAdjustment += amount;
+        if(robot.shooter.isNear)
+            nearEncoderAdjustment += amount;
+        else
+            farEncoderAdjustment += amount;
     }
 }
