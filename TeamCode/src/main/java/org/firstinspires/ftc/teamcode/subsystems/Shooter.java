@@ -139,7 +139,7 @@ public class Shooter extends Component {
             ballExitAngleRad = shooterLookup.lookupExitAngleRad(dist);
         }
         setShooterVelocityPID(targetMotorVel, avgMotorVel);
-        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, shooterParams.printShootInfo ? telemetry : null);
+        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad);
         setHoodPosition(hoodServoPos);
     }
 
@@ -152,7 +152,7 @@ public class Shooter extends Component {
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
 //        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
-        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel));
+        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient));
 
         int turretEncoder = robot.turret.getTurretEncoder();
 

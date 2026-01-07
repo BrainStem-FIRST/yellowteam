@@ -195,7 +195,7 @@ public class RawSubsystemTest extends LinearOpMode {
                 }
             }
             if (miscParams.setHoodByAngle)
-                miscParams.hoodPos = ShootingMath.calculateHoodServoPosition(Math.toRadians(miscParams.ballExitAngleDeg), telemetry);
+                miscParams.hoodPos = ShootingMath.calculateHoodServoPosition(Math.toRadians(miscParams.ballExitAngleDeg));
             if (miscParams.activateLeftServo)
                 hoodLeft.setPosition(miscParams.hoodPos);
             if (miscParams.activateRightServo)
@@ -259,7 +259,7 @@ public class RawSubsystemTest extends LinearOpMode {
 
             telemetry.addLine();
             telemetry.addData("ball exit height meters at target hood angle", ShootingMath.calculateExitHeightMeters(true));
-            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity())));
+            telemetry.addData("ball exit vel (m/s)", ShootingMath.ticksPerSecToExitSpeedMps(Math.abs(shooterHigh.getVelocity()), ShootingMath.shooterSystemParams.powerLossCoefficient));
             telemetry.addData("1 vel (ticks/s)", shooterLow.getVelocity());
             telemetry.addData("2 vel (ticks/s)", shooterHigh.getVelocity());
             telemetry.addData("target", sParams.targetVelTicksPerSec);
