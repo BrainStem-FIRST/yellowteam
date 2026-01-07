@@ -139,7 +139,7 @@ public class Shooter extends Component {
             ballExitAngleRad = shooterLookup.lookupExitAngleRad(dist);
         }
         setShooterVelocityPID(targetMotorVel, avgMotorVel);
-        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad, shooterParams.printShootInfo ? telemetry : null);
+        double hoodServoPos = ShootingMath.calculateHoodServoPosition(ballExitAngleRad);
         setHoodPosition(hoodServoPos);
     }
 
