@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 @Config
 public class Shooter extends Component {
@@ -28,7 +29,7 @@ public class Shooter extends Component {
         public double kF = 0.00045;
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 100;
         public double shotVelDropThreshold = 40;
-        public double noiseVariance = 40;
+        public double noiseVariance = 30;
         public boolean printShootInfo = true;
         public int startingShooterSpeedAdjustment = 0;
     }
@@ -59,9 +60,9 @@ public class Shooter extends Component {
     private double nearVelocityAdjustment, farVelocityAdjustment;
     public Vector2d ballExitPosition;
     private int ballsShot;
-    private double targetMotorVel, avgMotorVel, prevVel, lastMax, lastMin;
-    private final ArrayList<Double> velDrops;
-    private final ArrayList<Double> postShotVels;
+    private double targetMotorVel, avgMotorVel, prevVel, lastMax, lastMin, lastDecel, velDropTime;
+    private final ArrayList<Double> allVelDrops, allPostShotVels, allLastDecels, allVelDropTimes;
+    private double mSOfLastMax;
     private boolean increasing, wasPrevIncreasing;
     private final ShooterLookup shooterLookup;
     private double ballExitPosInchesFromGoal;
@@ -97,8 +98,10 @@ public class Shooter extends Component {
         nearVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
         farVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
 
-        velDrops = new ArrayList<>();
-        postShotVels = new ArrayList<>();
+        allVelDrops = new ArrayList<>();
+        allPostShotVels = new ArrayList<>();
+        allLastDecels = new ArrayList<>();
+        allVelDropTimes = new ArrayList<>();
 
         shooterLookup = new ShooterLookup();
     }
@@ -117,13 +120,13 @@ public class Shooter extends Component {
             shooterPID.setTarget(targetVelocityTicksPerSec + farVelocityAdjustment);
 
         double pidOutput = -shooterPID.update(currentShooterVelocity);
-        double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
+        double feedForward = Range.clip(shooterParams.kF * targetVelocityTicksPerSec, -1, 1);
         double totalPower = pidOutput + feedForward;
 
         totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
         if (shooterParams.printShootInfo) {
-            telemetry.addData("pid output", pidOutput);
-            telemetry.addData("total power", totalPower);
+            telemetry.addData("PID output", pidOutput);
+            telemetry.addData("TOTAL power", totalPower);
         }
 
         setShooterPower(totalPower);
@@ -152,7 +155,11 @@ public class Shooter extends Component {
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
 //        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
-        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient));
+<<<<<<< HEAD
+        telemetry.addData("shooter tangential vel m/s", MathUtils.format3(ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient)));
+=======
+//        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel));
+>>>>>>> 1068a25335051320387325c4eab19e9117a17227
 
         int turretEncoder = robot.turret.getTurretEncoder();
 
@@ -193,23 +200,30 @@ public class Shooter extends Component {
         if(increasing && !wasPrevIncreasing) {  // means relative min detected
             lastMin = prevVel;
             double velDrop = lastMax - lastMin;
+            velDropTime = (System.currentTimeMillis() - mSOfLastMax) / 1000;
+            lastDecel = velDrop / velDropTime;
             if(velDrop >= shooterParams.shotVelDropThreshold
             || shooterPID.getTarget() - lastMin >= shooterParams.noiseVariance) {
                 ballsShot++;
-                velDrops.add(velDrop);
-                postShotVels.add(lastMin);
+                allVelDrops.add(velDrop);
+                allPostShotVels.add(lastMin);
+                allLastDecels.add(lastDecel);
+                allVelDropTimes.add(velDropTime);
             }
         }
-        if(wasPrevIncreasing && !increasing) // means relative max detected
+        if(wasPrevIncreasing && !increasing) { // means relative max detected
             lastMax = prevVel;
+            mSOfLastMax = System.currentTimeMillis();
+        }
 
         prevVel = avgMotorVel;
         wasPrevIncreasing = increasing;
 
         if(robot.collection.getClutchState() != Collection.ClutchState.ENGAGED) {
             ballsShot = 0;
-            velDrops.clear();
-            postShotVels.clear();
+            allVelDrops.clear();
+            allPostShotVels.clear();
+            allLastDecels.clear();
         }
     }
 
@@ -228,7 +242,6 @@ public class Shooter extends Component {
         telemetry.addData("  ball exit pos dist from goal", MathUtils.format3(ballExitPosInchesFromGoal));
         telemetry.addData("  lookup motor vel", targetMotorVel);
         telemetry.addData("  avg motor vel", avgMotorVel);
-        telemetry.addData(" scaled motor vel", avgMotorVel / 1500 * 40);
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  shooter high power", shooterMotorHigh.getPower());
         telemetry.addData("shooter velocity error", targetMotorVel - avgMotorVel);
@@ -236,12 +249,17 @@ public class Shooter extends Component {
 //        telemetry.addData("  post shot vels", Arrays.toString(postShotVels.toArray()));
 //        telemetry.addData("  last max", lastMax);
 //        telemetry.addData("  last min", lastMin);
+        telemetry.addLine();
         telemetry.addData("increasing", increasing ? 50 : -50);
-        telemetry.addData("  balls shot", ballsShot);
+        telemetry.addData("lastDecel", lastDecel);
+        telemetry.addData("ALL lastDecels", Arrays.toString(allLastDecels.toArray()));
+        telemetry.addData("vel drop time", velDropTime);
+        telemetry.addData("vel drop times", Arrays.toString(allVelDropTimes.toArray()));
+        telemetry.addData("balls shot", ballsShot);
         telemetry.addData("dist from target", targetMotorVel - lastMin);
         telemetry.addData("noise variance", shooterParams.noiseVariance);
         telemetry.addData("shot vel threshold", shooterParams.shotVelDropThreshold);
-        telemetry.addData("  last extrema dif", MathUtils.format3(lastMax - lastMin));
+        telemetry.addData("last extrema dif", MathUtils.format3(lastMax - lastMin));
 //        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());
 
         telemetry.addLine();

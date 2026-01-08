@@ -19,7 +19,6 @@ import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
-import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +57,8 @@ public class LimelightLocalization extends LLParent {
     private LLResult aprilTagResult;
     private Pose2d lastAvgTurretPose;
     private final ArrayList<Pose3D> lastTurretPoses;
-    public double maxTranslationalError, maxHeadingErrorDeg;
+    public double maxTranslationalVariance, maxHeadingVarianceDeg; // how much the limelight jitters
+    public double maxTranslationalError, maxHeadingErrorDeg; // how much the limelight differs from pinpoint
     private boolean drivetrainGoodForUpdate, turretGoodForUpdate, inLocalizationZone;
     public boolean successfullyFoundPose;
     private LocalizationState state, prevState;
@@ -85,8 +85,10 @@ public class LimelightLocalization extends LLParent {
         drivetrainGoodForUpdate = false;
         turretGoodForUpdate = false;
         manualPoseUpdate = false;
-        maxTranslationalError = 0;
+        maxTranslationalVariance = 0;
+        maxHeadingVarianceDeg = 0;
         maxHeadingErrorDeg = 0;
+        maxTranslationalError = 0;
         numSetPoses = 0;
         visibleTagInfo = new ArrayList<>();
         ableToUpdateTimer = new ElapsedTime();
@@ -182,10 +184,18 @@ public class LimelightLocalization extends LLParent {
             telemetry.addData("   localization state", state);
             telemetry.addData("   isValid", aprilTagResult.isValid());
             telemetry.addData("   bot pose is null", aprilTagResult.getBotpose() == null);
+            telemetry.addData("   turret pose", MathUtils.formatPose2(turretPose));
+            telemetry.addData("   robot pose", MathUtils.formatPose2(robotPose));
+            telemetry.addLine();
+            telemetry.addData("   max translational variance", MathUtils.format3(maxTranslationalVariance));
+            telemetry.addData("   max heading variance", MathUtils.format3(maxHeadingVarianceDeg));
+            telemetry.addData("   max translational error", MathUtils.format3(maxTranslationalError));
+            telemetry.addData("   max heading error", MathUtils.format3(maxHeadingErrorDeg));
+            telemetry.addLine();
             telemetry.addData("   drivetrain good for update", drivetrainGoodForUpdate);
             telemetry.addData("   turret good for update", turretGoodForUpdate);
             telemetry.addData("   in localization zone", inLocalizationZone);
-            telemetry.addData("   time since last update", (System.currentTimeMillis() - lastUpdatePoseTimeMs) * 0.001);
+            telemetry.addData("   time since last update", MathUtils.format3((System.currentTimeMillis() - lastUpdatePoseTimeMs) * 0.001));
             telemetry.addData("   successfully found pose", successfullyFoundPose);
             telemetry.addLine();
             telemetry.addData("   num visible tags", visibleTagInfo.size());
@@ -193,19 +203,12 @@ public class LimelightLocalization extends LLParent {
             for (LLResultTypes.FiducialResult result : visibleTagInfo)
                 tagIDs.append(result.getFiducialId()).append(" ");
             telemetry.addData("   tag IDs", tagIDs);
-            telemetry.addData("   max translational error", maxTranslationalError);
-            telemetry.addData("   max heading error", maxHeadingErrorDeg);
-
-            telemetry.addData("turret pose", MathUtils.formatPose2(turretPose));
-            telemetry.addData("robot pose", MathUtils.formatPose2(robotPose));
 
             for (int i = 0; i<Math.min(params.numPrevPosesToPrint, lastTurretPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
                         MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
                                 MathUtils.format2(lastTurretPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
-
-            telemetry.addData("turret vel", robot.turret.turretMotor.getVelocity());
         }
         else
             telemetry.addLine("   result is null");
@@ -279,8 +282,14 @@ public class LimelightLocalization extends LLParent {
     private void updateMaxErrors(Pose2d lastAvgTurretPose, Pose2d curAvgTurretPose) {
         if (lastAvgTurretPose == null || curAvgTurretPose == null)
             return;
-        double translationalError = Math.hypot(curAvgTurretPose.position.x - lastAvgTurretPose.position.x, curAvgTurretPose.position.y - lastAvgTurretPose.position.y);
-        double headingErrorDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - lastAvgTurretPose.heading.toDouble()));
+        double translationalVariance = Math.hypot(curAvgTurretPose.position.x - lastAvgTurretPose.position.x, curAvgTurretPose.position.y - lastAvgTurretPose.position.y);
+        double headingVarianceDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - lastAvgTurretPose.heading.toDouble()));
+        maxTranslationalVariance = Math.max(maxTranslationalVariance, translationalVariance);
+        maxHeadingVarianceDeg = Math.max(maxHeadingVarianceDeg, headingVarianceDeg);
+
+        Pose2d odoPose = robot.drive.localizer.getPose();
+        double translationalError = Math.hypot(curAvgTurretPose.position.x - odoPose.position.x, curAvgTurretPose.position.y - odoPose.position.y);
+        double headingErrorDeg = Math.abs(Math.toDegrees(curAvgTurretPose.heading.toDouble() - odoPose.heading.toDouble()));
         maxTranslationalError = Math.max(maxTranslationalError, translationalError);
         maxHeadingErrorDeg = Math.max(maxHeadingErrorDeg, headingErrorDeg);
     }

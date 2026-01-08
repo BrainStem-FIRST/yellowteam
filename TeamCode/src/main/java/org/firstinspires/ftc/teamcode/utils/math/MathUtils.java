@@ -48,6 +48,11 @@ public class MathUtils {
             return "null";
         return format2(pose.position.x) + ", " + format2(pose.position.y) + " " + format2(Math.toDegrees(pose.heading.toDouble()));
     }
+    public static String formatPose3(Pose2d pose) {
+        if (pose == null)
+            return "null";
+        return format3(pose.position.x) + ", " + format3(pose.position.y) + " " + format3(Math.toDegrees(pose.heading.toDouble()));
+    }
     public static Pose2d createPose(double[] pose) {
         if (pose.length < 3)
             throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");

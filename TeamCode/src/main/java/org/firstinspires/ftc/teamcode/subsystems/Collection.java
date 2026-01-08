@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public class Collection extends Component {
-    public static double shootOuttakeTime = 0.08;
+    public static double shootOuttakeTime = 0.12;
 
     public enum CollectionState {
         OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
@@ -63,7 +63,7 @@ public class Collection extends Component {
         public double flickerDownPos = 0.05;
         public double hasBallCurrentThreshold = 3500;
         public double hasBallValidationTime = 1;
-        public double maxTimeBetweenShots = 1.5;
+        public double maxTimeBetweenShots = 1;
     }
 
     public static Params COLLECTOR_PARAMS = new Collection.Params();
