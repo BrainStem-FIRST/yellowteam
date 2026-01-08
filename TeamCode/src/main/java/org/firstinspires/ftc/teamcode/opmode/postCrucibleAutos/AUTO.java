@@ -232,7 +232,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.flickerHalfUp(),
                 new SequentialAction(
                         new SleepAction(timeConstraints.minShootTime),
-                        autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.maxTimeBetweenShots, Collection.COLLECTOR_PARAMS.hasBallValidationTime)
+                        autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, Collection.params.hasBallValidationTime)
                 ),
                 decideFlicker(),
                 autoCommands.disengageClutch()
@@ -268,7 +268,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.engageClutch(),
                 autoCommands.flickerHalfUp(),
                 new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(Collection.COLLECTOR_PARAMS.maxTimeBetweenShots, Collection.COLLECTOR_PARAMS.hasBallValidationTime),
+                autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, Collection.params.hasBallValidationTime),
                 decideFlicker(),
                 autoCommands.disengageClutch()
         );

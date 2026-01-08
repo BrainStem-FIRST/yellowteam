@@ -104,9 +104,9 @@ public class RawSubsystemTest extends LinearOpMode {
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
         ServoImplEx flickerLeft = hardwareMap.get(ServoImplEx.class, "flickerLeft");
-        flickerLeft.setPwmRange(new PwmControl.PwmRange(Collection.COLLECTOR_PARAMS.flickerLeftMinPwm, Collection.COLLECTOR_PARAMS.flickerLeftMaxPwm));
+        flickerLeft.setPwmRange(new PwmControl.PwmRange(Collection.params.flickerLeftMinPwm, Collection.params.flickerLeftMaxPwm));
         ServoImplEx flickerRight = hardwareMap.get(ServoImplEx.class, "flickerRight");
-        flickerRight.setPwmRange(new PwmControl.PwmRange(Collection.COLLECTOR_PARAMS.flickerRightMinPwm, Collection.COLLECTOR_PARAMS.flickerRightMaxPwm));
+        flickerRight.setPwmRange(new PwmControl.PwmRange(Collection.params.flickerRightMinPwm, Collection.params.flickerRightMaxPwm));
 
         GamepadTracker g1 = new GamepadTracker(gamepad1);
 
@@ -186,11 +186,11 @@ public class RawSubsystemTest extends LinearOpMode {
 
             else if(g1.isFirstB()) {
                 if (clutchLeft.getPosition() > 0.5) {
-                    clutchLeft.setPosition(Collection.COLLECTOR_PARAMS.ENGAGED_POS);
-                    clutchRight.setPosition(Collection.COLLECTOR_PARAMS.ENGAGED_POS);
+                    clutchLeft.setPosition(Collection.params.ENGAGED_POS);
+                    clutchRight.setPosition(Collection.params.ENGAGED_POS);
                 } else {
-                    clutchLeft.setPosition(Collection.COLLECTOR_PARAMS.DISENGAGED_POS);
-                    clutchRight.setPosition(Collection.COLLECTOR_PARAMS.DISENGAGED_POS);
+                    clutchLeft.setPosition(Collection.params.DISENGAGED_POS);
+                    clutchRight.setPosition(Collection.params.DISENGAGED_POS);
 
                 }
             }

@@ -61,12 +61,13 @@ public class Collection extends Component {
         public double flickerFullUpPos = 0.8;
         public double flickerHalfUpPos = 0.4;
         public double flickerDownPos = 0.05;
-        public double hasBallCurrentThreshold = 3500;
         public double hasBallValidationTime = 1;
         public double maxTimeBetweenShots = 1;
+        public int offDistanceSensorUpdatePeriod = 3; // when collector is off, waits this number of frames before updating distances sensors
     }
 
-    public static Params COLLECTOR_PARAMS = new Collection.Params();
+    public static Params params = new Collection.Params();
+    private int framesRunning;
 
     public Collection(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
@@ -81,9 +82,9 @@ public class Collection extends Component {
         clutchLeft.setPwmRange(new PwmControl.PwmRange(1450, 2000));
 
         flickerRight = hardwareMap.get(ServoImplEx.class, "flickerRight");
-        flickerRight.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.flickerRightMinPwm, COLLECTOR_PARAMS.flickerRightMaxPwm));
+        flickerRight.setPwmRange(new PwmControl.PwmRange(params.flickerRightMinPwm, params.flickerRightMaxPwm));
         flickerLeft = hardwareMap.get(ServoImplEx.class, "flickerLeft");
-        flickerLeft.setPwmRange(new PwmControl.PwmRange(COLLECTOR_PARAMS.flickerLeftMinPwm, COLLECTOR_PARAMS.flickerLeftMaxPwm));
+        flickerLeft.setPwmRange(new PwmControl.PwmRange(params.flickerLeftMinPwm, params.flickerLeftMaxPwm));
 
         frontRightLaser = hardwareMap.get(AnalogInput.class, "FRLaser");
         frontLeftLaser = hardwareMap.get(AnalogInput.class, "FLLaser");
@@ -108,10 +109,10 @@ public class Collection extends Component {
                 collectorMotor.setPower(0);
                 break;
             case INTAKE_SLOW:
-                collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SLOW_SPEED);
+                collectorMotor.setPower(params.INTAKE_SLOW_SPEED);
                 break;
             case OUTTAKE:
-                collectorMotor.setPower(COLLECTOR_PARAMS.OUTTAKE_SPEED);
+                collectorMotor.setPower(params.OUTTAKE_SPEED);
                 break;
             case TRANSFER:
                 collectorMotor.setPower(0.1);
@@ -123,12 +124,12 @@ public class Collection extends Component {
         this.clutchState = clutchState;
         switch (clutchState) {
             case ENGAGED:
-                clutchRight.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
-                clutchLeft.setPosition(COLLECTOR_PARAMS.ENGAGED_POS);
+                clutchRight.setPosition(params.ENGAGED_POS);
+                clutchLeft.setPosition(params.ENGAGED_POS);
                 break;
             case UNENGAGED:
-                clutchRight.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
-                clutchLeft.setPosition(COLLECTOR_PARAMS.DISENGAGED_POS);
+                clutchRight.setPosition(params.DISENGAGED_POS);
+                clutchLeft.setPosition(params.DISENGAGED_POS);
                 break;
         }
     }
@@ -137,12 +138,12 @@ public class Collection extends Component {
         this.flickerState = flickerState;
         switch (flickerState) {
             case FULL_UP:
-                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                flickerLeft.setPosition(params.flickerFullUpPos);
+                flickerRight.setPosition(params.flickerFullUpPos);
                 break;
             case DOWN:
-                flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                flickerLeft.setPosition(params.flickerDownPos);
+                flickerRight.setPosition(params.flickerDownPos);
                 break;
         }
     }
@@ -160,29 +161,27 @@ public class Collection extends Component {
 
     @Override
     public void update() {
-        if (getCollectionState() != CollectionState.OFF) {
+        if (getCollectionState() != CollectionState.OFF || framesRunning % params.offDistanceSensorUpdatePeriod == 0) {
             backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
             backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
             frontLeftLaserDist = voltageToDistance(frontLeftLaser.getVoltage());
             frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
         }
+        framesRunning++;
 
         switch (getCollectionState()) {
             case OFF:
-                break;
             case INTAKE_SLOW:
+            case OUTTAKE:
+            case TRANSFER:
                 break;
             case INTAKE:
                 double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
                 double errorThreshold = robot.shooter.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
                 if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
-                    collectorMotor.setPower(COLLECTOR_PARAMS.INTAKE_SPEED);
+                    collectorMotor.setPower(params.INTAKE_SPEED);
                 else
-                    collectorMotor.setPower(COLLECTOR_PARAMS.SHOOTER_ERROR_INTAKE_SPEED);
-                break;
-            case OUTTAKE:
-                break;
-            case TRANSFER:
+                    collectorMotor.setPower(params.SHOOTER_ERROR_INTAKE_SPEED);
                 break;
         }
 
@@ -202,19 +201,18 @@ public class Collection extends Component {
 
         switch (getFlickerState()) {
             case FULL_UP:
-                break;
             case DOWN:
                 break;
             case HALF_UP_DOWN:
                 if(!flickerStarted) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerHalfUpPos);
+                    flickerLeft.setPosition(params.flickerHalfUpPos);
+                    flickerRight.setPosition(params.flickerHalfUpPos);
                     flickerTimer.reset();
                     flickerStarted = true;
                 }
                 else if(flickerTimer.seconds() > 0.3) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerLeft.setPosition(params.flickerDownPos);
+                    flickerRight.setPosition(params.flickerDownPos);
                     flickerStarted = false;
                     setFlickerState(FlickerState.DOWN);
                 }
@@ -222,13 +220,13 @@ public class Collection extends Component {
             case FULL_UP_DOWN:
                 setCollectionState(CollectionState.OFF);
                 if (!flickerStarted) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerFullUpPos);
+                    flickerLeft.setPosition(params.flickerFullUpPos);
+                    flickerRight.setPosition(params.flickerFullUpPos);
                     flickerTimer.reset();
                     flickerStarted = true;
                 } else if (flickerTimer.seconds() > 0.4) {
-                    flickerLeft.setPosition(COLLECTOR_PARAMS.flickerDownPos);
-                    flickerRight.setPosition(COLLECTOR_PARAMS.flickerDownPos);
+                    flickerLeft.setPosition(params.flickerDownPos);
+                    flickerRight.setPosition(params.flickerDownPos);
                     flickerStarted = false;
                     setCollectionState(CollectionState.INTAKE);
                     setFlickerState(FlickerState.DOWN);
@@ -247,12 +245,12 @@ public class Collection extends Component {
     }
 
     public boolean isBackBallDetected() {
-        return backLeftLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD || backRightLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
+        return backLeftLaserDist < params.LASER_BALL_THRESHOLD || backRightLaserDist < params.LASER_BALL_THRESHOLD;
     }
 
     private boolean isFrontBallDetected() {
-        return frontRightLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD ||
-                frontLeftLaserDist < COLLECTOR_PARAMS.LASER_BALL_THRESHOLD;
+        return frontRightLaserDist < params.LASER_BALL_THRESHOLD ||
+                frontLeftLaserDist < params.LASER_BALL_THRESHOLD;
     }
 
     public boolean intakeHas3Balls() {
@@ -264,7 +262,7 @@ public class Collection extends Component {
             if (!timerRunning) {
                 timerStart = currentTime;
                 timerRunning = true;
-            } else if (currentTime - timerStart > COLLECTOR_PARAMS.DELAY_PERIOD)
+            } else if (currentTime - timerStart > params.DELAY_PERIOD)
                 has3Balls = true;
         } else {
             timerRunning = false;

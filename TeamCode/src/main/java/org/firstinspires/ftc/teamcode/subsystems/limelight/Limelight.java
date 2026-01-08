@@ -47,8 +47,9 @@ public class Limelight extends Component {
         telemetry.addData("pipeline type", pipeline);
         telemetry.addData("limelight is running", limelight.isRunning());
         telemetry.addData("limelight is connected", limelight.isConnected());
-
+        telemetry.addData("connection info", limelight.getConnectionInfo());
         telemetry.addLine();
+
         switch (pipeline) {
             case 0:
                 localization.updateTelemetry(telemetry);

@@ -13,11 +13,13 @@ public class LimelightBallDetection extends LLParent {
         public double kp = 0.05;
         public double minStrafePower = 0.2;
         public double txErrorThreshold = 5;
+        public int maxConsecutiveFails = 3;
     }
 
     public static Params params = new Params();
     private double[] pythonOutputs;
     private boolean successful;
+    private int numTimesFailed;
     private double strafePower;
     private double tx;
     private int pipelineIndex;
@@ -27,6 +29,7 @@ public class LimelightBallDetection extends LLParent {
         successful = false;
         strafePower = 0;
         tx = 0;
+        numTimesFailed = 0;
     }
 
     @Override
@@ -40,12 +43,18 @@ public class LimelightBallDetection extends LLParent {
         successful = pythonOutputs[0] > 0;
 
         if (successful) {
+            numTimesFailed = 0;
             tx = pythonOutputs[1];
             strafePower = -tx * params.kp;
             strafePower = Math.signum(strafePower) * Math.max(Math.abs(strafePower), params.minStrafePower);
         }
         else {
-            strafePower = 0;
+            numTimesFailed++;
+
+            if (numTimesFailed > params.maxConsecutiveFails) {
+                tx = 0;
+                strafePower = 0;
+            }
         }
     }
 

@@ -76,26 +76,19 @@ public class LoadingZoneBallCollection extends OpMode {
         telemetry.addData("time running", getRuntime());
         robot.limelight.printInfo();
         telemetry.update();
-
     }
 
     private Action strafeToBall() {
-        return new Action() {
-            private int numTimesUnsuccessful = 0;
-            @Override
-            public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-                if (!robot.limelight.ballDetection.isSuccessful())
-                    numTimesUnsuccessful++;
-                if (numTimesUnsuccessful > 4 || robot.drive.localizer.getPose().position.x >= 71.5 - BrainSTEMRobot.width * 0.5) {
-                    robot.drive.stop();
-                    return false;
-                }
-
-                double strafePower = robot.limelight.ballDetection.getStrafePower();
-                robot.drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, -strafePower), 0));
-
-                return robot.limelight.ballDetection.getTargetX() > LimelightBallDetection.params.txErrorThreshold;
+        return telemetryPacket -> {
+            if (robot.drive.localizer.getPose().position.x >= 71.5 - BrainSTEMRobot.width * 0.5) {
+                robot.drive.stop();
+                return false;
             }
+
+            double strafePower = robot.limelight.ballDetection.getStrafePower();
+            robot.drive.setDrivePowers(new PoseVelocity2d(new Vector2d(0, -strafePower), 0));
+
+            return robot.limelight.ballDetection.getTargetX() > LimelightBallDetection.params.txErrorThreshold;
         };
     }
     private Action driveForwards() {
@@ -103,6 +96,7 @@ public class LoadingZoneBallCollection extends OpMode {
         Tolerance tolerance = new Tolerance(2, 3);
         Waypoint waypoint = new Waypoint(pose, tolerance);
         waypoint.params.maxLinearPower = 0.5;
+
         return new DrivePath(robot.drive, telemetry, waypoint);
     }
 }

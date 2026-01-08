@@ -24,7 +24,7 @@ public class Turret extends Component {
         public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -64, farBlueShotsGoalX = -67, farBlueShotsGoalY = -64;
     }
     public static class Params {
-        public double offsetFromCenter = 3.742; // vertical offset of center of turret from center of robot in inches
+        public double offsetFromCenter = 3.442; // offset of center of turret from center of robot in inches
 
         public int fineAdjust = 5;
         public double lookAheadTime = 0; // time to look ahead for pose prediction
