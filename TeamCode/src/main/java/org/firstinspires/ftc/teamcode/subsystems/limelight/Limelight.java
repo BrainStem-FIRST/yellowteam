@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems.limelight;
 
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -17,7 +18,11 @@ public class Limelight extends Component {
         public int snapshotNum = 0;
         public boolean clearSnapshots = false;
     }
+    public static class HardwareParams {
+        public double distFromTurret = 5.892;
+    }
     public static SnapshotParams snapshotParams = new SnapshotParams();
+    public static HardwareParams hardwareParams = new HardwareParams();
 
     // i should tune the camera so that it gives me the turret center position
     public final Limelight3A limelight;
@@ -111,5 +116,10 @@ public class Limelight extends Component {
             case 2:
                 break;
         }
+    }
+    public static Pose2d getTurretPose(Pose2d cameraPose) {
+        double dx = Math.cos(cameraPose.heading.toDouble()) * hardwareParams.distFromTurret;
+        double dy = Math.sin(cameraPose.heading.toDouble()) * hardwareParams.distFromTurret;
+        return new Pose2d(cameraPose.position.x - dx, cameraPose.position.y - dy, cameraPose.heading.toDouble());
     }
 }

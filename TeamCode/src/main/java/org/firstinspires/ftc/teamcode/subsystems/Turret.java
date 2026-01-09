@@ -157,6 +157,14 @@ public class Turret extends Component {
         double yOffset = -Math.sin(robotHeading) * turretParams.offsetFromCenter;
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + getTurretRelativeAngleRad(turretPosition));
     }
+    public static Pose2d getRobotPose(Pose2d turretPose, int turretPosition) {
+        double relTurretAngleRad = Turret.getTurretRelativeAngleRad(turretPosition);
+        double robotHeading = turretPose.heading.toDouble() - relTurretAngleRad;
+        if(robotHeading > Math.PI)
+            robotHeading -= Math.PI * 2;
+        Vector2d robotTurretVec = new Vector2d(Turret.turretParams.offsetFromCenter * Math.cos(robotHeading), Turret.turretParams.offsetFromCenter * Math.sin(robotHeading));
+        return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
+    }
 
     public void updateLookAheadTime(boolean useLookAhead) {
         double newLookAhead = useLookAhead ? turretParams.lookAheadTime : 0;
