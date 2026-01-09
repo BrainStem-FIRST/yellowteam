@@ -249,12 +249,18 @@ public class DrivePath implements Action {
             TelemetryPacket packet = new TelemetryPacket();
             Canvas fieldOverlay = packet.fieldOverlay();
             Pose2d prevWaypointPose = curWaypointIndex == 0 ? startPose : getWaypoint(curWaypointIndex - 1).pose;
+            Pose2d curWaypointPose = getCurWaypoint().pose;
+
+            fieldOverlay.setStroke("gray");
+            fieldOverlay.strokeLine(prevWaypointPose.position.x, prevWaypointPose.position.y, curWaypointPose.position.x, curWaypointPose.position.y);
+
             fieldOverlay.setStroke("black");
             Drawing.drawRobot(fieldOverlay, prevWaypointPose);
+            Drawing.drawRobot(fieldOverlay, curWaypointPose);
+
             fieldOverlay.setStroke("green");
             Drawing.drawRobot(fieldOverlay, robotPose);
-            fieldOverlay.setStroke("gray");
-            Drawing.drawRobot(fieldOverlay, getCurWaypoint().pose);
+
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
         return true;
