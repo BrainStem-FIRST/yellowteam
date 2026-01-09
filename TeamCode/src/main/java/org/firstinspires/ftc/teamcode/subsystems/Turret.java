@@ -20,19 +20,19 @@ public class Turret extends Component {
         public boolean actuallyPowerTurret = true;
     }
     public static class GoalParams {
-        public double nearRedShotsGoalX = -64, nearRedShotsGoalY = 62, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
-        public double nearBlueShotsGoalX = -67, nearBlueShotsGoalY = -64, farBlueShotsGoalX = -67, farBlueShotsGoalY = -64;
+        public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 63, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
+        public double nearBlueShotsGoalX = -66, nearBlueShotsGoalY = -64, farBlueShotsGoalX = -67, farBlueShotsGoalY = -63;
     }
     public static class Params {
         public double offsetFromCenter = 3.442; // offset of center of turret from center of robot in inches
 
         public int fineAdjust = 5;
-        public double lookAheadTime = 0; // time to look ahead for pose prediction
+        public double lookAheadTime = 0.2; // time to look ahead for pose prediction
         // variable deciding how to smooth out discontinuities in look ahead time
-        public double startLookAheadSmoothValue = 1;
-        public double endLookAheadSmoothValue = 0.;
+        public double startLookAheadSmoothValue = 0.5;
+        public double endLookAheadSmoothValue = 0;
         public double TICKS_PER_REV = 1228.5;
-        public int RIGHT_BOUND = -320;
+        public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
     }
     public static class PowerTuning {
@@ -66,6 +66,7 @@ public class Turret extends Component {
     public double currentLookAheadTime;
     private double motorError;
     private double kF;
+    private boolean inRange;
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
@@ -194,6 +195,19 @@ public class Turret extends Component {
                 Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity(), ShootingMath.shooterSystemParams.powerLossCoefficient);
                 double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
+                // mirrors the angle if the turret cannot reach it (visual cue)
+                if (turretTargetAngleRad > Math.toRadians(ShootingMath.turretSystemParams.maxAngleDeg)) {
+                    turretTargetAngleRad = Math.PI - turretTargetAngleRad;
+                    inRange = false;
+                }
+                else if (turretTargetAngleRad < Math.toRadians(ShootingMath.turretSystemParams.minAngleDeg)) {
+                    turretTargetAngleRad = -Math.PI - turretTargetAngleRad;
+                    inRange = false;
+                }
+                else
+                    inRange = true;
+
+
                 targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
 
                 int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
@@ -203,6 +217,7 @@ public class Turret extends Component {
                 break;
 
             case CENTER:
+                inRange = true;
                 if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
                     turretMotor.setPower(0);
                     break;
@@ -213,6 +228,7 @@ public class Turret extends Component {
                 break;
 
             case PARK:
+                inRange = true;
                 setTurretPosition(-330, turretEncoder);
                 break;
         }
@@ -245,6 +261,7 @@ public class Turret extends Component {
         telemetry.addData("turret target absolute angle deg", Math.toDegrees(targetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
         telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
+        telemetry.addData("inRange", inRange());
     }
 
     public void changeEncoderAdjustment(int amount) {
@@ -252,5 +269,8 @@ public class Turret extends Component {
             nearEncoderAdjustment += amount;
         else
             farEncoderAdjustment += amount;
+    }
+    public boolean inRange() {
+        return inRange;
     }
 }
