@@ -11,7 +11,7 @@ public final class Drawing {
 
     public static void drawRobot(Canvas c, Pose2d t) {
         double halfW = BrainSTEMRobot.width * 0.5;
-        double halfH = BrainSTEMRobot.length * 0.5;
+        double halfL = BrainSTEMRobot.length * 0.5;
 
         double x = t.position.x;
         double y = t.position.y;
@@ -21,7 +21,7 @@ public final class Drawing {
         double sin = Math.sin(a);
 
         // Robot-frame corners (forward = +x, left = +y)
-        double[] rx = {  halfH,  halfH, -halfH, -halfH };
+        double[] rx = {  halfL,  halfL, -halfL, -halfL };
         double[] ry = {  halfW, -halfW, -halfW,  halfW };
 
         double[] xPoints = new double[4];
@@ -34,6 +34,7 @@ public final class Drawing {
 
         c.setStrokeWidth(1);
         c.strokePolygon(xPoints, yPoints);
+        c.strokeLine(x, y, x + cos * halfL, y + sin * halfW);
     }
 
     public static void drawRobotSimple(Canvas c, Pose2d t, double radius) {

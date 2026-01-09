@@ -10,7 +10,8 @@ import java.util.function.BooleanSupplier;
 public class PathParams {
     public enum HeadingLerpType {
         LINEAR,
-        TANGENT
+        TANGENT,
+        REVERSE_TANGENT
     }
     private static final double noMaxTime = -1;
 
@@ -27,26 +28,29 @@ public class PathParams {
         public double maxTime = 100;
         public HeadingLerpType headingLerpType = HeadingLerpType.LINEAR;
         public double tangentHeadingActivateThreshold = 15;
+        public boolean prioritizeHeadingInBeginning = false;
+        public double prioritizeHeadingThresholdDeg = 5, maxLinearPowerWhilePrioritizingHeading = 0.5;
     }
     public static DefaultParams defaultParams = new DefaultParams();
-    public double lateralWeight, axialWeight;
-    public double minLinearPower, maxLinearPower;
-    public double minHeadingPower, maxHeadingPower;
+    protected double lateralWeight, axialWeight;
+    protected double minLinearPower, maxLinearPower;
+    protected double minHeadingPower, maxHeadingPower;
     // decides how much the robot will slow down at this waypoint
     // if this equals 1, then the drivetrain will completely stop at this waypoint
     // if this equals 0, this waypoint will have no influence on slowing down the drivetrain as it approaches this point
-    public double slowDownPercent;
+    protected double slowDownPercent;
     // if passPosition is true, the robot only needs to pass its target position for drive path to consider it "in tolerance", not fall within tolerance of it
-    public boolean passPosition;
-    public double maxTime;
-    public BooleanSupplier customEndCondition = () -> false;
+    protected boolean passPosition;
+    protected double maxTime;
+    protected BooleanSupplier customEndCondition = () -> false;
 
-    public double bigSpeedKp, smallSpeedKp, bigSpeedKd, smallSpeedKd;
-    public double speedKi, speedKf;
-    public double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
-    public double applyCloseSpeedPIDError;
-    public HeadingLerpType headingLerpType;
-    public double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
+    protected double bigSpeedKp, smallSpeedKp, bigSpeedKd, smallSpeedKd;
+    protected double speedKi, speedKf;
+    protected double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
+    protected double applyCloseSpeedPIDError;
+    protected HeadingLerpType headingLerpType;
+    protected double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
+    protected boolean prioritizeHeadingInBeginning;
     public PathParams() {
         this(defaultParams.bigSpeedKp, defaultParams.smallSpeedKp, defaultParams.speedKi, defaultParams.bigSpeedKd, defaultParams.smallSpeedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
     }
@@ -81,6 +85,7 @@ public class PathParams {
         tangentHeadingActivateThreshold = defaultParams.tangentHeadingActivateThreshold;
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
         slowDownPercent = 1;
+        prioritizeHeadingInBeginning = defaultParams.prioritizeHeadingInBeginning;
     }
     public boolean hasMaxTime() {
         return maxTime != noMaxTime;
@@ -103,6 +108,7 @@ public class PathParams {
         newParams.headingLerpType = headingLerpType;
         newParams.tangentHeadingActivateThreshold = tangentHeadingActivateThreshold;
         newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;
+        newParams.prioritizeHeadingInBeginning = prioritizeHeadingInBeginning;
         return newParams;
     }
 }

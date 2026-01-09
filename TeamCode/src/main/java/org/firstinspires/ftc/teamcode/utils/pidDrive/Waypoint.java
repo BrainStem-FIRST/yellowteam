@@ -41,13 +41,10 @@ public class Waypoint {
        return pose.heading.toDouble();
     }
 
-    // DO NOT CALL THIS FUNCTION YOURSELF
-    public void setDistToNextWaypoint(double dist) { distToNextWaypoint = dist; }
-    // DO NOT CALL THIS FUNCTION YOURSELF
-    public double getDistToNextWaypoint() {
+    protected void setDistToNextWaypoint(double dist) { distToNextWaypoint = dist; }
+    protected double getDistToNextWaypoint() {
         return distToNextWaypoint;
     }
-
 
     public Waypoint setLateralAxialWeights(double lat, double ax) {
         params.lateralWeight = lat;
@@ -88,6 +85,10 @@ public class Waypoint {
     }
     public Waypoint setHeadingLerp(PathParams.HeadingLerpType lerpType) {
         params.headingLerpType = lerpType;
+        return this;
+    }
+    public Waypoint prioritizeHeadingInBeginning() {
+        params.prioritizeHeadingInBeginning = true;
         return this;
     }
 

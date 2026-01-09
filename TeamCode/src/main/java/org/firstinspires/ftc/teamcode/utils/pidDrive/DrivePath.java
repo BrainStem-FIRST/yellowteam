@@ -26,6 +26,7 @@ import java.util.Arrays;
 @Config
 public class DrivePath implements Action {
     public static boolean showRobotPose = true;
+    public static boolean paused = false;
     public static double moveLeftSign = 1, moveForwardSign = 1, turnLeftSign = 1;
     private final MecanumDrive drivetrain;
     private final PinpointLocalizer odo;
@@ -34,10 +35,9 @@ public class DrivePath implements Action {
     private int curWaypointIndex; // the waypoint index the drivetrain is currently trying to go to
     private PidDrivePidController totalDistancePID, waypointDistancePID, headingRadCloseErrorPID, headingRadFarErrorPID;
     private final ElapsedTime waypointTimer;
-    private double curWaypointDirRad, curWaypointDirDeg;
+    private double curWaypointDirRad;
     private boolean first;
     private Pose2d startPose;
-    private boolean reverseHeading;
 
     public DrivePath(MecanumDrive drivetrain, Waypoint ...waypoints) {
         this(drivetrain, null, waypoints);
@@ -61,9 +61,8 @@ public class DrivePath implements Action {
         first = true;
         startPose = new Pose2d(0, 0, 0);
         curWaypointDirRad = 0;
-        curWaypointDirDeg = 0;
     }
-    public Waypoint getWaypoint(int index) {
+    private Waypoint getWaypoint(int index) {
         return waypoints.get(index);
     }
     private Waypoint getCurWaypoint() {
@@ -97,36 +96,31 @@ public class DrivePath implements Action {
     @Override
     public boolean run(@NonNull TelemetryPacket telemetryPacket) {
         drivetrain.updatePoseEstimate();
-        Pose2d pose = odo.getPose();
-        double rx = pose.position.x, ry = pose.position.y, rHeadingRad = MathUtils.angleNormRad(pose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
+        Pose2d robotPose = odo.getPose();
+        double rx = robotPose.position.x, ry = robotPose.position.y, rHeadingRad = MathUtils.angleNormRad(robotPose.heading.toDouble()), rHeadingDeg = Math.toDegrees(rHeadingRad);
 
         if (first) {
             first = false;
             resetToNewWaypoint();
-            startPose = new Pose2d(pose.position, pose.heading);
+            startPose = new Pose2d(robotPose.position, robotPose.heading);
         }
 
         // finding direction that motor powers should be applied in
         Vector2d targetDir = updateTargetDir(rx, ry, rHeadingRad);
 
         // note: error is calculated in field's coordinate plane
-        double xWaypointError = Math.abs(rx - getCurWaypoint().x());
-        double yWaypointError = Math.abs(ry - getCurWaypoint().y());
-        double waypointDistAway = Math.hypot(xWaypointError, yWaypointError);
-
-        double headingDegWaypointError = getCurWaypoint().headingDeg() - rHeadingDeg;
-
-        // flip heading error if necessary
-        double absHeadingWaypointError = Math.abs(headingDegWaypointError);
-        boolean flipHeadingDirection = absHeadingWaypointError > 180;
-        if (flipHeadingDirection)
-            headingDegWaypointError = Math.signum(headingDegWaypointError) * (360 - absHeadingWaypointError);
+        ErrorInfo errorInfo = getWaypointErrorInfo(robotPose, getCurWaypoint());
+        double xWaypointError = errorInfo.xError;
+        double yWaypointError = errorInfo.yError;
+        double waypointDistAway = errorInfo.distanceError;
+        double headingDegWaypointError = errorInfo.headingDegError;
+        double headingPowerDirFlip = errorInfo.headingPowerDirFlip;
 
         // tolerance
         boolean inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
         boolean inHeadingTolerance = Math.abs(headingDegWaypointError) <= getCurWaypoint().tolerance.headingDegTol;
         // pass position
-        if(getCurParams().passPosition && getDotProductToNextWaypoint(pose) > 0)
+        if(getCurParams().passPosition && getDotProductToNextWaypoint(robotPose) > 0)
                 inPositionTolerance = true;
 
         boolean inWaypointTolerance = inPositionTolerance && inHeadingTolerance;
@@ -139,7 +133,6 @@ public class DrivePath implements Action {
             if (curWaypointIndex >= waypoints.size()) {
                 if (getCurParams().slowDownPercent == 1)
                     drivetrain.stop();
-//                telemetry.addLine("finished drive path");
                 return false;
             }
             // finished current waypoint path, moving on to next waypoint
@@ -148,19 +141,12 @@ public class DrivePath implements Action {
                 resetToNewWaypoint();
 
                 // recalculate new waypoint errors
-                xWaypointError = Math.abs(rx - getCurWaypoint().x());
-                yWaypointError = Math.abs(ry - getCurWaypoint().y());
-                boolean setHeadingTangent = getCurParams().headingLerpType == PathParams.HeadingLerpType.TANGENT
-                        && waypointDistAway > getCurWaypoint().params.tangentHeadingActivateThreshold;
-                if (setHeadingTangent)
-                    headingDegWaypointError = curWaypointDirDeg * (reverseHeading ? -1 : 1) - rHeadingDeg;
-                else
-                    headingDegWaypointError = getCurWaypoint().headingDeg() - rHeadingDeg;
-
-                absHeadingWaypointError = Math.abs(headingDegWaypointError);
-                flipHeadingDirection = absHeadingWaypointError > 180;
-                if (flipHeadingDirection)
-                    headingDegWaypointError = Math.signum(headingDegWaypointError) * (360 - absHeadingWaypointError);
+                errorInfo = getWaypointErrorInfo(robotPose, getCurWaypoint());
+                xWaypointError = errorInfo.xError;
+                yWaypointError = errorInfo.yError;
+                waypointDistAway = errorInfo.distanceError;
+                headingDegWaypointError = errorInfo.headingDegError;
+                headingPowerDirFlip = errorInfo.headingPowerDirFlip;
 
                 // recalculate new tolerances
                 inPositionTolerance = xWaypointError <= getCurWaypoint().tolerance.xTol && yWaypointError <= getCurWaypoint().tolerance.yTol;
@@ -172,7 +158,11 @@ public class DrivePath implements Action {
         double totalDistanceAway = waypointDistAway + getWaypointDistanceToTarget(curWaypointIndex);
 
         // calculate translational speed
-        double speed = 0;
+        double linearPower = 0;
+        double maxLinearPower = getCurParams().maxLinearPower;
+        if (getCurParams().prioritizeHeadingInBeginning && Math.abs(headingDegWaypointError) > PathParams.defaultParams.prioritizeHeadingThresholdDeg)
+            maxLinearPower = PathParams.defaultParams.maxLinearPowerWhilePrioritizingHeading;
+
         if (!inPositionTolerance) {
             if(totalDistanceAway < getCurParams().applyCloseSpeedPIDError)
                 totalDistancePID.setPIDValues(getCurParams().smallSpeedKp, getCurParams().speedKi, getCurParams().smallSpeedKd);
@@ -188,16 +178,16 @@ public class DrivePath implements Action {
             double a = totalDistancePID.update(totalDistanceAway);
             double b = waypointDistancePID.update(waypointDistAway);
             double t = getCurParams().slowDownPercent;
-            speed = a + (b - a) * t;
-            speed += getCurParams().speedKf;
+            linearPower = a + (b - a) * t;
+            linearPower += getCurParams().speedKf;
 
-            if (speed > 0)
-                speed = Range.clip(speed, getCurParams().minLinearPower, getCurParams().maxLinearPower);
-            else if (speed < 0)
-                speed = Range.clip(speed, -getCurParams().maxLinearPower, -getCurParams().minLinearPower);
+            if (linearPower > 0)
+                linearPower = Range.clip(linearPower, getCurParams().minLinearPower, maxLinearPower);
+            else if (linearPower < 0)
+                linearPower = Range.clip(linearPower, -maxLinearPower, -getCurParams().minLinearPower);
         }
-        double lateralPower = targetDir.y * speed * getCurParams().lateralWeight * moveLeftSign;
-        double axialPower = targetDir.x * speed * getCurParams().axialWeight * moveForwardSign;
+        double lateralPower = targetDir.y * linearPower * getCurParams().lateralWeight * moveLeftSign;
+        double axialPower = targetDir.x * linearPower * getCurParams().axialWeight * moveForwardSign;
 
         // rescaling to maximize motor power while preserving direction
         double powerMag = Math.hypot(lateralPower, axialPower);
@@ -215,19 +205,14 @@ public class DrivePath implements Action {
             else
                 headingPower = headingRadFarErrorPID.update(-headingDegWaypointError);
             double headingSign = Math.signum(headingDegWaypointError);
-//            telemetry.addData("heading error", headingDegWaypointError);
-//            telemetry.addData("pre kf heading power", headingPower);
             double kfPower = -headingSign * getCurWaypoint().params.headingKf;
-//            telemetry.addData("kfPower", kfPower);
             headingPower += kfPower;
             headingPower = headingSign * Range.clip(Math.abs(headingPower), getCurParams().minHeadingPower, getCurParams().maxHeadingPower);
-            if (flipHeadingDirection)
-                headingPower *= -1;
+            headingPower *= headingPowerDirFlip;
         }
         headingPower *= turnLeftSign;
         
-//        drivetrain.setBatteryIndependentDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
-        if(AutoPid.paused)
+        if(paused)
             drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(0, 0), 0));
         else
             drivetrain.setDrivePowers(new PoseVelocity2d(new Vector2d(axialPower, lateralPower), headingPower));
@@ -248,9 +233,9 @@ public class DrivePath implements Action {
             telemetry.addData("in heading tolerance", inHeadingTolerance);
             telemetry.addData("waypoint dist PID proportional", waypointDistancePID.getProportional());
             telemetry.addData("waypoint dist PID derivative", waypointDistancePID.getDerivative());
-            telemetry.addData("waypoint dir", MathUtils.format3(curWaypointDirDeg));
+            telemetry.addData("waypoint dir", MathUtils.format3(Math.toDegrees(curWaypointDirRad)));
             telemetry.addLine();
-            telemetry.addData("speed", MathUtils.format3(speed));
+            telemetry.addData("speed", MathUtils.format3(linearPower));
 //            telemetry.addData("powers (lat, ax, heading)", MathUtils.format3(lateralPower) + ", " + MathUtils.format3(axialPower) + ", " + MathUtils.format2(headingPower));
             telemetry.addData("lat pow", MathUtils.format3(lateralPower));
             telemetry.addData("ax pow", MathUtils.format3(axialPower));
@@ -267,26 +252,12 @@ public class DrivePath implements Action {
             fieldOverlay.setStroke("black");
             Drawing.drawRobot(fieldOverlay, prevWaypointPose);
             fieldOverlay.setStroke("green");
-            Drawing.drawRobot(fieldOverlay, pose);
+            Drawing.drawRobot(fieldOverlay, robotPose);
             fieldOverlay.setStroke("gray");
             Drawing.drawRobot(fieldOverlay, getCurWaypoint().pose);
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
         return true;
-    }
-
-    // calculates vector from previous waypoint to next waypoint
-    // calculates vector from next waypoint to robot
-    // returns the dot product of these 2 vectors
-    // if dot product is positive, robot overshot waypoint
-    // if dot is negative, robot has not yet overshot waypoint
-    private double getDotProductToNextWaypoint(Pose2d pose) {
-        Vector2d oldPosition = curWaypointIndex == 0 ? startPose.position : waypoints.get(curWaypointIndex - 1).pose.position;
-        Vector2d targetWaypointPosition = getCurWaypoint().pose.position;
-
-        Vector2d relativeWaypoint = targetWaypointPosition.minus(oldPosition);
-        Vector2d relativePositionToWaypoint = pose.position.minus(targetWaypointPosition);
-        return relativeWaypoint.x * relativePositionToWaypoint.x + relativeWaypoint.y * relativePositionToWaypoint.y;
     }
 
     private void resetToNewWaypoint() {
@@ -314,14 +285,49 @@ public class DrivePath implements Action {
 
         Pose2d prevWaypointPose = curWaypointIndex == 0 ? startPose : getWaypoint(curWaypointIndex - 1).pose;
         curWaypointDirRad = Math.atan2(prevWaypointPose.position.y - startPose.position.y, prevWaypointPose.position.x - startPose.position.x);
-        curWaypointDirDeg = Math.toDegrees(curWaypointDirRad);
+        if (getCurParams().headingLerpType == PathParams.HeadingLerpType.REVERSE_TANGENT)
+            curWaypointDirRad *= -1;
+    }
+    // calculates all the relevant info about error between robot pose and waypoint
+    private ErrorInfo getWaypointErrorInfo(Pose2d robotPose, Waypoint waypoint) {
+        double rx = robotPose.position.x;
+        double ry = robotPose.position.y;
+        double rHeadingDeg = Math.toDegrees(robotPose.heading.toDouble());
 
-        if (getCurWaypoint().params.headingLerpType == PathParams.HeadingLerpType.TANGENT) {
-            double error = MathUtils.angleNormDeltaRad(curWaypointDirRad - prevWaypointPose.heading.toDouble());
-            reverseHeading = Math.abs(error) > Math.PI * 0.5;
-        }
+        double xWaypointError = Math.abs(rx - waypoint.x());
+        double yWaypointError = Math.abs(ry - waypoint.y());
+        double waypointDistAway = Math.hypot(xWaypointError, yWaypointError);
+
+        boolean setHeadingTangent = waypoint.params.headingLerpType == PathParams.HeadingLerpType.TANGENT ||
+                waypoint.params.headingLerpType == PathParams.HeadingLerpType.REVERSE_TANGENT
+                        && waypointDistAway > waypoint.params.tangentHeadingActivateThreshold;
+        double headingDegWaypointError;
+        if (setHeadingTangent)
+            headingDegWaypointError = Math.toDegrees(curWaypointDirRad) - rHeadingDeg;
         else
-            reverseHeading = false;
+            headingDegWaypointError = waypoint.headingDeg() - rHeadingDeg;
+
+        // flip heading error if necessary
+        double absHeadingWaypointError = Math.abs(headingDegWaypointError);
+        boolean flipHeadingDirection = absHeadingWaypointError > 180;
+        if (flipHeadingDirection)
+            headingDegWaypointError = Math.signum(headingDegWaypointError) * (360 - absHeadingWaypointError);
+
+        return new ErrorInfo(xWaypointError, yWaypointError, waypointDistAway, headingDegWaypointError, flipHeadingDirection ? -1 : 1 );
+    }
+
+    // calculates vector from previous waypoint to next waypoint
+    // calculates vector from next waypoint to robot
+    // returns the dot product of these 2 vectors
+    // if dot product is positive, robot overshot waypoint
+    // if dot is negative, robot has not yet overshot waypoint
+    private double getDotProductToNextWaypoint(Pose2d pose) {
+        Vector2d oldPosition = curWaypointIndex == 0 ? startPose.position : waypoints.get(curWaypointIndex - 1).pose.position;
+        Vector2d targetWaypointPosition = getCurWaypoint().pose.position;
+
+        Vector2d relativeWaypoint = targetWaypointPosition.minus(oldPosition);
+        Vector2d relativePositionToWaypoint = pose.position.minus(targetWaypointPosition);
+        return relativeWaypoint.x * relativePositionToWaypoint.x + relativeWaypoint.y * relativePositionToWaypoint.y;
     }
 }
 

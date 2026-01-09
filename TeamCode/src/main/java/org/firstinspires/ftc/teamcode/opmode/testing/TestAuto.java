@@ -41,7 +41,6 @@ public class TestAuto extends LinearOpMode {
         MecanumDrive drive = new MecanumDrive(hardwareMap, begin);
 
         Waypoint collect2w1 = new Waypoint(preCollect2);
-        collect2w1.params.slowDownPercent = 0.5;
         AutoCommands autoCommands = new AutoCommands(robot, telemetry);
         Action autoAction = new ParallelAction(
                 new SequentialAction(
