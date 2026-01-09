@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 @Config
 public class Shooter extends Component {
@@ -26,11 +27,13 @@ public class Shooter extends Component {
         public double kI = 0.0;
         public double kD = 0.0;
         public double kF = 0.00045;
-        public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 100;
+        public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 90;
         public double shotVelDropThreshold = 40;
-        public double noiseVariance = 30;
+        public double noiseVariance = 40;
         public boolean printShootInfo = true;
         public int startingShooterSpeedAdjustment = 0;
+        public double minPower = -0.15, maxPower = 0.99;
+        public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065;
@@ -122,8 +125,15 @@ public class Shooter extends Component {
         double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
-        totalPower = Math.abs(Range.clip(totalPower, -0.99, 0.99));
+        totalPower = Range.clip(totalPower, shooterParams.minPower, shooterParams.maxPower);
+        double error = targetVelocityTicksPerSec - currentShooterVelocity;
+        boolean recovering = false;
+        if(error > shooterParams.shotRecoveryError) {
+            totalPower = shooterParams.shotRecoveryPower;
+            recovering = true;
+        }
         if (shooterParams.printShootInfo) {
+            telemetry.addData("recovering", recovering);
             telemetry.addData("pid output", pidOutput);
             telemetry.addData("total power", totalPower);
         }
@@ -195,6 +205,8 @@ public class Shooter extends Component {
         if(increasing && !wasPrevIncreasing) {  // means relative min detected
             lastMin = prevVel;
             double velDrop = lastMax - lastMin;
+            velDropTime = (System.currentTimeMillis() - mSOfLastMax) / 1000;
+            lastDecel = velDrop / velDropTime;
             if(velDrop >= shooterParams.shotVelDropThreshold
             || shooterPID.getTarget() - lastMin >= shooterParams.noiseVariance) {
                 ballsShot++;
@@ -204,8 +216,10 @@ public class Shooter extends Component {
                 allVelDropTimes.add(velDropTime);
             }
         }
-        if(wasPrevIncreasing && !increasing) // means relative max detected
+        if(wasPrevIncreasing && !increasing) { // means relative max detected
             lastMax = prevVel;
+            mSOfLastMax = System.currentTimeMillis();
+        }
 
         prevVel = avgMotorVel;
         wasPrevIncreasing = increasing;
@@ -242,11 +256,15 @@ public class Shooter extends Component {
 //        telemetry.addData("  last max", lastMax);
 //        telemetry.addData("  last min", lastMin);
         telemetry.addData("increasing", increasing ? 50 : -50);
-        telemetry.addData("  balls shot", ballsShot);
-        telemetry.addData("dist from target", targetMotorVel - lastMin);
+        telemetry.addData("balls shot", ballsShot);
+        telemetry.addData("target - lastMin", targetMotorVel - lastMin);
         telemetry.addData("noise variance", shooterParams.noiseVariance);
         telemetry.addData("shot vel threshold", shooterParams.shotVelDropThreshold);
-        telemetry.addData("  last extrema dif", MathUtils.format3(lastMax - lastMin));
+        telemetry.addData("last extrema dif", MathUtils.format3(lastMax - lastMin));
+        telemetry.addData("all velDropTimes", Arrays.toString(allVelDropTimes.toArray()));
+        telemetry.addData("vel drop time", velDropTime);
+        telemetry.addData("all decels", Arrays.toString(allLastDecels.toArray()));
+        telemetry.addData("last decel", lastDecel);
 //        telemetry.addData("shooter error", avgMotorVel - shooterPID.getTarget());
 
         telemetry.addLine();

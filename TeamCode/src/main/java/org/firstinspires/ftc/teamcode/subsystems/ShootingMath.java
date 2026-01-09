@@ -162,15 +162,7 @@ public class ShootingMath {
             targetAngleRad = Math.atan2(ballExitToGoal.y, ballExitToGoal.x);
 
         double turretTargetAngleRad = targetAngleRad - futureRobotPose.heading.toDouble();
-        // wrap between -pi, pi
         turretTargetAngleRad = Math.atan2(Math.sin(turretTargetAngleRad), Math.cos(turretTargetAngleRad));
-
-        // mirrors the angle if the turret cannot reach it (visual cue)
-        if (turretTargetAngleRad > Math.toRadians(turretSystemParams.maxAngleDeg))
-            turretTargetAngleRad = Math.PI - turretTargetAngleRad;
-        else if (turretTargetAngleRad < Math.toRadians(turretSystemParams.minAngleDeg))
-            turretTargetAngleRad = -Math.PI - turretTargetAngleRad;
-
         return turretTargetAngleRad;
     }
 

@@ -156,7 +156,11 @@ public class Collection extends Component {
         telemetry.addData("power", collectorMotor.getPower());
         telemetry.addData("flicker state", getFlickerState());
         telemetry.addData("flicker left pos", flickerLeft.getPosition());
-        telemetry.addData("flicker right pos", flickerRight.getPosition());
+//        telemetry.addData("flicker right pos", flickerRight.getPosition());
+        telemetry.addData("bl dist", backLeftLaserDist);
+        telemetry.addData("br dist", backRightLaserDist);
+        telemetry.addData("fl dist", frontLeftLaserDist);
+        telemetry.addData("fr dist", frontRightLaserDist);
     }
 
     @Override
