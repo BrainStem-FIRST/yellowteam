@@ -48,7 +48,7 @@ public abstract class AutoPid extends LinearOpMode {
         public String minTimes = "-1,-1,-1,-1,-1,-1";
         public boolean openGateOnFirst = false;
         public boolean openGateOnSecond = false;
-        public boolean useParkAbort = true;
+        public boolean useParkAbort = false;
         public int maxCornerRetries = 0;
     }
     public enum AutoState {
@@ -73,10 +73,10 @@ public abstract class AutoPid extends LinearOpMode {
             preCollect3Pose, collect3Pose,
             preLoadingPose, postLoadingPose,
             cornerCollectPose, cornerCollectRetryPose,
-            gateCollectWaypointPose, gateCollectOpenPose, gateCollectPose, gateCollectBackupPose,
+            gateCollectWaypointPose, gateCollectOpenPose, gateCollectPose,
             gate1Pose, gate2Pose,
             parkNearPose, parkFarPose,
-            shootFar1WaypointPose, shootFar2WaypointPose, shoot2NearWaypointPose,
+            shootFar1WaypointPose, shootFar2WaypointPose,
             shootNearSetup1Pose, shootFarSetup1Pose,
             shootNearSetup2Pose, shootFarSetup2Pose,
             shootNearSetup3Pose, shootFarSetup3Pose,
@@ -128,8 +128,7 @@ public abstract class AutoPid extends LinearOpMode {
             if(i < numPaths - 1)
                 shootPose = getSetupPose(customizable.collectionOrder.substring(i*2 + 2, i*2 + 4));
             else
-                shootPose = getSetupPose(customizable.collectionOrder.charAt(i * 2 + 2) + "" + customizable.collectionOrder.charAt(i * 2 + 1));
-//                  shootPose = getFinalShootPose(customizable.collectionOrder.charAt(i*2+2) + "" + customizable.collectionOrder.charAt(i * 2 + 1));
+                  shootPose = getFinalShootPose(customizable.collectionOrder.charAt(i*2+2) + "" + customizable.collectionOrder.charAt(i * 2 + 1));
 
             String curLetter = customizable.collectionOrder.charAt(i*2+1) + "";
             boolean fromNear = customizable.collectionOrder.charAt(i*2) == 'n';
@@ -145,7 +144,7 @@ public abstract class AutoPid extends LinearOpMode {
                     actionOrder.add(getSecondCollectAndShoot(shootPose, fromNear, toNear, minTime));
                     break;
                 case "3" :
-                    actionOrder.add(getThirdCollectAndShoot(shootPose, fromNear, minTime));
+                    actionOrder.add(getThirdCollectAndShoot(shootPose, fromNear, toNear, minTime));
                     break;
                 case "l" : actionOrder.add(getLoadingCollectAndShoot(shootPose, minTime)); break;
                 case "c": actionOrder.add(getRepeatedCornerCollectAndShoot(shootPose, fromNear, minTime)); break;
@@ -170,7 +169,7 @@ public abstract class AutoPid extends LinearOpMode {
         Action timedAutoAction = new SequentialAction(
                 new CustomEndAction(autoAction,
                         () -> autoTimer.seconds() > timeConstraints.parkStartTime && autoState != AutoState.DRIVE_TO_COLLECT && customizable.useParkAbort, 500),
-                decideParkDrive(),
+                customizable.useParkAbort ? decideParkDrive() : new SleepAction(0),
                 autoCommands.stopIntake(),
                 autoCommands.stopShooter()
         );
@@ -220,6 +219,20 @@ public abstract class AutoPid extends LinearOpMode {
             default: throw new IllegalArgumentException("invalid collectionOrder of " + customizable.collectionOrder + "; can only contain 1, 2, 3, L/l, or G/g");
         }
     }
+    private Pose2d getFinalShootPose(String info) {
+        boolean shootClose = info.charAt(0) == 'n';
+        String letter = info.charAt(1) + "";
+        switch (letter) {
+            case "1": return shootClose ? shootNearSetup1Pose : shootFarSetup1Pose;
+            case "2":
+            case "g": return shootClose ? shootNearSetup2Pose : shootFarSetup2Pose;
+            case "3": return shootClose ?
+                    isRed ? shootNearLastRed(shoot.shootNearSetup3ARed) : shootNearLastBlue(shoot.shootNearSetup3ABlue) :
+                    shootFarSetup3Pose;
+            case "l": return shootClose ? shootNearSetupLoadingPose : shootFarSetupLoadingPose;
+            default: throw new IllegalArgumentException("invalid collectionOrder of " + customizable.collectionOrder + "; can only contain 1, 2, 3, L/l, or G/g");
+        }
+    }
 
     private Action getPreloadDriveAndShoot(Pose2d shootPose, double minTime) {
         DrivePath preloadShootDrive = new DrivePath(robot.drive, new Waypoint(shootPose)
@@ -244,9 +257,9 @@ public abstract class AutoPid extends LinearOpMode {
                 autoCommands.disengageClutch()
         );
     }
-    private Action buildCollectAndShoot(Action collectDrive, Action gateDrive, Action shootDrive, double minTime, double postIntakeTime) {
+    private Action buildCollectAndShoot(Action collectDrive, Action gateDrive, Action shootDrive, double minTime, double postIntakeTime, boolean runIntake) {
         return new SequentialAction(
-                autoCommands.runIntake(),
+                runIntake ? autoCommands.runIntake() : new SleepAction(0),
                 new InstantAction(() -> autoState = AutoState.DRIVE_TO_COLLECT),
                 collectDrive,
                 new ParallelAction(
@@ -325,7 +338,7 @@ public abstract class AutoPid extends LinearOpMode {
                         new Waypoint(shootPose)
                                 .setMaxTime(10).setPassPosition(true));
 
-        return buildCollectAndShoot(firstCollectDrive, firstGateDrive, firstShootDrive, minTime, timeConstraints.postIntakeTime);
+        return buildCollectAndShoot(firstCollectDrive, firstGateDrive, firstShootDrive, minTime, timeConstraints.postIntakeTime, true);
     }
     private Action getSecondCollectAndShoot(Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double xOffset = fromNear ? -collect.preCollect2NearXOffset : collect.preCollect2NearXOffset;
@@ -369,7 +382,7 @@ public abstract class AutoPid extends LinearOpMode {
                     new Waypoint(shootPose)
                             .setMaxTime(2).setPassPosition(true));
 
-        return buildCollectAndShoot(secondCollectDrive, secondGateDrive, secondShootDrive, minTime, timeConstraints.postIntakeTime);
+        return buildCollectAndShoot(secondCollectDrive, secondGateDrive, secondShootDrive, minTime, timeConstraints.postIntakeTime, true);
     }
     private Action getThirdCollectAndShoot(Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         double xOffset = fromNear ? -collect.preCollect3NearXOffset : collect.preCollect2NearXOffset;
@@ -391,7 +404,7 @@ public abstract class AutoPid extends LinearOpMode {
                 new Waypoint(shootPose).setMaxTime(3);
         Action thirdShootDrive = new DrivePath(robot.drive, telemetry, thirdShootDest.setPassPosition(true));
 
-        return buildCollectAndShoot(thirdCollectDrive, new SleepAction(0), thirdShootDrive, minTime, timeConstraints.postIntakeTime);
+        return buildCollectAndShoot(thirdCollectDrive, new SleepAction(0), thirdShootDrive, minTime, timeConstraints.postIntakeTime, true);
     }
     private Action getLoadingCollectAndShoot(Pose2d shootPose, double minTime) {
         DrivePath loadingCollectDrive = new DrivePath(robot.drive,
@@ -404,14 +417,14 @@ public abstract class AutoPid extends LinearOpMode {
         DrivePath loadingShootDrive = new DrivePath(robot.drive, new Waypoint(shootPose)
                 .setMaxTime(3));
 
-        return buildCollectAndShoot(loadingCollectDrive, new SleepAction(0), loadingShootDrive, minTime, timeConstraints.loadingSlowIntakeTime);
+        return buildCollectAndShoot(loadingCollectDrive, new SleepAction(0), loadingShootDrive, minTime, timeConstraints.loadingSlowIntakeTime, true);
     }
 
     private Action getRepeatedCornerCollectAndShoot(Pose2d shootPose, boolean fromNear, double minTime) {
         DrivePath gateShootDrive = new DrivePath(robot.drive, new Waypoint(shootPose)
                 .setMaxTime(4));
 
-        return buildCollectAndShoot(repeatedCornerCollect(fromNear), new SleepAction(0), gateShootDrive, minTime, timeConstraints.loadingSlowIntakeTime);
+        return buildCollectAndShoot(repeatedCornerCollect(fromNear), new SleepAction(0), gateShootDrive, minTime, timeConstraints.loadingSlowIntakeTime, true);
     }
     private Action repeatedCornerCollect(boolean fromNear) {
         return new Action() {
@@ -472,7 +485,7 @@ public abstract class AutoPid extends LinearOpMode {
                 autoCommands.stopIntake(),
                 new DrivePath(robot.drive,
                         new Waypoint(gateCollectWaypointPose, collect.gateCollectWaypointTol).setSlowDownPercent(0).setPassPosition(true).setMinLinearPower(collect.collectDrivePower),
-                        new Waypoint(gateCollectOpenPose).setMaxTime(1.5)),
+                        new Waypoint(gateCollectOpenPose).setMaxTime(1.15)),
                 autoCommands.runIntake(),
                 new DrivePath(robot.drive,
 //                        new Waypoint(gateCollectBackupPose, misc.preGateTol).setMaxTime(0.1).setMinLinearPower(misc.gateMinPower).setPassPosition(true),
@@ -484,7 +497,7 @@ public abstract class AutoPid extends LinearOpMode {
                 new Waypoint(new Pose2d(gateCollectWaypointPose.position, shootPose.heading.toDouble()), collect.waypointTol).setSlowDownPercent(0).setPassPosition(true),
                 new Waypoint(shootPose).setMaxTime(1.4).setPassPosition(true));
 
-        return buildCollectAndShoot(gateCollectDrive, new SleepAction(0), gateShootDrive, minTime, timeConstraints.postIntakeTime);
+        return buildCollectAndShoot(gateCollectDrive, new SleepAction(0), gateShootDrive, minTime, timeConstraints.postIntakeTime, false);
 
     }
 
@@ -545,14 +558,13 @@ public abstract class AutoPid extends LinearOpMode {
         shootFarSetup1Pose = isRed ? shootFarRed(shoot.shootFarSetup1ARed) : shootFarBlue(shoot.shootFarSetup1ABlue);
         shootNearSetup2Pose = isRed ? shootMidRed(shoot.shootNearSetup2ARed) : shootMidBlue(shoot.shootNearSetup2ABlue);
         shootFarSetup2Pose = isRed ? shootFarRed(shoot.shootFarSetup2ARed) : shootFarBlue (shoot.shootFarSetup2ABlue);
-        shootNearSetup3Pose = isRed ? shootNearLastRed(shoot.shootNearSetup3ARed) : shootNearLastBlue(shoot.shootNearSetup3ABlue);
+        shootNearSetup3Pose = isRed ? shootMidRed(shoot.shootNearSetup3ARed) : shootMidBlue(shoot.shootNearSetup3ABlue);
         shootFarSetup3Pose = isRed ? shootFarRed(shoot.shootFarSetup3ARed) : shootFarBlue(shoot.shootFarSetup3ABlue);
         shootNearSetupLoadingPose = isRed ? shootNearRed(shoot.shootNearSetupLoadingARed) : shootNearBlue(shoot.shootNearSetupLoadingABlue);
         shootFarSetupLoadingPose = isRed ? shootFarRed(shoot.shootFarSetupLoadingARed) : shootFarBlue(shoot.shootFarSetupLoadingABlue);
 
         shootFar1WaypointPose = isRed ? new Pose2d(shoot.shootFar1WaypointXRed, shoot.shootFar1WaypointYRed, shoot.shootFar1WaypointARed) : new Pose2d(shoot.shootFar1WaypointXBlue, shoot.shootFar1WaypointYBlue, shoot.shootFar1WaypointABlue);
         shootFar2WaypointPose = isRed ? new Pose2d(shoot.shootFar2WaypointXRed, shoot.shootFar2WaypointYRed, shoot.shootFar2WaypointARed) : new Pose2d(shoot.shootFar2WaypointXBlue, shoot.shootFar2WaypointYBlue, shoot.shootFar2WaypointABlue);
-        shoot2NearWaypointPose = isRed ? new Pose2d(shoot.shoot2NearWaypointXRed, shoot.shoot2NearWaypointYRed, shoot.shoot2NearWaypointARed) : new Pose2d(shoot.shoot2NearWaypointXBlue, shoot.shoot2NearWaypointYBlue, shoot.shoot2NearWaypointABlue);
     }
     private void declareCollectPoses() {
         collect1Pose = isRed ? // only 1 collect pose for near (no pre collect pose, only post collect pose)
@@ -598,9 +610,6 @@ public abstract class AutoPid extends LinearOpMode {
         gateCollectPose = isRed ?
                 new Pose2d(collect.gateCollectXRed, collect.gateCollectYRed, collect.gateCollectARed) :
                 new Pose2d(collect.gateCollectXBlue, collect.gateCollectYBlue, collect.gateCollectABlue);
-        gateCollectBackupPose = isRed ?
-                new Pose2d(collect.gateCollectBackupXRed, collect.gateCollectBackupYRed, collect.gateCollectOpenARed) :
-                new Pose2d(collect.gateCollectBackupXBlue, collect.gateCollectBackupYBlue, collect.gateCollectOpenABlue);
     }
     private void declareMiscPoses() {
         gate1Pose = isRed ?

@@ -12,6 +12,11 @@ public class MathUtils {
             return rad;
         return (rad % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
     }
+    public static double angleNormDeltaRad(double rad) {
+        if(Math.abs(rad) <= Math.PI)
+            return rad;
+        return angleNormRad(rad) - Math.PI * 2;
+    }
     public static String format1(Number num) {
         return format(num, 1);
     }

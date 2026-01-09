@@ -4,15 +4,15 @@ import org.firstinspires.ftc.teamcode.utils.pidDrive.Tolerance;
 
 public class AutoParamsPid {
     public static class Collect {
-        public double collectDrivePower = 0.5, waypointSlowDown = 0.3;
-        public double collectWaypointTolX = 3, collectWaypointTolY = 3, collectWaypointTolHeading = 7;
+        public double collectDrivePower = 0.5, waypointSlowDown = 0.5;
+        public double collectWaypointTolX = 2, collectWaypointTolY = 2, collectWaypointTolHeading = 7;
         public Tolerance waypointTol = new Tolerance(collectWaypointTolX, collectWaypointTolY, collectWaypointTolHeading);
         public double lineARed = Math.toRadians(90), lineABlue = Math.toRadians(-90);
         public double firstXRed = -12, preFirstYRed = 31, postFirstYRed = 49;
         public double firstXBlue = -12, preFirstYBlue = -31, postFirstYBlue = -49;
         public double secondXRed = 12, preSecondYRed = 27.5, postSecondYRed = 48;
         public double secondXBlue = 12, preSecondYBlue = -28, postSecondYBlue = -48;
-        public double thirdXRed = 36, preThirdYRed = 30, postThirdYRed = 52;
+        public double thirdXRed = 36, preThirdYRed = 28, postThirdYRed = 52;
         public double thirdXBlue = 36, preThirdYBlue = -30, postThirdYBlue = -52;
         public double preCollect2NearXOffset = 2.5, preCollect3NearXOffset = 4;
         public double preCollect3NearARed = Math.toRadians(85);
@@ -26,14 +26,12 @@ public class AutoParamsPid {
 
         public double gateCollectWaypointDistTol = 5, gateCollectWaypointHeadingTol = 20;
         public Tolerance gateCollectWaypointTol = new Tolerance(gateCollectWaypointDistTol, gateCollectWaypointHeadingTol);
-        public double gateCollectWaypointXRed = -3, gateCollectWaypointYRed = 39;
+        public double gateCollectWaypointXRed = 0, gateCollectWaypointYRed = 34;
         public double gateCollectWaypointXBlue = 0, gateCollectWaypointYBlue = -34;
         public double gateCollectOpenXRed = 9.5, gateCollectOpenYRed = 62.2, gateCollectOpenARed = Math.toRadians(116);
         public double gateCollectOpenXBlue = 9.5, gateCollectOpenYBlue = -62.2, gateCollectOpenABlue = Math.toRadians(-116);
         public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
         public double gateCollectXBlue = 13, gateCollectYBlue = -62, gateCollectABlue = Math.toRadians(-135);
-        public double gateCollectBackupXRed = 8, gateCollectBackupYRed = -60;
-        public double gateCollectBackupXBlue = 8, gateCollectBackupYBlue = 60;
 
     }
     public static class Shoot {
@@ -55,16 +53,16 @@ public class AutoParamsPid {
         // shooting path waypoints to not hit other balls
         public double shootFar1WaypointXRed = 0, shootFar1WaypointYRed = 24, shootFar1WaypointARed = Math.toRadians(140);
         public double shootFar2WaypointXRed = 24, shootFar2WaypointYRed = 24, shootFar2WaypointARed = Math.toRadians(150);
-        public double shoot2NearWaypointXRed = -5, shoot2NearWaypointYRed = 40, shoot2NearWaypointARed = Math.toRadians(60);
 
         public double shootFar1WaypointXBlue = 0, shootFar1WaypointYBlue = -24, shootFar1WaypointABlue = Math.toRadians(-140);
         public double shootFar2WaypointXBlue = 24, shootFar2WaypointYBlue = -24, shootFar2WaypointABlue = Math.toRadians(-150);
-        public double shoot2NearWaypointXBlue = -5, shoot2NearWaypointYBlue = -40, shoot2NearWaypointABlue = Math.toRadians(-60);
     }
 
     public static class Misc {
-        public double startNearXRed = -61.5, startNearYRed = 41.1, startNearARed = 0, startNearXBlue = -61.5, startNearYBlue = -41.1, startNearABlue = 0;
-        public double startFarXRed = 60.8, startFarYRed = 15.4, startFarARed = Math.toRadians(180), startFarXBlue = 60.85, startFarYBlue = -19.2, startFarABlue = Math.toRadians(-180);
+        public double startNearXRed = -61.5, startNearYRed = 41.1, startNearARed = 0,
+                startNearXBlue = -61.5, startNearYBlue = -41.1, startNearABlue = 0;
+        public double startFarXRed = 60.8, startFarYRed = 15.4, startFarARed = Math.toRadians(180),
+                startFarXBlue = 60.85, startFarYBlue = -19.2, startFarABlue = Math.toRadians(-180);
         public double gate1XRed = -3, gate2XRed = 5, gateYRed = 57;
         public double gate1XBlue = -3, gate2XBlue = 5, gateYBlue = -57;
         public double gateARed = Math.toRadians(90), gateABlue = Math.toRadians(-90);

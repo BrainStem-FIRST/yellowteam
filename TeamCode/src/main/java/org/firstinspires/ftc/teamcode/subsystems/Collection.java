@@ -55,7 +55,7 @@ public class Collection extends Component {
         public double DELAY_PERIOD = 0.2;
         public double INTAKE_SLOW_SPEED = 0.3, INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0;
         public double OUTTAKE_SPEED = -0.5;
-        public double LASER_BALL_THRESHOLD = 2;
+        public double LASER_BALL_THRESHOLD = 2.5;
         public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
         public double flickerRightMinPwm = 1491, flickerRightMaxPwm = 1641;
         public double flickerFullUpPos = 0.8;
@@ -66,7 +66,7 @@ public class Collection extends Component {
         public int offDistanceSensorUpdatePeriod = 3; // when collector is off, waits this number of frames before updating distances sensors
     }
 
-    public static Params params = new Collection.Params();
+    public static Params params = new Params();
     private int framesRunning;
 
     public Collection(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
@@ -253,8 +253,10 @@ public class Collection extends Component {
     }
 
     private boolean isFrontBallDetected() {
-        return frontRightLaserDist < params.LASER_BALL_THRESHOLD ||
-                frontLeftLaserDist < params.LASER_BALL_THRESHOLD;
+//        return frontRightLaserDist < params.LASER_BALL_THRESHOLD ||
+//                frontLeftLaserDist < params.LASER_BALL_THRESHOLD;
+
+        return frontRightLaserDist < params.LASER_BALL_THRESHOLD;
     }
 
     public boolean intakeHas3Balls() {
