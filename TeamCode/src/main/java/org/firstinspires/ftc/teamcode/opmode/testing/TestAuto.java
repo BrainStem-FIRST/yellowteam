@@ -19,8 +19,6 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.pidDrive.DrivePath;
 import org.firstinspires.ftc.teamcode.utils.pidDrive.Waypoint;
 
-@Config
-@Autonomous(name="blue test auto")
 public class TestAuto extends LinearOpMode {
     public static double[] begin = {-63.5, -40, 180};
     public static double[] shoot1 = {-15, -20, 180};
@@ -53,7 +51,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5, 1)
+                                autoCommands.waitTillDoneShooting(1.5)
                         ),
                         autoCommands.disengageClutch(),
                         new DrivePath(drive, telemetry, new Waypoint(collect1)),
@@ -70,7 +68,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5, 1)
+                                autoCommands.waitTillDoneShooting(1.5)
                         ),
                         new DrivePath(drive, telemetry, collect2w1, new Waypoint(collect2)),
                         autoCommands.intakeSlow(),
@@ -87,7 +85,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5, 1)
+                                autoCommands.waitTillDoneShooting(1.5)
                         ),
                         autoCommands.disengageClutch()
                 ),

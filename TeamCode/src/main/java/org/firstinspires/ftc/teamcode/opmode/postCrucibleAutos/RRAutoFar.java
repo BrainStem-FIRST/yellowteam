@@ -30,8 +30,8 @@ import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 import java.util.ArrayList;
 
 @Config
-public abstract class AUTO extends LinearOpMode {
-    // want ability to decide order of collection
+public abstract class RRAutoFar extends LinearOpMode {
+    // want abilityA to decide order of collection
     // if i get 12 ball auto:
     //    1: if partner gets 0, 3, or 6 then always collect 2nd one first then open gate
     //    2: if partner gets 6 + gate then order doesn't matter
@@ -169,7 +169,7 @@ public abstract class AUTO extends LinearOpMode {
 
 
         Action forcedStopAutoAction = new ParallelAction(
-                packet -> { telemetry.addData("AUTO STATE", autoState); return true; },
+                packet -> { telemetry.addData("RRAutoFar STATE", autoState); return true; },
                 new TimedAction(timedAutoAction, timeConstraints.stopEverythingTime).setEndFunction(robot.drive::stop),
                 autoCommands.updateRobot,
                 autoCommands.savePoseContinuously,
@@ -232,7 +232,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.flickerHalfUp(),
                 new SequentialAction(
                         new SleepAction(timeConstraints.minShootTime),
-                        autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, Collection.params.hasBallValidationTime)
+                        autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots)
                 ),
                 decideFlicker(),
                 autoCommands.disengageClutch()
@@ -268,7 +268,7 @@ public abstract class AUTO extends LinearOpMode {
                 autoCommands.engageClutch(),
                 autoCommands.flickerHalfUp(),
                 new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, Collection.params.hasBallValidationTime),
+                autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots),
                 decideFlicker(),
                 autoCommands.disengageClutch()
         );

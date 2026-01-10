@@ -4,11 +4,11 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 
-@Autonomous(name="BLUE auto")
-public class BlueAutoRR extends AUTO {
+@Autonomous(name="Red Far RR auto")
+public class RedRRAutoFarRR extends RRAutoFar {
     @Override
     public void runOpMode() throws InterruptedException {
-        alliance = Alliance.BLUE;
+        alliance = Alliance.RED;
         super.runOpMode();
     }
 }

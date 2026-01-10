@@ -95,7 +95,7 @@ public class LoadingZoneBallCollection extends OpMode {
         Pose2d pose = new Pose2d(64, robot.drive.localizer.getPose().position.y, Math.toRadians(90));
         Tolerance tolerance = new Tolerance(2, 3);
         Waypoint waypoint = new Waypoint(pose, tolerance);
-        waypoint.params.maxLinearPower = 0.5;
+        waypoint.setMaxLinearPower(0.5);
 
         return new DrivePath(robot.drive, telemetry, waypoint);
     }

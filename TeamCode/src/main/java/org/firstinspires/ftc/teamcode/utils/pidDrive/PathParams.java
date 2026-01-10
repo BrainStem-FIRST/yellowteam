@@ -27,7 +27,7 @@ public class PathParams {
         public double minHeadingSpeed = 0, maxHeadingSpeed = 1;
         public double maxTime = 100;
         public HeadingLerpType headingLerpType = HeadingLerpType.LINEAR;
-        public double tangentHeadingActivateThreshold = 15;
+        public double tangentHeadingActivateThreshold = 23;
         public boolean prioritizeHeadingInBeginning = false;
         public double prioritizeHeadingThresholdDeg = 5, maxLinearPowerWhilePrioritizingHeading = 0.5;
     }

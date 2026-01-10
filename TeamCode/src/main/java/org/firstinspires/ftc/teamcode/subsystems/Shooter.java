@@ -28,9 +28,9 @@ public class Shooter extends Component {
         public double kD = 0.0;
         public double kF = 0.00045;
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 90;
-        public double shotVelDropThreshold = 40;
+        public double shotVelDropThreshold = 50;
         public double noiseVariance = 40;
-        public boolean printShootInfo = true;
+        public boolean printShootInfo = false;
         public int startingShooterSpeedAdjustment = 0;
         public double minPower = -0.15, maxPower = 0.99;
         public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
@@ -164,7 +164,7 @@ public class Shooter extends Component {
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
 //        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
-        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient));
+//        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient));
 
         int turretEncoder = robot.turret.getTurretEncoder();
 

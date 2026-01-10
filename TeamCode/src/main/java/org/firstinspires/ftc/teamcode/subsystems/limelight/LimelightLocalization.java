@@ -52,11 +52,11 @@ public class LimelightLocalization extends LLParent {
 
     public static LocalizationType localizationType = LocalizationType.ON_COMMAND;
     public static Params params = new Params();
-    public Pose2d turretPose, robotPose, rawTurretPose, rawRobotPose;
+    public Pose2d cameraPose, robotPose, rawCameraPose, rawRobotPose;
     private Vector2d robotTurretVec;
     private LLResult aprilTagResult;
     private Pose2d lastAvgTurretPose;
-    private final ArrayList<Pose3D> lastTurretPoses;
+    private final ArrayList<Pose3D> lastCameraPoses;
     public double maxTranslationalVariance, maxHeadingVarianceDeg; // how much the limelight jitters
     public double maxTranslationalError, maxHeadingErrorDeg; // how much the limelight differs from pinpoint
     private boolean drivetrainGoodForUpdate, turretGoodForUpdate, inLocalizationZone;
@@ -74,10 +74,10 @@ public class LimelightLocalization extends LLParent {
         super(robot, limelight);
 
         robotPose = null;
-        turretPose = null;
+        cameraPose = null;
         robotTurretVec = new Vector2d(0, 0);
         lastAvgTurretPose = new Pose2d(0, 0, 0);
-        lastTurretPoses = new ArrayList<>();
+        lastCameraPoses = new ArrayList<>();
         stateTimer = new ElapsedTime();
         prevState = LocalizationState.OFF;
         setState(LocalizationState.OFF);
@@ -111,7 +111,7 @@ public class LimelightLocalization extends LLParent {
         prevState = this.state;
         this.state = state;
         if (state == LocalizationState.UPDATING_POSE) {
-            lastTurretPoses.clear();
+            lastCameraPoses.clear();
             successfullyFoundPose = false;
         }
     }
@@ -128,7 +128,7 @@ public class LimelightLocalization extends LLParent {
                 lastUpdatePoseTimeMs = -1;
 
             setState(params.offLocalizationState);
-            lastTurretPoses.clear();
+            lastCameraPoses.clear();
             ableToUpdateTimer.reset();
         }
 
@@ -157,7 +157,7 @@ public class LimelightLocalization extends LLParent {
                 updatePoseFromCamera();
                 if (robotPose == null || !aprilTagResult.isValid())
                     break;
-                updateMaxErrors(lastAvgTurretPose, turretPose);
+                updateMaxErrors(lastAvgTurretPose, cameraPose);
 
                 break;
             case UPDATING_POSE:
@@ -171,7 +171,7 @@ public class LimelightLocalization extends LLParent {
                 if (!successfullyFoundPose)
                     break;
 
-                updateMaxErrors(lastAvgTurretPose, turretPose);
+                updateMaxErrors(lastAvgTurretPose, cameraPose);
 
                 robot.drive.localizer.setPose(robotPose);
                 numSetPoses++;
@@ -184,7 +184,7 @@ public class LimelightLocalization extends LLParent {
             telemetry.addData("   localization state", state);
             telemetry.addData("   isValid", aprilTagResult.isValid());
             telemetry.addData("   bot pose is null", aprilTagResult.getBotpose() == null);
-            telemetry.addData("   turret pose", MathUtils.formatPose2(turretPose));
+            telemetry.addData("   camera pose", MathUtils.formatPose2(cameraPose));
             telemetry.addData("   robot pose", MathUtils.formatPose2(robotPose));
             telemetry.addLine();
             telemetry.addData("   max translational variance", MathUtils.format3(maxTranslationalVariance));
@@ -204,18 +204,18 @@ public class LimelightLocalization extends LLParent {
                 tagIDs.append(result.getFiducialId()).append(" ");
             telemetry.addData("   tag IDs", tagIDs);
 
-            for (int i = 0; i<Math.min(params.numPrevPosesToPrint, lastTurretPoses.size()); i++)
+            for (int i = 0; i<Math.min(params.numPrevPosesToPrint, lastCameraPoses.size()); i++)
                 telemetry.addData("   last pose " + (i + 1),
-                        MathUtils.format2(lastTurretPoses.get(i).getPosition().x) + " " +
-                                MathUtils.format2(lastTurretPoses.get(i).getPosition().y) + " " +
-                                MathUtils.format2(lastTurretPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
+                        MathUtils.format2(lastCameraPoses.get(i).getPosition().x) + " " +
+                                MathUtils.format2(lastCameraPoses.get(i).getPosition().y) + " " +
+                                MathUtils.format2(lastCameraPoses.get(i).getOrientation().getYaw(AngleUnit.DEGREES)));
         }
         else
             telemetry.addLine("   result is null");
     }
     private void updatePoseFromCamera() {
-        if (turretPose != null)
-            lastAvgTurretPose = new Pose2d(turretPose.position, turretPose.heading);
+        if (cameraPose != null)
+            lastAvgTurretPose = new Pose2d(cameraPose.position, cameraPose.heading);
         else
             lastAvgTurretPose = new Pose2d(0, 0, 0);
 
@@ -239,44 +239,44 @@ public class LimelightLocalization extends LLParent {
         if(!validTags) {
             setAllPosesToNull();
             setState(params.offLocalizationState);
-            lastTurretPoses.clear();
+            lastCameraPoses.clear();
             return;
         }
-        Pose3D curFrameTurretPose = aprilTagResult.getBotpose();
-        if (curFrameTurretPose == null) {
+        Pose3D curFrameCameraPose = aprilTagResult.getBotpose();
+        if (curFrameCameraPose == null) {
             setAllPosesToNull();
             setState(params.offLocalizationState);
-            lastTurretPoses.clear();
+            lastCameraPoses.clear();
             return;
         }
-        Position curFrameTurretPosition = curFrameTurretPose.getPosition().toUnit(DistanceUnit.INCH);
-        if (Math.abs(curFrameTurretPosition.x) < 0.00001 &&
-            Math.abs(curFrameTurretPosition.y) < 0.00001 &&
-            Math.abs(curFrameTurretPose.getOrientation().getYaw(AngleUnit.DEGREES)) < 0.00001) {
+        Position curFrameCameraPosition = curFrameCameraPose.getPosition().toUnit(DistanceUnit.INCH);
+        if (Math.abs(curFrameCameraPosition.x) < 0.00001 &&
+            Math.abs(curFrameCameraPosition.y) < 0.00001 &&
+            Math.abs(curFrameCameraPose.getOrientation().getYaw(AngleUnit.DEGREES)) < 0.00001) {
             setAllPosesToNull();
             setState(params.offLocalizationState);
-            lastTurretPoses.clear();
+            lastCameraPoses.clear();
             return;
         }
 
-        rawTurretPose = new Pose2d(curFrameTurretPosition.x, curFrameTurretPosition.y, curFrameTurretPose.getOrientation().getYaw(AngleUnit.RADIANS));
-        rawRobotPose = calculateRobotPose(rawTurretPose);
+        rawCameraPose = new Pose2d(curFrameCameraPosition.x, curFrameCameraPosition.y, curFrameCameraPose.getOrientation().getYaw(AngleUnit.RADIANS));
+        rawRobotPose = calculateRobotPose(rawCameraPose);
 
-        lastTurretPoses.add(new Pose3D(curFrameTurretPosition, curFrameTurretPose.getOrientation()));
-        if (lastTurretPoses.size() > params.numPrevFramesToAvg)
-            lastTurretPoses.remove(0);
+        lastCameraPoses.add(new Pose3D(curFrameCameraPosition, curFrameCameraPose.getOrientation()));
+        if (lastCameraPoses.size() > params.numPrevFramesToAvg)
+            lastCameraPoses.remove(0);
         else {
             setAllPosesToNull();
             return;
         }
 
-        turretPose = getAvgTurretPose(lastTurretPoses);
-        robotPose = calculateRobotPose(turretPose);
+        cameraPose = getAvgTurretPose(lastCameraPoses);
+        robotPose = calculateRobotPose(cameraPose);
     }
     private void setAllPosesToNull() {
-        turretPose = null;
+        cameraPose = null;
         robotPose = null;
-        rawTurretPose = null;
+        rawCameraPose = null;
         rawRobotPose = null;
     }
     private void updateMaxErrors(Pose2d lastAvgTurretPose, Pose2d curAvgTurretPose) {
@@ -303,14 +303,9 @@ public class LimelightLocalization extends LLParent {
         int num = lastTurretPoses.size();
         return new Pose2d(x / num, y / num, hRad / num);
     }
-    private Pose2d calculateRobotPose(Pose2d turretPose) {
-        int currentTurretPosition = robot.turret.turretMotor.getCurrentPosition();
-        double relTurretAngleRad = Turret.getTurretRelativeAngleRad(currentTurretPosition);
-        double robotHeading = turretPose.heading.toDouble() - relTurretAngleRad;
-        if(robotHeading > Math.PI)
-            robotHeading -= Math.PI * 2;
-        robotTurretVec = new Vector2d(Turret.turretParams.offsetFromCenter * Math.cos(robotHeading), Turret.turretParams.offsetFromCenter * Math.sin(robotHeading));
-        return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
+    private Pose2d calculateRobotPose(Pose2d cameraPose) {
+        Pose2d turretPose = Limelight.getTurretPose(cameraPose);
+        return Turret.getRobotPose(turretPose, robot.turret.turretMotor.getCurrentPosition());
     }
     private boolean canUpdateDrivetrainReliably() {
         OdoInfo odoVel = robot.drive.pinpoint().getMostRecentVelocity();
@@ -338,8 +333,8 @@ public class LimelightLocalization extends LLParent {
         }
 
         if (params.showTurretPoses) {
-            Pose2d limelightTurretPose = turretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(turretPose.position, turretPose.heading);
-            Pose2d rawLimelightTurretPose = rawTurretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(rawTurretPose.position, rawTurretPose.heading);
+            Pose2d limelightTurretPose = cameraPose == null ? new Pose2d(0, 0, 0) : new Pose2d(cameraPose.position, cameraPose.heading);
+            Pose2d rawLimelightTurretPose = rawCameraPose == null ? new Pose2d(0, 0, 0) : new Pose2d(rawCameraPose.position, rawCameraPose.heading);
             fieldOverlay.setStroke("black");
             Drawing.drawRobotSimple(fieldOverlay, limelightTurretPose, 5);
             fieldOverlay.setStroke("gray");
@@ -350,7 +345,7 @@ public class LimelightLocalization extends LLParent {
             fieldOverlay.setStroke("gray");
             Drawing.drawRobot(fieldOverlay, robotPoseToDraw);
 
-            Pose2d limelightTurretPose = turretPose == null ? new Pose2d(0, 0, 0) : new Pose2d(turretPose.position, turretPose.heading);
+            Pose2d limelightTurretPose = cameraPose == null ? new Pose2d(0, 0, 0) : new Pose2d(cameraPose.position, cameraPose.heading);
             Drawing.drawRobotSimple(fieldOverlay, limelightTurretPose, 5);
         }
     }

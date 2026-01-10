@@ -62,7 +62,7 @@ public class Collection extends Component {
         public double flickerHalfUpPos = 0.4;
         public double flickerDownPos = 0.05;
         public double hasBallValidationTime = 1;
-        public double maxTimeBetweenShots = 1;
+        public double maxTimeBetweenShots = 0.5;
         public int offDistanceSensorUpdatePeriod = 3; // when collector is off, waits this number of frames before updating distances sensors
     }
 
@@ -253,10 +253,10 @@ public class Collection extends Component {
     }
 
     private boolean isFrontBallDetected() {
-//        return frontRightLaserDist < params.LASER_BALL_THRESHOLD ||
-//                frontLeftLaserDist < params.LASER_BALL_THRESHOLD;
+        return frontRightLaserDist < params.LASER_BALL_THRESHOLD ||
+                frontLeftLaserDist < params.LASER_BALL_THRESHOLD;
 
-        return frontRightLaserDist < params.LASER_BALL_THRESHOLD;
+//        return frontRightLaserDist < params.LASER_BALL_THRESHOLD;
     }
 
     public boolean intakeHas3Balls() {
