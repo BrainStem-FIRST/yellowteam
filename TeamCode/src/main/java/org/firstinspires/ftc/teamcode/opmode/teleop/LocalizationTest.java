@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.LED;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
@@ -25,7 +26,7 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 @Config
 @TeleOp(name="localization test")
 public class LocalizationTest extends LinearOpMode {
-    public static double startX = -8.8, startY = -7.3, startA = Math.PI;
+    public static double startX = -8.375, startY = -6.875, startA = Math.PI;
     public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true;
     public static boolean useMegaTag2 = false;
     private Limelight3A limelight3A;
@@ -35,6 +36,7 @@ public class LocalizationTest extends LinearOpMode {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
         MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(startX, startY, startA));
+        LED led = new LED(hardwareMap, telemetry, null);
 
         limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
         limelight3A.pipelineSwitch(0);
@@ -75,6 +77,12 @@ public class LocalizationTest extends LinearOpMode {
                 limelight3A.updateRobotOrientation(Math.toDegrees(pinpointTurretPose.heading.toDouble()));
             Pose2d[] limelightPoses = getLimelightPoses(limelight3A.getLatestResult(), turretEncoder);
 
+            if (limelightPoses[0].position.x == 0 && limelightPoses[0].position.y == 0 && limelightPoses[0].heading.toDouble() == 0)
+                led.setLed(LED.red);
+            else
+                led.setLed(LED.green);
+
+
             double xError = pinpointRobotPose.position.x - limelightPoses[0].position.x;
             double yError = pinpointRobotPose.position.y - limelightPoses[0].position.y;
             double translError = Math.hypot(xError, yError);
@@ -84,7 +92,6 @@ public class LocalizationTest extends LinearOpMode {
             maxYError = Math.max(maxYError, yError);
             maxTranslationalError = Math.max(maxTranslationalError, translError);
             maxHeadingErrorRad = Math.max(maxHeadingErrorRad, headingErrorRad);
-
 
             telemetry.addData("reset errors", "gamepad1.a");
             telemetry.addLine("Pinpoint======================");

@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
 public class Collection extends Component {
+    public static double shootOuttakeTimeAuto = 0.12;
     public static double shootOuttakeTime = 0.12;
 
     public enum CollectionState {
@@ -62,7 +63,7 @@ public class Collection extends Component {
         public double flickerHalfUpPos = 0.4;
         public double flickerDownPos = 0.05;
         public double hasBallValidationTime = 1;
-        public double maxTimeBetweenShots = 0.5;
+        public double maxTimeBetweenShots = 0.8;
         public int offDistanceSensorUpdatePeriod = 3; // when collector is off, waits this number of frames before updating distances sensors
     }
 
@@ -97,8 +98,6 @@ public class Collection extends Component {
 
         timer.reset();
         clutch_timer.reset();
-        clutchStateTimer = new ElapsedTime();
-        clutchStateTimer.reset();
     }
 
     public CollectionState getCollectionState() { return collectionState; }
@@ -148,7 +147,6 @@ public class Collection extends Component {
         }
     }
 
-    public final ElapsedTime clutchStateTimer;
     @Override
     public void printInfo() {
         telemetry.addLine("===COLLECTION======");

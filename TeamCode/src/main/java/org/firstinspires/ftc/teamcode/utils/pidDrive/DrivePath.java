@@ -14,7 +14,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.opmode.postCompAutos.AutoPid;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.roadrunner.PinpointLocalizer;
@@ -306,7 +305,7 @@ public class DrivePath implements Action {
 
         boolean setHeadingTangent = (waypoint.params.headingLerpType == PathParams.HeadingLerpType.TANGENT ||
                 waypoint.params.headingLerpType == PathParams.HeadingLerpType.REVERSE_TANGENT)
-                        && waypointDistAway > waypoint.params.tangentHeadingActivateThreshold;
+                        && waypointDistAway > waypoint.params.tangentHeadingDeactivateThreshold;
         double headingDegWaypointError;
         if (setHeadingTangent)
             headingDegWaypointError = Math.toDegrees(curWaypointDirRad) - rHeadingDeg;

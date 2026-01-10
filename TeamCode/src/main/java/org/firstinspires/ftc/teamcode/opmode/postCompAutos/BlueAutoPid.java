@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 
-@Autonomous(name="blue auto pid")
+@Autonomous(name="BLUE AUTO PID")
 public class BlueAutoPid extends AutoPid {
 
     @Override

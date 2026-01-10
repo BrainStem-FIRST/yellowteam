@@ -18,6 +18,8 @@ public class LED extends Component {
     private final ServoImplEx left_led;
     private final ServoImplEx right_led;
     private final ElapsedTime shooterFlashTimer, turretFlashTimer;
+    public double lastPinpointResetTimeMs;
+
     public LED(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
 
@@ -27,6 +29,7 @@ public class LED extends Component {
         shooterFlashTimer.reset();
         turretFlashTimer = new ElapsedTime();
         turretFlashTimer.reset();
+        lastPinpointResetTimeMs = -1000000;
     }
 
     @Override
@@ -41,6 +44,10 @@ public class LED extends Component {
         if (robot.limelight.localization.getPrevState() == LimelightLocalization.LocalizationState.UPDATING_POSE &&
                 robot.limelight.localization.successfullyFoundPose &&
                 robot.limelight.localization.getStateTime() < confirmSuccessfulPoseUpdateTime) {
+            setLed(blue);
+            return;
+        }
+        if (System.currentTimeMillis() - lastPinpointResetTimeMs < 200) {
             setLed(blue);
             return;
         }

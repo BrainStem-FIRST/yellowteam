@@ -49,7 +49,7 @@ public class PathParams {
     protected double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
     protected double applyCloseSpeedPIDError;
     protected HeadingLerpType headingLerpType;
-    protected double tangentHeadingActivateThreshold, applyCloseHeadingPIDErrorDeg;
+    protected double tangentHeadingDeactivateThreshold, applyCloseHeadingPIDErrorDeg;
     protected boolean prioritizeHeadingInBeginning;
     public PathParams() {
         this(defaultParams.bigSpeedKp, defaultParams.smallSpeedKp, defaultParams.speedKi, defaultParams.bigSpeedKd, defaultParams.smallSpeedKd, defaultParams.speedKf, defaultParams.closeHeadingKp, defaultParams.closeHeadingKi, defaultParams.closeHeadingKd, defaultParams.farHeadingKp, defaultParams.farHeadingKi, defaultParams.farHeadingKd, defaultParams.headingKf);
@@ -82,7 +82,7 @@ public class PathParams {
         passPosition = false;
         applyCloseSpeedPIDError = defaultParams.applyCloseSpeedPIDError;
         headingLerpType = defaultParams.headingLerpType;
-        tangentHeadingActivateThreshold = defaultParams.tangentHeadingActivateThreshold;
+        tangentHeadingDeactivateThreshold = defaultParams.tangentHeadingActivateThreshold;
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
         slowDownPercent = 1;
         prioritizeHeadingInBeginning = defaultParams.prioritizeHeadingInBeginning;
@@ -106,7 +106,7 @@ public class PathParams {
         newParams.customEndCondition = customEndCondition;
         newParams.applyCloseSpeedPIDError = applyCloseSpeedPIDError;
         newParams.headingLerpType = headingLerpType;
-        newParams.tangentHeadingActivateThreshold = tangentHeadingActivateThreshold;
+        newParams.tangentHeadingDeactivateThreshold = tangentHeadingDeactivateThreshold;
         newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;
         newParams.prioritizeHeadingInBeginning = prioritizeHeadingInBeginning;
         return newParams;

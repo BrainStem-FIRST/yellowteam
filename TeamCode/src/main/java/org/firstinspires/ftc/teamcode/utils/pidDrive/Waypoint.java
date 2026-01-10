@@ -91,6 +91,10 @@ public class Waypoint {
         params.prioritizeHeadingInBeginning = true;
         return this;
     }
+    public Waypoint setHeadingTangentDeactivateThreshold(double t) {
+        params.tangentHeadingDeactivateThreshold = t;
+        return this;
+    }
 
     @Override
     @NonNull

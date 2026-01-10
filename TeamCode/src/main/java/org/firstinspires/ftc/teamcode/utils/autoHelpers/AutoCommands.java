@@ -26,7 +26,7 @@ public class AutoCommands {
         this.telemetry = telemetry;
     }
 
-    public Action waitTillDoneShooting(double maxTimeBetweenShots) {
+    public Action waitTillDoneShooting(double maxTimeBetweenShots, double minTime) {
         return new Action() {
             private final ElapsedTime distanceSensorTimer = new ElapsedTime();
             private final ElapsedTime timeSinceLastVelDrop = new ElapsedTime();
@@ -55,8 +55,13 @@ public class AutoCommands {
                 if(robot.collection.isBackBallDetected())
                     distanceSensorTimer.reset();
 
+                if(robot.collection.getIntakePower() == Collection.params.SHOOTER_ERROR_INTAKE_SPEED) {
+                    distanceSensorTimer.reset();
+                    timeSinceLastVelDrop.reset();
+                }
+
 //                return totalTimer.seconds() < 2 && timeSinceFirstVelDrop.seconds() < 0.9;
-                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || totalTimer.seconds() < 1 || distanceSensorTimer.seconds() < 0.15;
+                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || totalTimer.seconds() < minTime || distanceSensorTimer.seconds() < 0.15;
 //                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || distanceSensorTimer.seconds() < 0.5;
 //                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }
@@ -124,7 +129,6 @@ public class AutoCommands {
         return packet -> {
             robot.collection.setClutchState(Collection.ClutchState.ENGAGED);
             robot.collection.outtakeAfterClutchEngage = false;
-            robot.collection.clutchStateTimer.reset();
             robot.collection.clutch_timer.reset();
             return false;
         };
@@ -133,7 +137,6 @@ public class AutoCommands {
     public Action disengageClutch() {
         return packet -> {
             robot.collection.setClutchState(Collection.ClutchState.UNENGAGED);
-            robot.collection.clutchStateTimer.reset();
             return false;
         };
     }

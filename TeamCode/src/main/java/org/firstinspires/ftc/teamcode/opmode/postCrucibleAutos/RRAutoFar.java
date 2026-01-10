@@ -232,7 +232,7 @@ public abstract class RRAutoFar extends LinearOpMode {
                 autoCommands.flickerHalfUp(),
                 new SequentialAction(
                         new SleepAction(timeConstraints.minShootTime),
-                        autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots)
+                        autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, 1)
                 ),
                 decideFlicker(),
                 autoCommands.disengageClutch()
@@ -268,7 +268,7 @@ public abstract class RRAutoFar extends LinearOpMode {
                 autoCommands.engageClutch(),
                 autoCommands.flickerHalfUp(),
                 new SleepAction(timeConstraints.minShootTime),
-                autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots),
+                autoCommands.waitTillDoneShooting(Collection.params.maxTimeBetweenShots, 1),
                 decideFlicker(),
                 autoCommands.disengageClutch()
         );

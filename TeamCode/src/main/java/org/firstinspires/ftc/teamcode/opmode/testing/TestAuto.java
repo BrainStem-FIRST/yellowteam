@@ -51,7 +51,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5)
+                                autoCommands.waitTillDoneShooting(1.5, 1)
                         ),
                         autoCommands.disengageClutch(),
                         new DrivePath(drive, telemetry, new Waypoint(collect1)),
@@ -68,7 +68,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5)
+                                autoCommands.waitTillDoneShooting(1.5, 1)
                         ),
                         new DrivePath(drive, telemetry, collect2w1, new Waypoint(collect2)),
                         autoCommands.intakeSlow(),
@@ -85,7 +85,7 @@ public class TestAuto extends LinearOpMode {
                         autoCommands.flickerHalfUp(),
                         new SequentialAction(
                                 new SleepAction(0.5),
-                                autoCommands.waitTillDoneShooting(1.5)
+                                autoCommands.waitTillDoneShooting(1.5, 1)
                         ),
                         autoCommands.disengageClutch()
                 ),

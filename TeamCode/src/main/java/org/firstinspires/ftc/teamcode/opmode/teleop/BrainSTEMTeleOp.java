@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
 import static org.firstinspires.ftc.teamcode.subsystems.Shooter.ShooterState.REVERSE_FULL;
+import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -30,6 +31,8 @@ import java.util.List;
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
     public static boolean printCollector = false, printShooter = false, printTurret = true, printLimelight = false;
+    public static double[] blueCornerResetPose = { 64.25, 62.75, -90 };
+    public static double[] redCornerResetPose = { 64.25, -62.75, 90 };
     public static double firstShootTolerance = 40;
 
     public enum PosePredictType {
@@ -164,7 +167,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 robot.collection.setClutchState(Collection.ClutchState.UNENGAGED);
             else
                 robot.collection.setClutchState(Collection.ClutchState.ENGAGED);
-            robot.collection.clutchStateTimer.reset();
         }
 
         if (gp1.isFirstRightBumper())
@@ -217,20 +219,25 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         if (gp2.isFirstDpadDown())
             robot.shooter.changeVelocityAdjustment(-10);
 
-        if (gp2.isFirstY()) {
-            if (robot.parking.getParkState() == Parking.ParkState.EXTENDED)
-                robot.turret.turretState = Turret.TurretState.PARK;
-            else
-                robot.parking.setParkState(Parking.ParkState.EXTENDED);
-            robot.shooter.shooterState = REVERSE_FULL;
-        }
+//        if (gp2.isFirstY()) {
+//            if (robot.parking.getParkState() == Parking.ParkState.EXTENDED)
+//                robot.turret.turretState = Turret.TurretState.PARK;
+//            else
+//                robot.parking.setParkState(Parking.ParkState.EXTENDED);
+//            robot.shooter.shooterState = REVERSE_FULL;
+//        }
 
         if(gp2.isFirstRightBumper()) {
             robot.limelight.localization.manualPoseUpdate = true;
             robot.limelight.localization.setState(LimelightLocalization.LocalizationState.UPDATING_POSE);
         }
-        if (gp2.isFirstBack())
-            robot.limelight.takePic();
+        if (gp2.isFirstRightTrigger()) {
+            Pose2d resetPose = createPose(alliance == Alliance.RED ? redCornerResetPose : blueCornerResetPose);
+            robot.drive.pinpoint().setPose(resetPose);
+            robot.led.lastPinpointResetTimeMs = System.currentTimeMillis();
+        }
+//        if (gp2.isFirstBack())
+//            robot.limelight.takePic();
     }
     private void updateDashboardField() {
         TelemetryPacket packet = new TelemetryPacket();

@@ -20,8 +20,8 @@ public class Turret extends Component {
         public boolean actuallyPowerTurret = true;
     }
     public static class GoalParams {
-        public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 63, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
-        public double nearBlueShotsGoalX = -66, nearBlueShotsGoalY = -64, farBlueShotsGoalX = -67, farBlueShotsGoalY = -63;
+        public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 65, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
+        public double nearBlueShotsGoalX = -66, nearBlueShotsGoalY = -65, farBlueShotsGoalX = -67, farBlueShotsGoalY = -63;
     }
     public static class Params {
         public double offsetFromCenter = 3.442; // offset of center of turret from center of robot in inches
