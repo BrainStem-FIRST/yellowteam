@@ -45,18 +45,19 @@ public class AutoCommands {
                     totalTimer.reset();
                 }
 
-//                if (oldBallsShot != robot.shooter.getBallsShot())
-//                    timeSinceLastVelDrop.reset();
+                if (oldBallsShot != robot.shooter.getBallsShot())
+                    timeSinceLastVelDrop.reset();
                 if(robot.shooter.getBallsShot() == 0)
                     timeSinceFirstVelDrop.reset();
-//                oldBallsShot = robot.shooter.getBallsShot();
+                oldBallsShot = robot.shooter.getBallsShot();
 //                telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());
 
                 if(robot.collection.isBackBallDetected())
                     distanceSensorTimer.reset();
 
 //                return totalTimer.seconds() < 2 && timeSinceFirstVelDrop.seconds() < 0.9;
-                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || distanceSensorTimer.seconds() < 0.5;
+                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || totalTimer.seconds() < 1 || distanceSensorTimer.seconds() < 0.15;
+//                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || distanceSensorTimer.seconds() < 0.5;
 //                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }
         };

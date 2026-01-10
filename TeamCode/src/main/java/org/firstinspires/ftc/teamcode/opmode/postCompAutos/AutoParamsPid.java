@@ -5,14 +5,14 @@ import org.firstinspires.ftc.teamcode.utils.pidDrive.Tolerance;
 
 public class AutoParamsPid {
     public static class Collect {
-        public double collectDrivePower = 0.53, waypointSlowDown = 0.4;
+        public double collectDrivePower = 0.53, firstDrivePower = 0.99, waypointSlowDown = 0.4;
         public double collectWaypointTolX = 1, collectWaypointTolY = 2, collectWaypointTolHeading = 7;
         public Tolerance waypointTol = new Tolerance(collectWaypointTolX, collectWaypointTolY, collectWaypointTolHeading);
         public double lineARed = Math.toRadians(90), lineABlue = Math.toRadians(-90);
-        public double firstXRed = -12, preFirstYRed = 31, postFirstYRed = 49;
-        public double firstXBlue = -12, preFirstYBlue = -31, postFirstYBlue = -49;
-        public double secondXRed = 12, preSecondYRed = 27.5, postSecondYRed = 48;
-        public double secondXBlue = 12, preSecondYBlue = -28, postSecondYBlue = -48;
+        public double firstXRed = -12, preFirstYRed = 31, postFirstYRed = 50;
+        public double firstXBlue = -12, preFirstYBlue = -31, postFirstYBlue = -50;
+        public double secondXRed = 12, preSecondYRed = 27.5, postSecondYRed = 47;
+        public double secondXBlue = 12, preSecondYBlue = -28, postSecondYBlue = -47;
         public double thirdXRed = 36, preThirdYRed = 28, postThirdYRed = 52;
         public double thirdXBlue = 36, preThirdYBlue = -30, postThirdYBlue = -52;
         public double preCollect2NearRedXOffset = 4, preCollect2NearBlueXOffset = 2.5, preCollect3NearXOffset = 4;
@@ -29,7 +29,7 @@ public class AutoParamsPid {
         public double gateCollectWaypointXRed = 0, gateCollectWaypointYRed = 34;
         public double gateCollectWaypointXBlue = 0, gateCollectWaypointYBlue = -34;
         public double gateCollectLateralWeight = 2.8, gateShootAxialWeight = 1.2;
-        public double gateCollectMinPower = 0.2;
+        public double gateCollectMinPower = 0.3;
         public double gateCollectOpenXRed = 7, gateCollectOpenYRed = 61, gateCollectOpenARed = Math.toRadians(116);
         public double gateCollectOpenXBlue = 7, gateCollectOpenYBlue = -61, gateCollectOpenABlue = Math.toRadians(-116);
         public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
@@ -44,16 +44,16 @@ public class AutoParamsPid {
 
         public double maxFirstShootHeadingPower = 0.5;
         // shooting positions
-        public double shootNearXRed = -15, shootNearYRed = 23, shootNearXBlue = -15, shootNearYBlue = -23;
-        public double shootNearLastXRed = -25, shootNearLastYRed = 12, shootNearLastXBlue = -25, shootNearLastYBlue = -12;
+        public double shootNearXRed = -17, shootNearYRed = 23, shootNearXBlue = -17, shootNearYBlue = -23;
+        public double shootNearLastXRed = -30, shootNearLastYRed = 16, shootNearLastXBlue = -30, shootNearLastYBlue = -16;
         public double shootMidLastXRed = -23, shootMidLastYRed = 15, shootMidLastXBlue = -23, shootMidLastYBlue = -15;
         public double shootMidXRed = -8, shootMidYRed = 18.5, shootMidXBlue = -8, shootMidYBlue = -18.5;
         public double shootFarXRed = 54, shootFarYRed = 16, shootFarXBlue = 54, shootFarYBlue = -16;
 
         // custom shooting angles
-        public double shootNearSetup1ARed = Math.toRadians(80), shootNearSetup2ARed = Math.toRadians(60), shootNearSetupGateARed = Math.toRadians(80), shootNearSetup3ARed = Math.toRadians(60), shootNearSetupLoadingARed = Math.toRadians(60);
+        public double shootNearSetup1ARed = Math.toRadians(65), shootNearLastSetup1ARed = Math.toRadians(75), shootNearSetup2ARed = Math.toRadians(60), shootNearSetupGateARed = Math.toRadians(80), shootNearSetup3ARed = Math.toRadians(60), shootNearSetupLoadingARed = Math.toRadians(60);
         public double shootFarSetup1ARed = Math.toRadians(180), shootFarSetup2ARed = Math.toRadians(170), shootFarSetup3ARed = Math.toRadians(150), shootFarSetupLoadingARed = Math.toRadians(95);
-        public double shootNearSetup1ABlue = Math.toRadians(-80), shootNearSetup2ABlue = Math.toRadians(-70), shootNearSetupGateABlue = Math.toRadians(-80), shootNearSetup3ABlue = Math.toRadians(-60), shootNearSetupLoadingABlue = Math.toRadians(-60);
+        public double shootNearSetup1ABlue = Math.toRadians(-65), shootNearLastSetup1ABlue = Math.toRadians(-75), shootNearSetup2ABlue = Math.toRadians(-70), shootNearSetupGateABlue = Math.toRadians(-80), shootNearSetup3ABlue = Math.toRadians(-60), shootNearSetupLoadingABlue = Math.toRadians(-60);
         public double shootFarSetup1ABlue = Math.toRadians(-180), shootFarSetup2ABlue = Math.toRadians(-170), shootFarSetup3ABlue = Math.toRadians(-150), shootFarSetupLoadingABlue = Math.toRadians(-95);
 
         // shooting path waypoints to not hit other balls
@@ -65,10 +65,10 @@ public class AutoParamsPid {
     }
 
     public static class Misc {
-        public double startNearXRed = -61.5, startNearYRed = 41.1, startNearARed = 0,
-                startNearXBlue = -61.5, startNearYBlue = -41.1, startNearABlue = 0;
-        public double startFarXRed = 60.8, startFarYRed = 15.4, startFarARed = Math.toRadians(180),
-                startFarXBlue = 60.85, startFarYBlue = -19.2, startFarABlue = Math.toRadians(-180);
+        public double startNearXRed = -61.5, startNearYRed = 41.1, startNearARed = Math.toRadians(0),
+                startNearXBlue = -61.5, startNearYBlue = -41.1, startNearABlue = Math.toRadians(0);
+        public double startFarXRed = 63, startFarYRed = 16.9, startFarARed = Math.toRadians(180),
+                startFarXBlue = 63, startFarYBlue = -16.9, startFarABlue = Math.toRadians(180);
         public double gate1XRed = -3, gate2XRed = 5, gateYRed = 57;
         public double gate1XBlue = -3, gate2XBlue = 5, gateYBlue = -57;
         public double gateARed = Math.toRadians(90), gateABlue = Math.toRadians(-90);
@@ -91,6 +91,9 @@ public class AutoParamsPid {
         public double stopEverythingTime = 35;
         public double postIntakeTime = 0.4, loadingSlowIntakeTime = 1;
 
+    }
+    public static class CustomPIDs {
+        public double aggrKp = 0;
     }
 }
 
