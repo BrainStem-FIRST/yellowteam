@@ -13,6 +13,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 @Config
 public class Collection extends Component {
     public static double shootOuttakeTimeAuto = 0.12;
+    public static double postShootOuttakeWaitAuto = 0.1;
     public static double shootOuttakeTime = 0.12;
 
     public enum CollectionState {

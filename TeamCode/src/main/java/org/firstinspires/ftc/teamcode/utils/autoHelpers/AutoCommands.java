@@ -9,7 +9,6 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
@@ -31,9 +30,10 @@ public class AutoCommands {
             private final ElapsedTime distanceSensorTimer = new ElapsedTime();
             private final ElapsedTime timeSinceLastVelDrop = new ElapsedTime();
             private final ElapsedTime totalTimer = new ElapsedTime();
-            private final ElapsedTime timeSinceFirstVelDrop = new ElapsedTime();
+            private final ElapsedTime timeSinceIntakeSwitch = new ElapsedTime();
             private int oldBallsShot;
             private boolean first = true;
+            boolean alreadyOuttaked = false;
 
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
@@ -47,8 +47,6 @@ public class AutoCommands {
 
                 if (oldBallsShot != robot.shooter.getBallsShot())
                     timeSinceLastVelDrop.reset();
-                if(robot.shooter.getBallsShot() == 0)
-                    timeSinceFirstVelDrop.reset();
                 oldBallsShot = robot.shooter.getBallsShot();
 //                telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());
 
@@ -60,8 +58,18 @@ public class AutoCommands {
                     timeSinceLastVelDrop.reset();
                 }
 
+                if(!alreadyOuttaked && totalTimer.seconds() > 1 && robot.shooter.getBallsShot() == 0 && robot.collection.getCollectionState() == Collection.CollectionState.INTAKE) {
+                    robot.collection.setCollectionState(Collection.CollectionState.OUTTAKE);
+                    timeSinceIntakeSwitch.reset();
+                    timeSinceLastVelDrop.reset();
+                    alreadyOuttaked = true;
+                }
+                if(alreadyOuttaked && timeSinceIntakeSwitch.seconds() > Collection.shootOuttakeTimeAuto)
+                    robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
+
+                boolean done = totalTimer.seconds() > 3.5 || ((robot.shooter.getBallsShot() == 3 || timeSinceLastVelDrop.seconds() > 1.1) && distanceSensorTimer.seconds() >= 0.15);
 //                return totalTimer.seconds() < 2 && timeSinceFirstVelDrop.seconds() < 0.9;
-                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || totalTimer.seconds() < minTime || distanceSensorTimer.seconds() < 0.15;
+                return !done;
 //                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || distanceSensorTimer.seconds() < 0.5;
 //                return timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && timer.seconds() < intakeCurrentValidationTime && robot.shooter.getBallsShot() < 3;
             }

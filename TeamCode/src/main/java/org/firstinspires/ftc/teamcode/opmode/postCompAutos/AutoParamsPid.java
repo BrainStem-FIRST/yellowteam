@@ -6,12 +6,12 @@ import org.firstinspires.ftc.teamcode.utils.pidDrive.Tolerance;
 public class AutoParamsPid {
     public static class Collect {
         public double loadingZoneCollectDrivePower = 0.3;
-        public double collectDrivePower = 0.53, firstDrivePower = 0.99, waypointSlowDown = 0.4, farWaypointSlowDown = 0.7;
+        public double collectDrivePower = 0.53, firstDrivePower = 0.6, waypointSlowDown = 0.4, farWaypointSlowDown = 0.8;
         public double collectWaypointTolX = 0.75, collectWaypointTolY = 2, collectWaypointTolHeading = 7;
         public Tolerance waypointTol = new Tolerance(collectWaypointTolX, collectWaypointTolY, collectWaypointTolHeading);
         public double lineARed = Math.toRadians(90), lineABlue = Math.toRadians(-90);
-        public double firstXRed = -12, preFirstYRed = 31, postFirstYRed = 48.5;
-        public double firstXBlue = -12, preFirstYBlue = -31, postFirstYBlue = -48.5;
+        public double firstXRed = -11.5, preFirstYRed = 31, postFirstYRed = 48.5;
+        public double firstXBlue = -11.5, preFirstYBlue = -31, postFirstYBlue = -48.5;
         public double secondXRed = 12, preSecondYRed = 27.5, postSecondYRed = 47.5;
         public double secondXBlue = 12, preSecondYBlue = -27.5, postSecondYBlue = -47.5;
         public double thirdXRed = 36, preThirdYRed = 28, postThirdYRed = 52;
@@ -29,8 +29,8 @@ public class AutoParamsPid {
         public Tolerance gateCollectTol = new Tolerance(gateCollectDistTol, gateCollectHeadingTol);
         public double gateCollectLateralWeight = 2.8, gateShootAxialWeight = 1.2;
         public double gateCollectMinPower = 0.4;
-        public double gateCollectOpenFarXRed = 7, gateCollectOpenFarYRed = 61, gateCollectOpenFarARed = Math.toRadians(116);
-        public double gateCollectOpenFarXBlue = 7, gateCollectOpenFarYBlue = -61, gateCollectOpenFarABlue = Math.toRadians(-116);
+        public double gateCollectOpenFarXRed = 8, gateCollectOpenFarYRed = 61, gateCollectOpenFarARed = Math.toRadians(116);
+        public double gateCollectOpenFarXBlue = 8, gateCollectOpenFarYBlue = -61, gateCollectOpenFarABlue = Math.toRadians(-116);
         public double[] gateCollectOpenNearRed = { 5, 61, 116 };
         public double[] gateCollectOpenNearBlue = { 5, -61, -116 };
         public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
@@ -88,9 +88,9 @@ public class AutoParamsPid {
         public double gateOpeningWait = 0.5;
         public double gateCollectMaxTime = 1;
         public double cornerCollectMaxTime = 1.9;
-        public double nearAutoEndTime = 29.5, farAutoEndTime = 29;
+        public double autoEndTime = 29.5;
         public double stopEverythingTime = 35;
-        public double postIntakeTime = 0.4, loadingSlowIntakeTime = 1;
+        public double postIntakeTime = 0.7, loadingSlowIntakeTime = 1;
         public double shootNearMinTime = 0.7, shootFarMinTime = 1.5;
 
     }
