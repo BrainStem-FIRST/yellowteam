@@ -28,8 +28,8 @@ public class Collection extends Component {
         FULL_UP, DOWN, HALF_UP_DOWN, FULL_UP_DOWN
     }
     public final DcMotorEx collectorMotor;
-    private final ServoImplEx clutchLeft;
-    private final ServoImplEx clutchRight;
+    public final ServoImplEx clutchLeft;
+    public final ServoImplEx clutchRight;
     public ServoImplEx flickerRight;
     private final ServoImplEx flickerLeft;
 

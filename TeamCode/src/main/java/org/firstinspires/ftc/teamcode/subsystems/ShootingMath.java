@@ -5,8 +5,6 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
@@ -68,14 +66,18 @@ public class ShootingMath {
         );
     }
 
-    // what this is used for as of 11/23
-    // calculating hood angle
-    // raw subsystem testing telemetry
-    public static double calculateExitHeightMeters(boolean useHighArc) {
-        double hoodAngleRad = Math.toRadians(useHighArc ? hoodSystemParams.highArcHoodAngleDegEstimation : hoodSystemParams.lowArcHoodAngleDegEstimation);
-        return shooterSystemParams.flywheelHeightMeters + (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) * Math.sin(hoodAngleRad);
+    // approximates ball exit height to avoid hood jitter in tele
+    public static double approximateExitHeightMeters(boolean useHighArc) {
+        double hoodAngleDeg = useHighArc ? hoodSystemParams.highArcHoodAngleDegEstimation : hoodSystemParams.lowArcHoodAngleDegEstimation;
+        double exitAngleRad = Math.toRadians(90 - hoodAngleDeg);
+        return calculateExactExitHeightMeters(exitAngleRad);
     }
 
+    // calculates exact ball exit height
+    public static double calculateExactExitHeightMeters(double exitAngleRad) {
+        double hoodAngleRad = Math.PI * 0.5 - exitAngleRad;
+        return shooterSystemParams.flywheelHeightMeters + (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) * Math.sin(hoodAngleRad);
+    }
     // finds exit speed of ball (meters per sec) if flywheel is spinning at ticksPerSec
     public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double powerLossCoefficient) {
         double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;

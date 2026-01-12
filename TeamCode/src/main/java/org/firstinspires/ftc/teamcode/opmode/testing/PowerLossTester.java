@@ -5,95 +5,126 @@ import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
 @TeleOp(name="Power Loss Tester", group="Testing")
 @Config
 public class PowerLossTester extends OpMode {
-    public static double gravityAcceleration = 9.81;
-    public static boolean useHighArc = false;
-    public static double exitAngleRad = 0;
-    public static double targetShooterVelocityTicksPerSec = 0;
-    public static double[] startPose = { 0, 0, 0 };
-    public static double[] distanceInches = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+    public static class Controls {
+        public double targetShooterVelocityTicksPerSec = 0;
+        public double ballExitAngleRad = 0;
+        public boolean powerShooter = true;
+    }
+    public static class Experiment {
+        public double gravityAcceleration = 9.81;
+        public double[] startPose = { 0, 0, 0 };
+
+        // represents distances the the balls landed from the center of the robot
+        public double[] distanceInches = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+    }
+    public static Controls controls = new Controls();
+    public static Experiment experiment = new Experiment();
+
     private BrainSTEMRobot robot;
 
-
-    double avgDistInches, avgDistMeters;
+    double avgDistMeters, changeInYMeters;
     double shooterVelTicksPerSec, shooterVelMetersPerSec;
-    double[] theoreticalDistInches, theoreticalDistMeters;
-    double actualExitVelocityMetersPerSecFromMath;
+    double[] theoreticalDistMeters;
+    double actualExitVelocityMetersPerSecUsingRealWorldData;
     double powerLossCoefficient;
-    double actualExitVelocityMetersPerSec;
+    double actualExitVelocityMetersPerSecUsingPowerLoss;
     double[] expectedDistancesOfTravel;
 
     @Override
     public void init() {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(20);
-        robot = new BrainSTEMRobot(Alliance.RED, telemetry, hardwareMap, createPose(startPose));
+        robot = new BrainSTEMRobot(Alliance.RED, telemetry, hardwareMap, createPose(experiment.startPose));
+
+        robot.collection.clutchRight.setPosition(Collection.params.ENGAGED_POS);
+        robot.collection.clutchLeft.setPosition(Collection.params.ENGAGED_POS);
     }
     @Override
     public void loop() {
-        if (targetShooterVelocityTicksPerSec != 0) {
-            double currentShooterVelocityTicksPerSec = robot.shooter.getAvgMotorVelocity();
-            robot.shooter.setShooterVelocityPID(targetShooterVelocityTicksPerSec, currentShooterVelocityTicksPerSec);
-            robot.shooter.setHoodPosition(ShootingMath.calculateHoodServoPosition(exitAngleRad));
+        if (gamepad1.aWasPressed())
+            controls.powerShooter = !controls.powerShooter;
 
-            double changeInYMeters = -ShootingMath.calculateExitHeightMeters(useHighArc);
+        double collectPower = controls.powerShooter ? Collection.params.INTAKE_SPEED : 0;
+        robot.collection.collectorMotor.setPower(collectPower);
 
-            avgDistInches = calculateAvgDist(distanceInches);
-            avgDistMeters = avgDistInches * 0.0254;
-
+        if (controls.targetShooterVelocityTicksPerSec == 0 || !controls.powerShooter)
+            robot.shooter.setShooterPower(0);
+        else {
             shooterVelTicksPerSec = robot.shooter.getAvgMotorVelocity();
-            shooterVelMetersPerSec = ShootingMath.ticksPerSecToExitSpeedMps(currentShooterVelocityTicksPerSec, 1);
+            robot.shooter.setShooterVelocityPID(controls.targetShooterVelocityTicksPerSec, shooterVelTicksPerSec);
+            robot.shooter.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
 
-            theoreticalDistMeters = calculateExpectedDistanceOfTravel(changeInYMeters, exitAngleRad, shooterVelMetersPerSec);
-            theoreticalDistInches = new double[]{theoreticalDistMeters[0] / 0.0254, theoreticalDistMeters[1] / 0.0254};
-
-            if (avgDistInches > 0 && shooterVelMetersPerSec > 0) {
-                actualExitVelocityMetersPerSecFromMath = calculateActualExitVelocity(avgDistMeters, changeInYMeters, exitAngleRad);
-                powerLossCoefficient = actualExitVelocityMetersPerSecFromMath / shooterVelMetersPerSec;
-                actualExitVelocityMetersPerSec = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity(), powerLossCoefficient);
-                expectedDistancesOfTravel = calculateExpectedDistanceOfTravel(changeInYMeters, exitAngleRad, actualExitVelocityMetersPerSec);
+            avgDistMeters = calculateAvgDist(experiment.distanceInches) * 0.0254;
+            if (avgDistMeters < 0) {
+                telemetry.addLine("input distances are not valid");
+                telemetry.update();
+                return;
             }
+
+            // change in y = final y - initial y
+            changeInYMeters = ShootingMath.shooterSystemParams.ballRadiusMeters - ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
+
+            shooterVelMetersPerSec = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, 1);
+
+            theoreticalDistMeters = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, shooterVelMetersPerSec);
+
+            actualExitVelocityMetersPerSecUsingRealWorldData = calculateActualExitVelocity(avgDistMeters, changeInYMeters, controls.ballExitAngleRad);
+            if (actualExitVelocityMetersPerSecUsingRealWorldData < 0) {
+                telemetry.addLine("actual exit velocity using real world data is not valid");
+                telemetry.update();
+                return;
+            }
+
+            powerLossCoefficient = actualExitVelocityMetersPerSecUsingRealWorldData / shooterVelMetersPerSec;
+            actualExitVelocityMetersPerSecUsingPowerLoss = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, powerLossCoefficient);
+            expectedDistancesOfTravel = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, actualExitVelocityMetersPerSecUsingPowerLoss);
+
+            telemetry.addLine("CALCULATIONS============");
+            telemetry.addData("change in Y from ball exit position (meters)", changeInYMeters);
+            telemetry.addData("average recorded landing distance from ball exit position (meters)", MathUtils.format3(avgDistMeters));
+            telemetry.addData("average theoretical landing distance without power loss (meters)", MathUtils.format3(theoreticalDistMeters));
+            telemetry.addLine();
+            telemetry.addData("shooter angular velocity ticks per sec", MathUtils.format3(shooterVelTicksPerSec));
+            telemetry.addData("shooter tangential velocity meters per sec", MathUtils.format3(shooterVelMetersPerSec));
+            telemetry.addData("actual ball exit velocity using real world data (meters per sec)", MathUtils.format3(actualExitVelocityMetersPerSecUsingRealWorldData));
+            telemetry.addData("actual ball exit velocity using power loss (meters per sec)", MathUtils.format3(actualExitVelocityMetersPerSecUsingPowerLoss));
+            telemetry.addLine();
+            telemetry.addData("expected distance of travel 1 with power loss (meters)", MathUtils.format3(expectedDistancesOfTravel[0]));
+            telemetry.addData("expected distance of travel 2 with power loss (meters)", MathUtils.format3(expectedDistancesOfTravel[1]));
+            telemetry.addLine();
+            telemetry.addData("calculated power loss coefficient", MathUtils.format(powerLossCoefficient, 8));
+
+            telemetry.update();
         }
-
-        telemetry.addLine("ROBOT DATA===============");
-        telemetry.addData("shooter velocity ticks per sec", MathUtils.format3(shooterVelTicksPerSec));
-        telemetry.addData("shooter tangential velocity meters per sec", MathUtils.format3(shooterVelMetersPerSec));
-        telemetry.addData("actual ball exit velocity meters per sec", MathUtils.format3(actualExitVelocityMetersPerSec));
-        telemetry.addData("expected distance of travel 1", MathUtils.format3(expectedDistancesOfTravel[0]));
-        telemetry.addData("expected distance of travel 2", MathUtils.format3(expectedDistancesOfTravel[1]));
-
-        telemetry.addLine("REAL WORLD DATA============");
-        telemetry.addData("average recorded landing distance (inches)", MathUtils.format3(avgDistInches));
-        telemetry.addData("average recorded landing distance (meters)", MathUtils.format3(avgDistMeters));
-
-        telemetry.addLine("THEORETICAL DATA============");
-        telemetry.addData("theoretical landing distance (inches)", MathUtils.format3(theoreticalDistInches));
-        telemetry.addData("theoretical landing distance (meters)", MathUtils.format3(theoreticalDistMeters));
-        telemetry.addLine();
-        telemetry.addData("power loss coefficient", MathUtils.format(powerLossCoefficient, 8));
-
-        telemetry.update();
     }
 
     private double calculateAvgDist(double[] distances) {
+        // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
+        Vector2d exitPosition = ShootingMath.calculateExitPositionInches(createPose(experiment.startPose), 0, controls.ballExitAngleRad);
+        double xOffset = exitPosition.x;
+
         double total = 0;
         int numDists = 0;
         for (double dist : distances) {
             if (dist < 0)
                 continue;
-
             numDists++;
-            total += dist;
+
+            double actualDist = dist - xOffset;
+            total += actualDist;
         }
         if (numDists == 0)
             return -1;
@@ -106,11 +137,11 @@ public class PowerLossTester extends OpMode {
         double denominator = 2 * cosTheta * cosTheta * (distanceMeters * tanTheta - changeInYMeters);
         if (denominator <= 0)
             return -1;
-        double numerator = gravityAcceleration * distanceMeters * distanceMeters;
+        double numerator = experiment.gravityAcceleration * distanceMeters * distanceMeters;
         return Math.sqrt(numerator / denominator);
     }
     private double[] calculateExpectedDistanceOfTravel(double changeInYMeters, double exitAngleRad, double actualExitVelMetersPerSec) {
-        double g = gravityAcceleration;
+        double g = experiment.gravityAcceleration;
         double y = changeInYMeters;
         double v = actualExitVelMetersPerSec;
         double cosTheta = Math.cos(exitAngleRad);
