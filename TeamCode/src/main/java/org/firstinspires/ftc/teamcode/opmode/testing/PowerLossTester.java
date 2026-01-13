@@ -68,11 +68,8 @@ public class PowerLossTester extends OpMode {
             robot.shooter.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
 
             avgDistMeters = calculateAvgDist(experiment.distanceInches) * 0.0254;
-            if (avgDistMeters < 0) {
-                telemetry.addLine("input distances are not valid");
-                telemetry.update();
-                return;
-            }
+            if (avgDistMeters < 0)
+                telemetry.addLine("__INPUT DISTANCES ARE NOT VALID");
 
             // change in y = final y - initial y
             changeInYMeters = ShootingMath.shooterSystemParams.ballRadiusMeters - ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
@@ -89,9 +86,12 @@ public class PowerLossTester extends OpMode {
             }
 
             powerLossCoefficient = actualExitVelocityMetersPerSecUsingRealWorldData / shooterVelMetersPerSec;
-            actualExitVelocityMetersPerSecUsingPowerLoss = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, powerLossCoefficient);
-            expectedDistancesOfTravel = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, actualExitVelocityMetersPerSecUsingPowerLoss);
+            actualExitVelocityMetersPerSecUsingPowerLoss = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, powerLossCoefficient); // this should equal actualExitVelocityMetersPerSecUsingRealWorldData
+            expectedDistancesOfTravel = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, actualExitVelocityMetersPerSecUsingPowerLoss); // this should equal avgDistMeters
 
+            telemetry.addLine("MISC=====");
+            telemetry.addData("left hood pos", robot.shooter.hoodLeftServo.getPosition());
+            telemetry.addLine();
             telemetry.addLine("CALCULATIONS============");
             telemetry.addData("change in Y from ball exit position (meters)", changeInYMeters);
             telemetry.addData("average recorded landing distance from ball exit position (meters)", MathUtils.format3(avgDistMeters));
@@ -114,7 +114,7 @@ public class PowerLossTester extends OpMode {
     private double calculateAvgDist(double[] distances) {
         // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
         Vector2d exitPosition = ShootingMath.calculateExitPositionInches(createPose(experiment.startPose), 0, controls.ballExitAngleRad);
-        double xOffset = exitPosition.x;
+        double xOffset = exitPosition.x - BrainSTEMRobot.length / 2.; // should set up tape measurer at the front of robot (where intake is)
 
         double total = 0;
         int numDists = 0;
@@ -140,10 +140,10 @@ public class PowerLossTester extends OpMode {
         double numerator = experiment.gravityAcceleration * distanceMeters * distanceMeters;
         return Math.sqrt(numerator / denominator);
     }
-    private double[] calculateExpectedDistanceOfTravel(double changeInYMeters, double exitAngleRad, double actualExitVelMetersPerSec) {
+    private double[] calculateExpectedDistanceOfTravel(double changeInYMeters, double exitAngleRad, double exitVelMetersPerSec) {
         double g = experiment.gravityAcceleration;
         double y = changeInYMeters;
-        double v = actualExitVelMetersPerSec;
+        double v = exitVelMetersPerSec;
         double cosTheta = Math.cos(exitAngleRad);
         double tanTheta = Math.tan(exitAngleRad);
 
