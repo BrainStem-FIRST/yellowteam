@@ -10,4 +10,7 @@ public class UtilFunctions {
             throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");
         return new Pose2d(pose[0], pose[1], Math.toRadians(pose[2]));
     }
+    public static double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
+    }
 }

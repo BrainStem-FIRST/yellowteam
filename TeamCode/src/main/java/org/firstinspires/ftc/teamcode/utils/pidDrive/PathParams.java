@@ -3,7 +3,11 @@ package org.firstinspires.ftc.teamcode.utils.pidDrive;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.Vector2d;
 
+import org.firstinspires.ftc.teamcode.utils.math.Vec;
+
+import java.util.Vector;
 import java.util.function.BooleanSupplier;
 
 @Config
@@ -12,6 +16,10 @@ public class PathParams {
         LINEAR,
         TANGENT,
         REVERSE_TANGENT
+    }
+    protected enum PathType {
+        NORMAL,
+        CURVED
     }
     private static final double noMaxTime = -1;
 
@@ -27,6 +35,8 @@ public class PathParams {
         public double minHeadingSpeed = 0, maxHeadingSpeed = 1;
         public double maxTime = 100;
         public HeadingLerpType headingLerpType = HeadingLerpType.LINEAR;
+        public PathType pathType = PathType.NORMAL;
+        public double tValueMaxOutTime = 1;
         public double tangentHeadingActivateThreshold = 23;
         public boolean prioritizeHeadingInBeginning = false;
         public double prioritizeHeadingThresholdDeg = 5, maxLinearPowerWhilePrioritizingHeading = 0.5;
@@ -49,6 +59,9 @@ public class PathParams {
     protected double closeHeadingKp, closeHeadingKi, closeHeadingKd, farHeadingKp, farHeadingKi, farHeadingKd, headingKf;
     protected double applyCloseSpeedPIDError;
     protected HeadingLerpType headingLerpType;
+    protected PathType pathType;
+    protected Vector2d controlPoint;
+    protected double tValueMaxOutTime;
     protected double tangentHeadingDeactivateThreshold, applyCloseHeadingPIDErrorDeg;
     protected boolean prioritizeHeadingInBeginning;
     public PathParams() {
@@ -82,10 +95,13 @@ public class PathParams {
         passPosition = false;
         applyCloseSpeedPIDError = defaultParams.applyCloseSpeedPIDError;
         headingLerpType = defaultParams.headingLerpType;
+        pathType = defaultParams.pathType;
+        tValueMaxOutTime = defaultParams.tValueMaxOutTime;
         tangentHeadingDeactivateThreshold = defaultParams.tangentHeadingActivateThreshold;
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
         slowDownPercent = 1;
         prioritizeHeadingInBeginning = defaultParams.prioritizeHeadingInBeginning;
+        controlPoint = new Vector2d(0, 0);
     }
     public boolean hasMaxTime() {
         return maxTime != noMaxTime;
@@ -106,6 +122,9 @@ public class PathParams {
         newParams.customEndCondition = customEndCondition;
         newParams.applyCloseSpeedPIDError = applyCloseSpeedPIDError;
         newParams.headingLerpType = headingLerpType;
+        newParams.pathType = pathType;
+        newParams.tValueMaxOutTime = tValueMaxOutTime;
+        newParams.controlPoint = new Vector2d(controlPoint.x, controlPoint.y);
         newParams.tangentHeadingDeactivateThreshold = tangentHeadingDeactivateThreshold;
         newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;
         newParams.prioritizeHeadingInBeginning = prioritizeHeadingInBeginning;

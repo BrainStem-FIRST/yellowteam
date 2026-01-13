@@ -4,6 +4,7 @@ package org.firstinspires.ftc.teamcode.utils.pidDrive;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
@@ -93,6 +94,13 @@ public class Waypoint {
     }
     public Waypoint setHeadingTangentDeactivateThreshold(double t) {
         params.tangentHeadingDeactivateThreshold = t;
+        return this;
+    }
+    public Waypoint setControlPoint(Vector2d controlPoint) {
+        if(params.pathType == PathParams.PathType.CURVED)
+            throw new IllegalStateException("path type already set to CURVED; cannot set multiple control points within one waypoint");
+        params.pathType = PathParams.PathType.CURVED;
+        params.controlPoint = controlPoint;
         return this;
     }
 
