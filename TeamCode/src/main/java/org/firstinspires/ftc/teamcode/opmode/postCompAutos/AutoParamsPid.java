@@ -29,13 +29,20 @@ public class AutoParamsPid {
         public Tolerance gateCollectTol = new Tolerance(gateCollectDistTol, gateCollectHeadingTol);
         public double gateCollectLateralWeight = 2.8, gateShootAxialWeight = 1.2;
         public double gateCollectMinPower = 0.4;
-        public double gateCollectOpenFarXRed = 8, gateCollectOpenFarYRed = 61, gateCollectOpenFarARed = Math.toRadians(116);
-        public double gateCollectOpenFarXBlue = 8, gateCollectOpenFarYBlue = -61, gateCollectOpenFarABlue = Math.toRadians(-116);
-        public double[] gateCollectOpenNearRed = { 5, 61, 116 };
-        public double[] gateCollectOpenNearBlue = { 5, -61, -116 };
-        public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
-        public double gateCollectXBlue = 13, gateCollectYBlue = -62, gateCollectABlue = Math.toRadians(-135);
+//        public double gateCollectOpenFarXRed = 8, gateCollectOpenFarYRed = 61, gateCollectOpenFarARed = Math.toRadians(116);
+//        public double gateCollectOpenFarXBlue = 8, gateCollectOpenFarYBlue = -61, gateCollectOpenFarABlue = Math.toRadians(-116);
+        public double[] gateCollectOpenFarRed = { 8, 61, 116 };
+        public double[] gateCollectOpenFarBlue = { 8, -61, -116 };
+        public double[] gateCollectOpenNearRed = { 7, 69, 90 };
+        public double[] gateCollectOpenNearBlue = { 7, -60, -90 };
 
+        public double[] gateCollectRed = { 13, 62, 135 };
+        public double[] gateCollectBlue = { 13, -62, -135 };
+//        public double gateCollectXRed = 13, gateCollectYRed = 62, gateCollectARed = Math.toRadians(135);
+//        public double gateCollectXBlue = 13, gateCollectYBlue = -62, gateCollectABlue = Math.toRadians(-135);
+        public double[] gateCollectOpenControlPointRed = { 12, 36, 70 };
+        public double[] gateCollectOpenControlPointBlue = {12, -36, -70 };
+        public double gateCollectOpenTMaxTime = 0.8;
     }
     public static class Shoot {
         public PathParams.HeadingLerpType preloadHeadingLerp = PathParams.HeadingLerpType.TANGENT;

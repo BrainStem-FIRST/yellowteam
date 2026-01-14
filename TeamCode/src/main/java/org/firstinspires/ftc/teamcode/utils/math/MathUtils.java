@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.utils.math;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -60,8 +61,13 @@ public class MathUtils {
         return format3(pose.position.x) + ", " + format3(pose.position.y) + " " + format3(Math.toDegrees(pose.heading.toDouble()));
     }
     public static Pose2d createPose(double[] pose) {
-        if (pose.length < 3)
-            throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");
+        if (pose.length != 3)
+            throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain EXACTLY 3 elements");
         return new Pose2d(pose[0], pose[1], Math.toRadians(pose[2]));
+    }
+    public static Vector2d createVec(double[] vec) {
+        if(vec.length != 2)
+            throw new IllegalArgumentException("cannot call createVec on " + Arrays.toString(vec) + " - must contain EXACTLY 2 elements");
+        return new Vector2d(vec[0], vec[1]);
     }
 }

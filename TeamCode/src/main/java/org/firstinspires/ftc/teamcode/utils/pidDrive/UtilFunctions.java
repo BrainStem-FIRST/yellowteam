@@ -1,15 +1,11 @@
 package org.firstinspires.ftc.teamcode.utils.pidDrive;
 
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 
 import java.util.Arrays;
 
 public class UtilFunctions {
-    public static Pose2d createPose(double[] pose) {
-        if (pose.length < 3)
-            throw new IllegalArgumentException("cannot call createPose on " + Arrays.toString(pose) + " - must contain at least 3 elements");
-        return new Pose2d(pose[0], pose[1], Math.toRadians(pose[2]));
-    }
     public static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
     }

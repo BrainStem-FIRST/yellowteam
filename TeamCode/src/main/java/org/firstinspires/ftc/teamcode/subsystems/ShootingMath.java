@@ -16,7 +16,7 @@ public class ShootingMath {
         public double flywheelOffsetFromTurretInches = 2.4783465;
         public double flywheelRadiusMeters = 0.0445;
         public double ballRadiusMeters = 0.064;
-        public double powerLossCoefficient = 0.45; // actual exit velocity / theoretical exit velocity
+        public double powerEfficiencyCoefficient = 0.45; // actual exit velocity / theoretical exit velocity
         public double shooterMotorTicksPerRev = 28;
         // 28 motor ticks = one revolution
         // 38.5 flywheel ticks = one revolution
@@ -88,8 +88,8 @@ public class ShootingMath {
     }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
-    public static double exitMpsToMotorTicksPerSec(double ballExitMps) {
-        double flywheelMps = ballExitMps / shooterSystemParams.powerLossCoefficient;
+    public static double exitMpsToMotorTicksPerSec(double ballExitMps, double powerEfficiencyCoefficient) {
+        double flywheelMps = ballExitMps / powerEfficiencyCoefficient;
         double flywheelAngularVel = flywheelMps / shooterSystemParams.flywheelRadiusMeters;
         double revPerSec = flywheelAngularVel / (2 * Math.PI);
         double flywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;

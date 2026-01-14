@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.utils.pidDrive;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
@@ -60,7 +61,7 @@ public class PathParams {
     protected double applyCloseSpeedPIDError;
     protected HeadingLerpType headingLerpType;
     protected PathType pathType;
-    protected Vector2d controlPoint;
+    protected Pose2d controlPoint;
     protected double tValueMaxOutTime;
     protected double tangentHeadingDeactivateThreshold, applyCloseHeadingPIDErrorDeg;
     protected boolean prioritizeHeadingInBeginning;
@@ -101,7 +102,7 @@ public class PathParams {
         applyCloseHeadingPIDErrorDeg = defaultParams.applyCloseHeadingPIDErrorDeg;
         slowDownPercent = 1;
         prioritizeHeadingInBeginning = defaultParams.prioritizeHeadingInBeginning;
-        controlPoint = new Vector2d(0, 0);
+        controlPoint = new Pose2d(0, 0, 0);
     }
     public boolean hasMaxTime() {
         return maxTime != noMaxTime;
@@ -124,7 +125,7 @@ public class PathParams {
         newParams.headingLerpType = headingLerpType;
         newParams.pathType = pathType;
         newParams.tValueMaxOutTime = tValueMaxOutTime;
-        newParams.controlPoint = new Vector2d(controlPoint.x, controlPoint.y);
+        newParams.controlPoint = new Pose2d(controlPoint.position, controlPoint.heading.toDouble());
         newParams.tangentHeadingDeactivateThreshold = tangentHeadingDeactivateThreshold;
         newParams.applyCloseHeadingPIDErrorDeg = applyCloseHeadingPIDErrorDeg;
         newParams.prioritizeHeadingInBeginning = prioritizeHeadingInBeginning;

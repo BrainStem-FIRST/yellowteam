@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmode.postCompAutos;
 
 import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
+import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createVec;
 
 import androidx.annotation.NonNull;
 
@@ -67,7 +68,7 @@ public abstract class AutoPid extends LinearOpMode {
             preCollect3Pose, collect3Pose,
             preLoadingPose, postLoadingPose,
             cornerCollectPose, cornerCollectRetryPose,
-            gateCollectOpenNearPose, gateCollectOpenFarPose, gateCollectPose,
+            gateCollectOpenControlPoint, gateCollectOpenNearPose, gateCollectOpenFarPose, gateCollectPose,
             gate1Pose, gate2Pose,
             gateFarWaypointPose,
             parkFarPose,
@@ -148,7 +149,7 @@ public abstract class AutoPid extends LinearOpMode {
                     break;
                 case "l" : actionOrder.add(getLoadingCollectAndShoot(shootPose, toNear, minTime)); break;
                 case "c": actionOrder.add(getRepeatedCornerCollectAndShoot(shootPose, fromNear, toNear, minTime)); break;
-                case "g": actionOrder.add(getGateCollectAndShoot(prevShootPose, shootPose, fromNear, toNear, minTime)); break;
+                case "g": actionOrder.add(getGateCollectAndShoot(shootPose, fromNear, toNear, minTime)); break;
             }
         }
 
@@ -509,14 +510,12 @@ public abstract class AutoPid extends LinearOpMode {
         };
     }
 
-    private Action getGateCollectAndShoot(Pose2d prevShootPose, Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
+    private Action getGateCollectAndShoot(Pose2d shootPose, boolean fromNear, boolean toNear, double minTime) {
         Action gateOpenDrive;
         if (fromNear) {
-            double offset = isRed ? 5 : -5;
-            Pose2d gateCollectWaypoint = new Pose2d(prevShootPose.position.x + 5, prevShootPose.position.y + offset, prevShootPose.heading.toDouble());
-            gateOpenDrive = new DrivePath(robot.drive,
-                    new Waypoint(gateCollectWaypoint).setMinLinearPower(collect.gateCollectMinPower).setMaxTime(0.5).setPassPosition(true),
-                    new Waypoint(gateCollectOpenNearPose, collect.gateCollectTol).setMaxTime(1.7).setPassPosition(true).setLateralAxialWeights(collect.gateCollectLateralWeight, 1).setMinLinearPower(collect.gateCollectMinPower)
+            gateOpenDrive = new DrivePath(robot.drive, telemetry,
+                    new Waypoint(gateCollectOpenNearPose, collect.gateCollectTol).setMaxTime(1.9).setPassPosition(true).setLateralAxialWeights(collect.gateCollectLateralWeight, 1).setMinLinearPower(collect.gateCollectMinPower)
+                            .setControlPoint(gateCollectOpenControlPoint, collect.gateCollectOpenTMaxTime)
             );
         }
         else
@@ -625,14 +624,17 @@ public abstract class AutoPid extends LinearOpMode {
                 new Pose2d(collect.cornerCollectXRed, collect.cornerCollectRetryYRed, collect.cornerCollectARed) :
                 new Pose2d(collect.cornerCollectXBlue, collect.cornerCollectRetryYBlue, collect.cornerCollectABlue);
 
+        gateCollectOpenControlPoint = isRed ?
+                createPose(collect.gateCollectOpenControlPointRed) :
+                createPose(collect.gateCollectOpenControlPointBlue);
         gateCollectOpenNearPose = isRed ?
                 createPose(collect.gateCollectOpenNearRed) : createPose(collect.gateCollectOpenNearBlue);
         gateCollectOpenFarPose = isRed ?
-                new Pose2d(collect.gateCollectOpenFarXRed, collect.gateCollectOpenFarYRed, collect.gateCollectOpenFarARed) :
-                new Pose2d(collect.gateCollectOpenFarXBlue, collect.gateCollectOpenFarYBlue, collect.gateCollectOpenFarABlue);
+                createPose(collect.gateCollectOpenFarRed) :
+                createPose(collect.gateCollectOpenFarBlue);
         gateCollectPose = isRed ?
-                new Pose2d(collect.gateCollectXRed, collect.gateCollectYRed, collect.gateCollectARed) :
-                new Pose2d(collect.gateCollectXBlue, collect.gateCollectYBlue, collect.gateCollectABlue);
+                createPose(collect.gateCollectRed) :
+                createPose(collect.gateCollectBlue);
 
     }
     private void declareMiscPoses() {
