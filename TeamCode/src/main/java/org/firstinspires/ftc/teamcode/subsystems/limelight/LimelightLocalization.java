@@ -220,7 +220,7 @@ public class LimelightLocalization extends LLParent {
             lastAvgTurretPose = new Pose2d(0, 0, 0);
 
         if (params.useMT2) {
-            double turretHeadingDeg = Math.toDegrees(robot.turret.currentAngleRad);
+            double turretHeadingDeg = Math.toDegrees(robot.turret.currentAbsoluteAngleRad);
             limelight.updateRobotOrientation(turretHeadingDeg);
         }
 

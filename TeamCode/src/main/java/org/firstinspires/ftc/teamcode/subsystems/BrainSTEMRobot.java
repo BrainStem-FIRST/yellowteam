@@ -8,12 +8,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
-import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 
 
@@ -87,7 +85,7 @@ public class BrainSTEMRobot {
         int turretEncoder = turret.getTurretEncoder();
         Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
         Vector2d exitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, shooter.getBallExitAngleRad());
-        Pose2d exitPose = new Pose2d(exitPosition, turret.currentAngleRad);
+        Pose2d exitPose = new Pose2d(exitPosition, turret.currentAbsoluteAngleRad);
 
         fieldOverlay.setStroke("red");
         Drawing.drawRobot(fieldOverlay, robotPose);
@@ -106,15 +104,15 @@ public class BrainSTEMRobot {
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
-                exitPosition.x + dist * Math.cos(turret.currentAngleRad),
-                exitPosition.y + dist * Math.sin(turret.currentAngleRad)
+                exitPosition.x + dist * Math.cos(turret.currentAbsoluteAngleRad),
+                exitPosition.y + dist * Math.sin(turret.currentAbsoluteAngleRad)
         );
         fieldOverlay.setStroke("black");
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
-                exitPosition.x + dist * Math.cos(turret.targetAngleRad),
-                exitPosition.y + dist * Math.sin(turret.targetAngleRad)
+                exitPosition.x + dist * Math.cos(turret.absoluteTargetAngleRad),
+                exitPosition.y + dist * Math.sin(turret.absoluteTargetAngleRad)
         );
     }
 }

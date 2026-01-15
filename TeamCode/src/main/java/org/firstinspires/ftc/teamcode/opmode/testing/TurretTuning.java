@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @Config
-@TeleOp(name="turret tuner")
+@TeleOp(group="Testing", name="turret tuner")
 public class TurretTuning extends LinearOpMode {
     public static double powerCoeff;
     @Override

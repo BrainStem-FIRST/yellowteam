@@ -5,6 +5,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.Vec;
 
 @Config
@@ -49,6 +50,16 @@ public class ShootingMath {
     public static HoodSystemParams hoodSystemParams = new HoodSystemParams();
     public static TurretSystemParams turretSystemParams = new TurretSystemParams();
     public static boolean enableRelativeVelocity = false;
+
+    public static Vector2d calculateTargetExitPositionInches(Pose2d robotPose, Pose2d targetPose, double ballExitAngleRad) {
+        double hoodAngleRad = Math.PI * .5 - ballExitAngleRad;
+        Vector2d turretPos = Turret.getTurretPose(robotPose, 0).position;
+        Vector2d targetToTurret = new Vector2d(turretPos.x - targetPose.position.x, turretPos.y - targetPose.position.y);
+        targetToTurret = targetToTurret.div(Math.hypot(targetToTurret.x, targetToTurret.y));
+        double shooterCombinedRadiusInches = (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) / 0.0254;
+        Vector2d turretToExitPos = targetToTurret.times(-shooterSystemParams.flywheelOffsetFromTurretInches + Math.cos(hoodAngleRad) * shooterCombinedRadiusInches);
+        return turretPos.plus(turretToExitPos);
+    }
 
     // what this is used for as of 11/23
     // calculating distance from exit position to goal in updateShooterSystem
@@ -135,12 +146,12 @@ public class ShootingMath {
 //    }
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
-    public static double calculateTurretTargetAngleRad(Pose2d targetPose, Pose2d futureRobotPose, Vector2d currentExitPosition, Vector2d futureExitPosition, double ballExitSpeedMps) {
-        Vec ballExitLinearVelocityInchesPerSec = new Vec(futureExitPosition.x - currentExitPosition.x, futureExitPosition.y - currentExitPosition.y);
+    public static double calculateAbsoluteTurretTargetAngleRad(Pose2d targetPose, Pose2d futureRobotPose, Vector2d turretPose, Vector2d futureTurretPose, double ballExitSpeedMps) {
+        Vec ballExitLinearVelocityInchesPerSec = new Vec(futureTurretPose.x - turretPose.x, futureTurretPose.y - turretPose.y);
 
         // use predicted turret position to account for turret lag
-        Vec ballExitToGoal = new Vec(targetPose.position.x - futureExitPosition.x,
-                targetPose.position.y - futureExitPosition.y).normalize();
+        Vec ballExitToGoal = new Vec(targetPose.position.x - futureTurretPose.x,
+                targetPose.position.y - futureTurretPose.y).normalize();
 
         double targetAngleRad;
         // account for relative velocity
@@ -163,9 +174,11 @@ public class ShootingMath {
         else
             targetAngleRad = Math.atan2(ballExitToGoal.y, ballExitToGoal.x);
 
-        double turretTargetAngleRad = targetAngleRad - futureRobotPose.heading.toDouble();
-        turretTargetAngleRad = Math.atan2(Math.sin(turretTargetAngleRad), Math.cos(turretTargetAngleRad));
-        return turretTargetAngleRad;
+        return targetAngleRad;
+//        double turretTargetAngleRad = targetAngleRad - futureRobotPose.heading.toDouble();
+////        turretTargetAngleRad = Math.atan2(Math.sin(turretTargetAngleRad), Math.cos(turretTargetAngleRad));
+//        turretTargetAngleRad = MathUtils.angleNormDeltaRad(turretTargetAngleRad);
+//        return turretTargetAngleRad;
     }
 
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams

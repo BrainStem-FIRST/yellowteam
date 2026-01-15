@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 public class Turret extends Component {
     public static class TestingParams {
         public boolean actuallyPowerTurret = true;
+        public boolean testVelocityControl = false;
     }
     public static class GoalParams {
         public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 65, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
@@ -61,12 +62,14 @@ public class Turret extends Component {
     private int nearEncoderAdjustment, farEncoderAdjustment;
     public Pose2d targetPose;
     public Vec relativeBallExitVelocityMps, globalBallExitVelocityMps;
-    public double targetAngleRad, currentAngleRad, turretAngleRad;
+    private double absoluteTargetAngleRad, relativeTargetAngleRad;
+    public double currentAbsoluteAngleRad, currentRelativeAngleRad;
     public int targetEncoder;
     public double currentLookAheadTime;
     private double motorError;
     private double kF;
     private boolean inRange;
+
     public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
         super(hardwareMap, telemetry, robot);
 
@@ -198,27 +201,28 @@ public class Turret extends Component {
                     break;
                 }
 
-                double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
-                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
-                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+//                double ballExitAngleRad = robot.shooter.getBallExitAngleRad();
+//                Vector2d currentExitPosition = ShootingMath.calculateExitPositionInches(currentRobotPose, turretEncoder, ballExitAngleRad);
+//                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
+                Vector2d turretPos = getTurretPose(currentRobotPose, 0).position;
+                Vector2d futureTurretPos = getTurretPose(futureRobotPose, 0).position;
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity(), ShootingMath.shooterSystemParams.powerEfficiencyCoefficient);
-                double turretTargetAngleRad = ShootingMath.calculateTurretTargetAngleRad(targetPose, futureRobotPose, currentExitPosition, futureExitPosition, ballExitSpeedMps);
+                absoluteTargetAngleRad = ShootingMath.calculateAbsoluteTurretTargetAngleRad(targetPose, futureRobotPose, turretPos, futureTurretPos, ballExitSpeedMps);
+                relativeTargetAngleRad = MathUtils.angleNormDeltaRad(absoluteTargetAngleRad - futureRobotPose.heading.toDouble());
+
                 // mirrors the angle if the turret cannot reach it (visual cue)
-                if (turretTargetAngleRad > Math.toRadians(ShootingMath.turretSystemParams.maxAngleDeg)) {
-                    turretTargetAngleRad = Math.PI - turretTargetAngleRad;
+                if (relativeTargetAngleRad > Math.toRadians(ShootingMath.turretSystemParams.maxAngleDeg)) {
+                    relativeTargetAngleRad = Math.PI - relativeTargetAngleRad;
                     inRange = false;
                 }
-                else if (turretTargetAngleRad < Math.toRadians(ShootingMath.turretSystemParams.minAngleDeg)) {
-                    turretTargetAngleRad = -Math.PI - turretTargetAngleRad;
+                else if (relativeTargetAngleRad < Math.toRadians(ShootingMath.turretSystemParams.minAngleDeg)) {
+                    relativeTargetAngleRad = -Math.PI - relativeTargetAngleRad;
                     inRange = false;
                 }
                 else
                     inRange = true;
 
-
-                targetAngleRad = turretTargetAngleRad + currentRobotPose.heading.toDouble();
-
-                int targetTurretPosition = (int) (turretTargetAngleRad * turretTicksPerRadian);
+                int targetTurretPosition = (int) (relativeTargetAngleRad * turretTicksPerRadian);
                 targetTurretPosition += robot.shooter.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
 
                 setTurretPosition(targetTurretPosition, turretEncoder);
@@ -232,7 +236,7 @@ public class Turret extends Component {
                 }
 
                 setTurretPosition(0, turretEncoder);
-                targetAngleRad = currentRobotPose.heading.toDouble();
+                absoluteTargetAngleRad = currentRobotPose.heading.toDouble();
                 break;
 
             case PARK:
@@ -241,8 +245,8 @@ public class Turret extends Component {
                 break;
         }
 
-        turretAngleRad = turretEncoder / turretTicksPerRadian;
-        currentAngleRad = turretAngleRad + currentRobotPose.heading.toDouble();
+        currentRelativeAngleRad = turretEncoder / turretTicksPerRadian;
+        currentAbsoluteAngleRad = currentRelativeAngleRad + currentRobotPose.heading.toDouble();
     }
 
     @Override
@@ -264,9 +268,9 @@ public class Turret extends Component {
         telemetry.addData("encoder error", motorError);
         telemetry.addData("moving right", motorError > 0);
         telemetry.addData("angle degree error", angleDegError);
-        telemetry.addData("turret current relative angle deg", Math.toDegrees(turretAngleRad));
-        telemetry.addData("turret current absolute angle deg", Math.toDegrees(currentAngleRad));
-        telemetry.addData("turret target absolute angle deg", Math.toDegrees(targetAngleRad));
+        telemetry.addData("turret current relative angle deg", Math.toDegrees(currentRelativeAngleRad));
+        telemetry.addData("turret current absolute angle deg", Math.toDegrees(currentAbsoluteAngleRad));
+        telemetry.addData("turret target absolute angle deg", Math.toDegrees(absoluteTargetAngleRad));
         telemetry.addData("look ahead time", currentLookAheadTime);
         telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
         telemetry.addData("inRange", inRange());
