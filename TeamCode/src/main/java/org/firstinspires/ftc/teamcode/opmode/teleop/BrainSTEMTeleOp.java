@@ -219,14 +219,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         if (gp2.isFirstDpadDown())
             robot.shooter.changeVelocityAdjustment(-10);
 
-//        if (gp2.isFirstY()) {
-//            if (robot.parking.getParkState() == Parking.ParkState.EXTENDED)
-//                robot.turret.turretState = Turret.TurretState.PARK;
-//            else
-//                robot.parking.setParkState(Parking.ParkState.EXTENDED);
-//            robot.shooter.shooterState = REVERSE_FULL;
-//        }
-
         if(gp2.isFirstRightBumper()) {
             robot.limelight.localization.manualPoseUpdate = true;
             robot.limelight.localization.setState(LimelightLocalization.LocalizationState.UPDATING_POSE);

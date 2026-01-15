@@ -48,13 +48,15 @@ public class Turret extends Component {
         public double moveRightKf = -0.08;
         public double moveLeftKf = 0.08;
         public double inThresholdKfPower = 0.01;
+
+        public double kV = 0.1;
     }
     public static TestingParams testingParams = new TestingParams();
     public static GoalParams goalParams = new GoalParams();
     public static Params turretParams = new Params();
     public static PowerTuning powerTuning = new PowerTuning();
     public enum TurretState {
-        TRACKING, CENTER, PARK
+        TRACKING, CENTER
     }
     public DcMotorEx turretMotor;
     private final PIDController pidController;
@@ -62,7 +64,7 @@ public class Turret extends Component {
     private int nearEncoderAdjustment, farEncoderAdjustment;
     public Pose2d targetPose;
     public Vec relativeBallExitVelocityMps, globalBallExitVelocityMps;
-    private double absoluteTargetAngleRad, relativeTargetAngleRad;
+    private double absoluteTargetAngleRad, relativeTargetAngleRad, prevRelativeTargetAngleRad, relativeTargetAngleRadVel, prevTimeMs;
     public double currentAbsoluteAngleRad, currentRelativeAngleRad;
     public int targetEncoder;
     public double currentLookAheadTime;
@@ -81,21 +83,24 @@ public class Turret extends Component {
         turretState = TurretState.CENTER;
         relativeBallExitVelocityMps = new Vec(0, 0);
         globalBallExitVelocityMps = new Vec(0, 0);
+        prevTimeMs = System.currentTimeMillis();
     }
 
     public int getTurretEncoder() {
         return turretMotor.getCurrentPosition();
     }
 
-    public void setTurretPosition(int ticks, int currentEncoder) {
+    public double calculateTurretPowerVelocity(int target, int currentEncoder) {
+        double velPower = relativeTargetAngleRadVel * powerTuning.kV;
+        return velPower + calculateTurretPower(target, currentEncoder);
+    }
+    public double calculateTurretPower(int ticks, int currentEncoder) {
         targetEncoder = Range.clip(ticks, turretParams.RIGHT_BOUND, turretParams.LEFT_BOUND);
         motorError = currentEncoder - targetEncoder;
         boolean movingRight = motorError > 0;
         // within threshold - give 0 power
-        if (Math.abs(motorError) <= powerTuning.noPowerThreshold) {
-            turretMotor.setPower(-Math.signum(motorError) * powerTuning.inThresholdKfPower);
-            return;
-        }
+        if (Math.abs(motorError) <= powerTuning.noPowerThreshold)
+            return -Math.signum(motorError) * powerTuning.inThresholdKfPower;
 
         // reset kI whenever the robot moves significantly
         Pose2d prevPose = robot.drive.pinpoint().lastPose;
@@ -116,7 +121,9 @@ public class Turret extends Component {
             newPower = Math.min(newPower, 0);
 
         if (testingParams.actuallyPowerTurret)
-            turretMotor.setPower(newPower);
+            return newPower;
+        else
+            return 0;
     }
     private void updatePIDFValues(boolean movingRight, double encoderError) {
         double kP = movingRight ? powerTuning.rightKp : powerTuning.leftKp;
@@ -208,7 +215,12 @@ public class Turret extends Component {
                 Vector2d futureTurretPos = getTurretPose(futureRobotPose, 0).position;
                 double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity(), ShootingMath.shooterSystemParams.powerEfficiencyCoefficient);
                 absoluteTargetAngleRad = ShootingMath.calculateAbsoluteTurretTargetAngleRad(targetPose, futureRobotPose, turretPos, futureTurretPos, ballExitSpeedMps);
+                prevRelativeTargetAngleRad = relativeTargetAngleRad;
                 relativeTargetAngleRad = MathUtils.angleNormDeltaRad(absoluteTargetAngleRad - futureRobotPose.heading.toDouble());
+
+                double curTimeMs = System.currentTimeMillis();
+                relativeTargetAngleRadVel = (relativeTargetAngleRad - prevRelativeTargetAngleRad) / (curTimeMs - prevTimeMs) * 1000;
+                prevTimeMs = curTimeMs;
 
                 // mirrors the angle if the turret cannot reach it (visual cue)
                 if (relativeTargetAngleRad > Math.toRadians(ShootingMath.turretSystemParams.maxAngleDeg)) {
@@ -225,7 +237,10 @@ public class Turret extends Component {
                 int targetTurretPosition = (int) (relativeTargetAngleRad * turretTicksPerRadian);
                 targetTurretPosition += robot.shooter.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
 
-                setTurretPosition(targetTurretPosition, turretEncoder);
+                if(testingParams.testVelocityControl)
+                    calculateTurretPowerVelocity(targetTurretPosition, turretEncoder);
+                else
+                    turretMotor.setPower(calculateTurretPower(targetTurretPosition, turretEncoder));
                 break;
 
             case CENTER:
@@ -235,13 +250,8 @@ public class Turret extends Component {
                     break;
                 }
 
-                setTurretPosition(0, turretEncoder);
+                turretMotor.setPower(calculateTurretPower(0, turretEncoder));
                 absoluteTargetAngleRad = currentRobotPose.heading.toDouble();
-                break;
-
-            case PARK:
-                inRange = true;
-                setTurretPosition(-330, turretEncoder);
                 break;
         }
 
@@ -257,12 +267,13 @@ public class Turret extends Component {
 
         telemetry.addLine("TURRET------");
         telemetry.addData("target pose", MathUtils.formatPose2(targetPose));
-        telemetry.addData("actually power turret", testingParams.actuallyPowerTurret);
+//        telemetry.addData("actually power turret", testingParams.actuallyPowerTurret);
         telemetry.addData("state", turretState);
         telemetry.addData("turret power", turretMotor.getPower());
 //        telemetry.addData("turret kF", kF);
 //        telemetry.addData("turret PID integral", pidController.getIntegral());
 //        telemetry.addData("turret PID derivative", pidController.getDerivative());
+        telemetry.addData("relativeTargetAngleVel", relativeTargetAngleRadVel);
         telemetry.addData("current encoder", turretEncoder);
         telemetry.addData("target encoder", targetEncoder);
         telemetry.addData("encoder error", motorError);
@@ -271,7 +282,7 @@ public class Turret extends Component {
         telemetry.addData("turret current relative angle deg", Math.toDegrees(currentRelativeAngleRad));
         telemetry.addData("turret current absolute angle deg", Math.toDegrees(currentAbsoluteAngleRad));
         telemetry.addData("turret target absolute angle deg", Math.toDegrees(absoluteTargetAngleRad));
-        telemetry.addData("look ahead time", currentLookAheadTime);
+//        telemetry.addData("look ahead time", currentLookAheadTime);
         telemetry.addData("exit position", getTurretPose(robot.drive.localizer.getPose(), turretEncoder));
         telemetry.addData("inRange", inRange());
     }

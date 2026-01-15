@@ -49,7 +49,7 @@ public class Shooter extends Component {
     public static TestingParams testingParams = new TestingParams();
 
     public enum ShooterState {
-        OFF, UPDATE, REVERSE_FULL
+        OFF, UPDATE
     }
     public DcMotorEx shooterMotorLow;
     public DcMotorEx shooterMotorHigh;
@@ -184,9 +184,6 @@ public class Shooter extends Component {
 
             case UPDATE:
                 updateShooterSystem(ballExitPosInchesFromGoal);
-                break;
-            case REVERSE_FULL:
-                setShooterPower(-0.99);
                 break;
         }
         updateBallShotTracking();
