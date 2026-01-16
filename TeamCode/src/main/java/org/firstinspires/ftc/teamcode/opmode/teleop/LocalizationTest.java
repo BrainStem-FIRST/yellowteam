@@ -23,11 +23,14 @@ import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
+import java.util.ArrayList;
+
 @Config
 @TeleOp(name="localization test")
 public class LocalizationTest extends LinearOpMode {
     public static double startX = -8.375, startY = -6.875, startA = Math.PI;
-    public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true;
+    public static int numPrevPosesToAvg = 10;
+    public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true, drawFilteredPoses = true;
     public static boolean useMegaTag2 = false;
     private Limelight3A limelight3A;
     private Turret turret;
@@ -44,6 +47,8 @@ public class LocalizationTest extends LinearOpMode {
         turret = new Turret(hardwareMap, telemetry, null);
         turret.resetEncoders();
 
+        ArrayList<Pose2d> prevLlCameraPoses = new ArrayList<>();
+
         double maxXError = 0;
         double maxYError = 0;
         double maxTranslationalError = 0;
@@ -52,13 +57,13 @@ public class LocalizationTest extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-
             if (gamepad1.a) {
                 maxXError = 0;
                 maxYError = 0;
                 maxTranslationalError = 0;
                 maxHeadingErrorRad = 0;
             }
+
             drive.setDrivePowers(new PoseVelocity2d(
                     new Vector2d(
                             -gamepad1.left_stick_y,
@@ -67,26 +72,63 @@ public class LocalizationTest extends LinearOpMode {
                     -gamepad1.right_stick_x
             ));
 
-
             drive.updatePoseEstimate();
             Pose2d pinpointRobotPose = drive.localizer.getPose();
             int turretEncoder = turret.getTurretEncoder();
             Pose2d pinpointTurretPose = Turret.getTurretPose(pinpointRobotPose, turretEncoder);
+            Pose2d pinpointCameraPose = Limelight.getLimelightPose(pinpointTurretPose);
 
             if (useMegaTag2)
                 limelight3A.updateRobotOrientation(Math.toDegrees(pinpointTurretPose.heading.toDouble()));
-            Pose2d[] limelightPoses = getLimelightPoses(limelight3A.getLatestResult(), turretEncoder);
 
-            if (limelightPoses[0].position.x == 0 && limelightPoses[0].position.y == 0 && limelightPoses[0].heading.toDouble() == 0)
+            LLResult result = limelight3A.getLatestResult();
+            Pose2d llCameraPose = new Pose2d(0, 0, 0);
+            Pose2d llTurretPoses = new Pose2d(0, 0, 0);
+            Pose2d llRobotPose = new Pose2d(0, 0, 0);
+            Pose2d filteredLlCameraPose = new Pose2d(0, 0, 0);
+            Pose2d filteredLlTurretPose = new Pose2d(0, 0, 0);
+            Pose2d filteredLlRobotPose = new Pose2d(0, 0, 0);
+
+            if (result != null && result.isValid()) {
+                Pose3D cameraPose3D = useMegaTag2 ? result.getBotpose_MT2() : result.getBotpose();
+                Position cameraPos = cameraPose3D.getPosition().toUnit(DistanceUnit.INCH);
+                double cameraHeading = cameraPose3D.getOrientation().getYaw(AngleUnit.RADIANS);
+
+                llCameraPose = new Pose2d(cameraPos.x, cameraPos.y, cameraHeading);
+                if (llCameraPose.position.x != 0 || llCameraPose.position.y != 0 || llCameraPose.heading.toDouble() != 0) {
+                    llTurretPoses = Limelight.getTurretPose(llCameraPose);
+                    llRobotPose = Turret.getRobotPose(llTurretPoses, turretEncoder);
+                }
+            }
+
+            boolean invalidPose = llCameraPose.position.x == 0 && llCameraPose.position.y == 0 && llCameraPose.heading.toDouble() == 0;
+            if (invalidPose)
                 led.setLed(LED.red);
-            else
+            else {
                 led.setLed(LED.green);
+                prevLlCameraPoses.add(llCameraPose);
+                if (prevLlCameraPoses.size() > numPrevPosesToAvg)
+                    prevLlCameraPoses.remove(0);
+                double x = 0, y = 0, hRad = 0;
+                for (Pose2d llCamera : prevLlCameraPoses) {
+                    x += llCamera.position.x;
+                    y += llCamera.position.y;
+                    hRad += llCamera.heading.toDouble();
+                }
+                filteredLlCameraPose = new Pose2d(x / prevLlCameraPoses.size(), y / prevLlCameraPoses.size(), hRad / prevLlCameraPoses.size());
+                filteredLlTurretPose = Limelight.getTurretPose(filteredLlCameraPose);
+                filteredLlRobotPose = Turret.getRobotPose(filteredLlTurretPose, turretEncoder);
+            }
 
 
-            double xError = pinpointRobotPose.position.x - limelightPoses[0].position.x;
-            double yError = pinpointRobotPose.position.y - limelightPoses[0].position.y;
+            if (gamepad1.y)
+                drive.localizer.setPose(filteredLlRobotPose);
+
+
+            double xError = pinpointRobotPose.position.x - llRobotPose.position.x;
+            double yError = pinpointRobotPose.position.y - llRobotPose.position.y;
             double translError = Math.hypot(xError, yError);
-            double headingErrorRad = Math.abs(pinpointRobotPose.heading.toDouble() - limelightPoses[0].heading.toDouble());
+            double headingErrorRad = Math.abs(pinpointRobotPose.heading.toDouble() - llRobotPose.heading.toDouble());
 
             maxXError = Math.max(maxXError, xError);
             maxYError = Math.max(maxYError, yError);
@@ -97,12 +139,14 @@ public class LocalizationTest extends LinearOpMode {
             telemetry.addLine("Pinpoint======================");
             telemetry.addData("pinpoint robot pose", MathUtils.formatPose3(pinpointRobotPose));
             telemetry.addData("pinpoint turret pose", MathUtils.formatPose3(pinpointTurretPose));
+            telemetry.addData("pinpoint camera pose", MathUtils.formatPose3(pinpointCameraPose));
             telemetry.addLine();
 
             telemetry.addLine("Limelight======================");
-            telemetry.addData("ll robot pose", MathUtils.formatPose3(limelightPoses[0]));
-            telemetry.addData("ll turret pose", MathUtils.formatPose3(limelightPoses[1]));
-            telemetry.addData("ll camera pose", MathUtils.formatPose3(limelightPoses[2]));
+            telemetry.addData("ll robot pose", MathUtils.formatPose3(llRobotPose));
+            telemetry.addData("ll turret pose", MathUtils.formatPose3(llTurretPoses));
+            telemetry.addData("ll camera pose", MathUtils.formatPose3(llCameraPose));
+            telemetry.addData("ll camera pose filtered", MathUtils.formatPose3(filteredLlCameraPose));
             telemetry.addLine();
 
             telemetry.addLine("Errors==========================");
@@ -119,45 +163,27 @@ public class LocalizationTest extends LinearOpMode {
                     packet.fieldOverlay().setStroke("green");
                     Drawing.drawRobot(packet.fieldOverlay(), pinpointRobotPose);
                     packet.fieldOverlay().setStroke("gray");
-                    Drawing.drawRobot(packet.fieldOverlay(), limelightPoses[0]);
+                    Drawing.drawRobot(packet.fieldOverlay(), llRobotPose);
                 }
                 if (drawTurretPoses) {
                     packet.fieldOverlay().setStroke("green");
                     Drawing.drawRobotSimple(packet.fieldOverlay(), pinpointTurretPose, 3);
                     packet.fieldOverlay().setStroke("gray");
-                    Drawing.drawRobotSimple(packet.fieldOverlay(), limelightPoses[1], 3);
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), llTurretPoses, 3);
                 }
                 if (drawCameraPose) {
                     packet.fieldOverlay().setStroke("black");
-                    Drawing.drawRobotSimple(packet.fieldOverlay(), limelightPoses[2], 1);
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), pinpointCameraPose, 2);
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), llCameraPose, 2);
+                }
+                if (drawFilteredPoses) {
+                    packet.fieldOverlay().setStroke("blue");
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), filteredLlCameraPose, 2);
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), filteredLlTurretPose, 3);
+                    Drawing.drawRobot(packet.fieldOverlay(), filteredLlRobotPose);
                 }
                 FtcDashboard.getInstance().sendTelemetryPacket(packet);
             }
         }
-    }
-
-    private Pose2d[] getLimelightPoses(LLResult result, int turretEncoder) {
-        Pose2d[] poses = new Pose2d[3];
-        poses[0] = new Pose2d(0, 0, 0);
-        poses[1] = new Pose2d(0, 0, 0);
-        poses[2] = new Pose2d(0, 0, 0);
-
-        if (result == null || !result.isValid())
-            return poses;
-
-        Pose3D cameraPose3D = result.getBotpose();
-
-        Position cameraPos = cameraPose3D.getPosition().toUnit(DistanceUnit.INCH);
-        double cameraHeading = cameraPose3D.getOrientation().getYaw(AngleUnit.RADIANS);
-        Pose2d cameraPose = new Pose2d(cameraPos.x, cameraPos.y, cameraHeading);
-        if (cameraPose.position.x == 0 && cameraPose.position.y == 0 && cameraPose.heading.toDouble() == 0)
-            return poses;
-
-        Pose2d turretPose = Limelight.getTurretPose(cameraPose);
-
-        poses[0] = Turret.getRobotPose(turretPose, turretEncoder);
-        poses[1] = turretPose;
-        poses[2] = cameraPose;
-        return poses;
     }
 }

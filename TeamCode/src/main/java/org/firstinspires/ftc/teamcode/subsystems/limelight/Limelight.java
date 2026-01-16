@@ -4,12 +4,14 @@ package org.firstinspires.ftc.teamcode.subsystems.limelight;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
+import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Component;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
 
 @Config
 public class Limelight extends Component {
@@ -121,5 +123,11 @@ public class Limelight extends Component {
         double dx = Math.cos(cameraPose.heading.toDouble()) * hardwareParams.distFromTurret;
         double dy = Math.sin(cameraPose.heading.toDouble()) * hardwareParams.distFromTurret;
         return new Pose2d(cameraPose.position.x - dx, cameraPose.position.y - dy, cameraPose.heading.toDouble());
+    }
+    public static Pose2d getLimelightPose(Pose2d turretPose) {
+        double angle = turretPose.heading.toDouble();
+        double dx = Math.cos(angle) * hardwareParams.distFromTurret;
+        double dy = Math.sin(angle) * hardwareParams.distFromTurret;
+        return new Pose2d(turretPose.position.x + dx, turretPose.position.y + dy, angle);
     }
 }
