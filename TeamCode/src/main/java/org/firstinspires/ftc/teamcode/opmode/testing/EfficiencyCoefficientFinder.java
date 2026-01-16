@@ -17,9 +17,9 @@ import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
-@TeleOp(name="Power Efficiency Tester", group="Testing")
+@TeleOp(name="Power Efficiency Finder", group="Testing")
 @Config
-public class PowerLossTester extends OpMode {
+public class EfficiencyCoefficientFinder extends OpMode {
     public static class Controls {
         public double targetShooterVelocityTicksPerSec = 1500;
         public double ballExitAngleRad = 0.6981317;

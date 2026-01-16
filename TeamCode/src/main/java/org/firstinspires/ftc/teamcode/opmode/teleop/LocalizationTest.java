@@ -32,11 +32,13 @@ public class LocalizationTest extends LinearOpMode {
     public static int numPrevPosesToAvg = 10;
     public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true, drawFilteredPoses = true;
     public static boolean useMegaTag2 = false;
+    public static int ftcDashboardFPS = 10;
     private Limelight3A limelight3A;
     private Turret turret;
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetry.setMsTransmissionInterval(20);
 
         MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(startX, startY, startA));
         LED led = new LED(hardwareMap, telemetry, null);
@@ -44,6 +46,8 @@ public class LocalizationTest extends LinearOpMode {
         limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
         limelight3A.pipelineSwitch(0);
         limelight3A.start();
+        FtcDashboard.getInstance().startCameraStream(limelight3A, ftcDashboardFPS);
+
         turret = new Turret(hardwareMap, telemetry, null);
         turret.resetEncoders();
 
