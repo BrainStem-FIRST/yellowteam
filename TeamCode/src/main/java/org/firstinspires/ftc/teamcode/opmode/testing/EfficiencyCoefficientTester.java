@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmode.testing;
 
-import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -14,8 +12,6 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
-import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
 @TeleOp(name="Power Efficiency Tester", group="Testing")
 @Config
@@ -24,11 +20,12 @@ public class EfficiencyCoefficientTester extends OpMode {
         public double ballExitAngleRad = Math.toRadians(40);
         public boolean powerShooter = true;
         public boolean powerIntake = true;
+        public double efficiencyCoefficient = 0.62;
+        public double distanceToShootBallInches = 150; // distance to shoot ball from back of robot
+        public double heightToShootBallInches = 0; // height to shoot ball from ground
     }
     public static class Experiment {
         public double gravityAcceleration = 9.81;
-        public double distanceToShootBallInches = 200; // distance to shoot ball from back of robot
-        public double heightToShootBallInches = 0; // height to shoot ball from ground
     }
     public static Controls controls = new Controls();
     public static Experiment experiment = new Experiment();
@@ -42,7 +39,6 @@ public class EfficiencyCoefficientTester extends OpMode {
     public void init() {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(20);
-        telemetry.setAutoClear(true);
         robot = new BrainSTEMRobot(Alliance.RED, telemetry, hardwareMap, new Pose2d(0, 0, 0));
 
         robot.collection.clutchRight.setPosition(Collection.params.ENGAGED_POS);
@@ -69,31 +65,41 @@ public class EfficiencyCoefficientTester extends OpMode {
             // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
             Pose2d start = new Pose2d(0, 0, 0);
             Vector2d exitPosition = ShootingMath.calculateExitPositionInches(start, 0, controls.ballExitAngleRad);
-            double initialX = exitPosition.x;
-            double finalX = experiment.distanceToShootBallInches + BrainSTEMRobot.length * 0.5;
+            double initialX = exitPosition.x + BrainSTEMRobot.length * 0.5;
+            double finalX = controls.distanceToShootBallInches;
             totalDistanceTraveledMeters = (finalX - initialX) * 0.0254;
 
             double initialHeightMeters = ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
-            double finalHeightMeters = ShootingMath.shooterSystemParams.ballRadiusMeters + (experiment.heightToShootBallInches * 0.0254);
+            double finalHeightMeters = ShootingMath.shooterSystemParams.ballRadiusMeters + (controls.heightToShootBallInches * 0.0254);
             changeInYMeters = finalHeightMeters - initialHeightMeters;
 
-            double targetVelMetersPerSec = calculateActualExitVelocity(totalDistanceTraveledMeters, changeInYMeters, controls.ballExitAngleRad);
-            double theoreticalVelTicksPerSec = getShooterVelTicksPerSec(targetVelMetersPerSec);
+            double targetVelMetersPerSec = calculateTargetExitVelocity(totalDistanceTraveledMeters, changeInYMeters, controls.ballExitAngleRad);
 
-            robot.shooter.setShooterVelocityPID(theoreticalVelTicksPerSec, shooterVelTicksPerSec);
+            // vel target = vel actual * getEfficiency(vel target)
+            // vel actual = vel target / getEfficiency(vel target)
+            double targetExitVelTicksPerSec = ShootingMath.exitMpsToMotorTicksPerSec(targetVelMetersPerSec, 1);
+            double efficiencyCoefficient = controls.efficiencyCoefficient;
+            if (efficiencyCoefficient < 0)
+                //y=-0.002x+0.72
+                efficiencyCoefficient = -0.002 * Math.toDegrees(controls.ballExitAngleRad) + 0.72;
+            double actualVelTicksPerSec = targetExitVelTicksPerSec / efficiencyCoefficient;
 
+            robot.shooter.setShooterVelocityPID(actualVelTicksPerSec, shooterVelTicksPerSec);
 
             telemetry.addData("a exit pos X inches", exitPosition.x);
             telemetry.addData("b distance meters", totalDistanceTraveledMeters);
             telemetry.addData("c change in Y from ball exit position (meters)", changeInYMeters);
             telemetry.addData("d ball exit angle degrees", Math.toDegrees(controls.ballExitAngleRad));
-            telemetry.addData("e target exit velocity meters per second", targetVelMetersPerSec);
-            telemetry.addData("f setting shooter vel to", theoreticalVelTicksPerSec);
+            telemetry.addData("e efficiency coefficient", efficiencyCoefficient);
+            telemetry.addData("f target exit velocity meters per sec", targetVelMetersPerSec);
+            telemetry.addData("g target exit velocity ticks per sec", targetExitVelTicksPerSec);
+            telemetry.addData("h actual shooter velocity ticks per sec", actualVelTicksPerSec);
+            telemetry.addData("i current shooter vel ticks per sec", shooterVelTicksPerSec);
             telemetry.update();
         }
     }
 
-    private double calculateActualExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {
+    private double calculateTargetExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {
         double cosTheta = Math.cos(exitAngleRad);
         double tanTheta = Math.tan(exitAngleRad);
         double denominator = 2 * cosTheta * cosTheta * (distanceMeters * tanTheta - changeInYMeters);
@@ -101,17 +107,5 @@ public class EfficiencyCoefficientTester extends OpMode {
             return -1;
         double numerator = experiment.gravityAcceleration * distanceMeters * distanceMeters;
         return Math.sqrt(numerator / denominator);
-    }
-    public double getShooterVelTicksPerSec(double actualExitVelMetersPerSec) {
-        // vel actual = vel theoretical * getEfficiency(vel actual)
-        // vel theoretical = vel actual / getEfficiency(vel actual)
-        double actualExitVelTicksPerSec = ShootingMath.exitMpsToMotorTicksPerSec(actualExitVelMetersPerSec, 1);
-        return actualExitVelTicksPerSec / getEfficiencyCoefficient(actualExitVelTicksPerSec);
-    }
-    // efficiency coefficient as a function of what you want the ball's actual exit velocity to be (ticks per sec)
-    // THIS IS A TEST FUNCTION FOR WHEN HOOD IS AT 40 DEGREES
-    public double getEfficiencyCoefficient(double targetExitVelTicksPerSec) {
-        //efficiency=-0.0000466142*(actual velocity ticks/sec)+0.50403
-        return -0.0000466142 * targetExitVelTicksPerSec + 0.50403;
     }
 }

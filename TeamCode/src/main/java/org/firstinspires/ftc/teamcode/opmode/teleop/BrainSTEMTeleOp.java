@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmode.teleop;
 
-import static org.firstinspires.ftc.teamcode.subsystems.Shooter.ShooterState.REVERSE_FULL;
 import static org.firstinspires.ftc.teamcode.utils.math.MathUtils.createPose;
 
 import com.acmerobotics.dashboard.FtcDashboard;

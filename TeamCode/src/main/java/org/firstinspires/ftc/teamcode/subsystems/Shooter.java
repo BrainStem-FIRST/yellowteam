@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import static org.firstinspires.ftc.teamcode.subsystems.ShooterLookup.dists;
+import static org.firstinspires.ftc.teamcode.subsystems.ShooterLookup.newDists;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
@@ -40,6 +41,7 @@ public class Shooter extends Component {
     }
     public static class TestingParams {
         public boolean testing = false;
+        public double testingExitSpeedMetersPerSec = 5;
         public double testingVel = 1500;
         public double testingExitAngleRad = 1.0472;
     }
@@ -140,7 +142,27 @@ public class Shooter extends Component {
 
         setShooterPower(totalPower);
     }
-    public void updateShooterSystem(double dist) {
+    public void updateShooterSystemPhysics(double dist) {
+        dist = Range.clip(dist, newDists[0] + 0.01, newDists[newDists.length-1] - 0.01);
+
+        double ballExitSpeedMps, ballExitAngleRad;
+        if (testingParams.testing) {
+            ballExitSpeedMps = testingParams.testingExitSpeedMetersPerSec;
+            ballExitAngleRad = testingParams.testingExitAngleRad;
+        }
+        else {
+            ballExitSpeedMps = shooterLookup.lookupVelocityMetersPerSec(dist);
+            ballExitAngleRad = ShootingMath.calculateBallExitAngleRad(false, isNear, dist, ballExitSpeedMps);
+        }
+        // vel target = vel actual * getEfficiency(vel target)
+        // vel actual = vel target / getEfficiency(vel target)
+        double targetExitVelTicksPerSec = ShootingMath.exitMpsToMotorTicksPerSec(ballExitSpeedMps, 1);
+        double efficiencyCoefficient = -0.002 * Math.toDegrees(ballExitAngleRad) + 0.72;
+        double actualVelTicksPerSec = targetExitVelTicksPerSec / efficiencyCoefficient;
+
+        setShooterVelocityPID(actualVelTicksPerSec, avgMotorVel);;
+    }
+    public void updateShooterSystemLookupTable(double dist) {
         dist = Range.clip(dist, dists[0] + 0.01, dists[dists.length-1] - 0.01);
         if(testingParams.testing) {
             targetMotorVel = testingParams.testingVel;
@@ -163,11 +185,7 @@ public class Shooter extends Component {
     @Override
     public void update(){
         avgMotorVel = getAvgMotorVelocity();
-//        setHoodPosition(ShootingMath.calculateHoodServoPosition(HOOD_PARAMS.testingExitAngleRad, telemetry));
-//        telemetry.addData("shooter tangential vel m/s", ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVel, ShootingMath.shooterSystemParams.powerLossCoefficient));
-
         int turretEncoder = robot.turret.getTurretEncoder();
-
 
         Pose2d robotPose = robot.drive.localizer.getPose();
         ballExitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, ballExitAngleRad);
@@ -183,12 +201,11 @@ public class Shooter extends Component {
                 break;
 
             case UPDATE:
-                updateShooterSystem(ballExitPosInchesFromGoal);
+//                updateShooterSystemLookupTable(ballExitPosInchesFromGoal);
+                updateShooterSystemPhysics(ballExitPosInchesFromGoal);
                 break;
         }
         updateBallShotTracking();
-//
-//        updateManualShooterTracking();
     }
     public void updateBallShotTracking() {
         double dif = avgMotorVel - prevVel;

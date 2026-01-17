@@ -93,7 +93,7 @@ public class ShootingMath {
     public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double powerLossCoefficient) {
         double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
         double motorAngularVel = motorRevPerSec * 2 * Math.PI;
-        double flywheelAngularVel = motorAngularVel * 28 / 38.5;
+        double flywheelAngularVel = motorAngularVel * 16 / 18;
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
         return flywheelTangentialVel * powerLossCoefficient;
     }
@@ -184,37 +184,36 @@ public class ShootingMath {
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
     // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-//    public static double calculateBallExitAngleRad(Pose2d targetPose, Vector2d ballExitPosition, boolean useHighArc, boolean isNear, double distanceInches, double ballExitSpeedMps, OdoInfo mostRecentVelocity, Telemetry telemetry) {
-//        // get the EXACT exit height of the ball (depends on hood position)
-//        double exitHeightMeters = ShootingMath.calculateExitHeightMeters(useHighArc);
-//        double targetHeightInches;
-//        if (useHighArc)
-//            targetHeightInches = shooterSystemParams.highArcTargetHeightInches;
-//        else
-//            targetHeightInches = isNear ? shooterSystemParams.lowArcNearTargetHeightInches : shooterSystemParams.lowArcFarTargetHeightInches;
-//
-//        double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters); // 0.893
-//
-//        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
-//        double g = 9.81;
-//        double x = distanceInches * 0.0254; // convert inches to meters
-//        double y = heightToTargetMeters;
-//
-//        double v = ballExitSpeedMps;
+    public static double calculateBallExitAngleRad(boolean useHighArc, boolean isNear, double distanceInches, double ballExitSpeedMps) {
+        // get the EXACT exit height of the ball (depends on hood position)
+        double exitHeightMeters = ShootingMath.approximateExitHeightMeters(useHighArc);
+        double targetHeightInches;
+        if (useHighArc)
+            targetHeightInches = shooterSystemParams.highArcTargetHeightInches;
+        else
+            targetHeightInches = isNear ? shooterSystemParams.lowArcNearTargetHeightInches : shooterSystemParams.lowArcFarTargetHeightInches;
+
+        double heightToTargetMeters = (targetHeightInches * 0.0254 - exitHeightMeters);
+
+        // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
+        double g = 9.81;
+        double x = distanceInches * 0.0254; // convert inches to meters
+        double y = heightToTargetMeters;
+
+        double v = ballExitSpeedMps;
 //        if (enableRelativeVelocity) {
 //            double exitPositionSpeedTowardsGoalMps = ShootingMath.calculateSpeedTowardGoalMps(targetPose, ballExitPosition, mostRecentVelocity);
 //            v += exitPositionSpeedTowardsGoalMps * hoodSystemParams.hoodAngleRelativeVelocityMultiplier;
 //        }
-//        double sign = useHighArc ? 1 : -1;
-//
-//        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
-//        if (discriminant <= 0)
-//            return -1;
-//
-//
-//        double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
-//        return Math.atan(tanTheta);
-//    }
+        double sign = useHighArc ? 1 : -1;
+
+        double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
+        if (discriminant <= 0)
+            return -1;
+
+        double tanTheta = (v*v + sign * Math.sqrt(discriminant)) / (g * x);
+        return Math.atan(tanTheta);
+    }
 
     // calculates the position to put the linear actuators to on the shooter hood
     public static double calculateHoodServoPosition(double ballExitAngleRadians) {

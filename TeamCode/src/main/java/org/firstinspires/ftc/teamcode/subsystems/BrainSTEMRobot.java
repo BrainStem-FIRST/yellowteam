@@ -111,8 +111,8 @@ public class BrainSTEMRobot {
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
-                exitPosition.x + dist * Math.cos(turret.absoluteTargetAngleRad),
-                exitPosition.y + dist * Math.sin(turret.absoluteTargetAngleRad)
+                exitPosition.x + dist * Math.cos(turret.currentAbsoluteAngleRad),
+                exitPosition.y + dist * Math.sin(turret.currentAbsoluteAngleRad)
         );
     }
 }
