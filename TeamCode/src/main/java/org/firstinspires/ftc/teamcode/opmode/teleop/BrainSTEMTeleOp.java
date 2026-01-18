@@ -17,7 +17,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
-import org.firstinspires.ftc.teamcode.subsystems.Parking;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
@@ -39,8 +38,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         ADVANCED,
         CONTROL
     }
-    public static PosePredictType posePredictType = PosePredictType.SIMPLE;
-    public static double timeAheadToPredict = 0.075; // if this is -1, it will predict future pose next frame
+    public static double noMoveJoystickThreshold = 0.1;
 
     BrainSTEMRobot robot;
 
@@ -141,7 +139,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             stop();
             return;
         }
-        currentlyMoving = gamepad1.left_stick_x != 0 || gamepad1.left_stick_y != 0 || gamepad1.right_stick_x != 0;
+        currentlyMoving = Math.abs(gamepad1.left_stick_x) > noMoveJoystickThreshold || Math.abs(gamepad1.left_stick_y) > noMoveJoystickThreshold || Math.abs(gamepad1.right_stick_x) > noMoveJoystickThreshold;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
                         -gamepad1.left_stick_y,
