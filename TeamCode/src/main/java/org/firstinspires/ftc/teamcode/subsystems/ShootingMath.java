@@ -90,17 +90,17 @@ public class ShootingMath {
         return shooterSystemParams.flywheelHeightMeters + (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) * Math.sin(hoodAngleRad);
     }
     // finds exit speed of ball (meters per sec) if flywheel is spinning at ticksPerSec
-    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double powerLossCoefficient) {
+    public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double efficiencyCoefficient) {
         double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
         double motorAngularVel = motorRevPerSec * 2 * Math.PI;
         double flywheelAngularVel = motorAngularVel * 16 / 18;
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
-        return flywheelTangentialVel * powerLossCoefficient;
+        return flywheelTangentialVel * efficiencyCoefficient;
     }
 
     // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
-    public static double exitMpsToMotorTicksPerSec(double ballExitMps, double powerEfficiencyCoefficient) {
-        double flywheelMps = ballExitMps / powerEfficiencyCoefficient;
+    public static double exitMpsToMotorTicksPerSec(double ballExitMps, double efficiencyCoefficient) {
+        double flywheelMps = ballExitMps / efficiencyCoefficient;
         double flywheelAngularVel = flywheelMps / shooterSystemParams.flywheelRadiusMeters;
         double revPerSec = flywheelAngularVel / (2 * Math.PI);
         double flywheelTicksPerSec = revPerSec * shooterSystemParams.flywheelTicksPerRev;

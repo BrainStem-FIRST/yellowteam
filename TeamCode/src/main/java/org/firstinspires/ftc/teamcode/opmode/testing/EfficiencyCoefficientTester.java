@@ -99,7 +99,7 @@ public class EfficiencyCoefficientTester extends OpMode {
         }
     }
 
-    private double calculateTargetExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {
+    public static double calculateTargetExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {
         double cosTheta = Math.cos(exitAngleRad);
         double tanTheta = Math.tan(exitAngleRad);
         double denominator = 2 * cosTheta * cosTheta * (distanceMeters * tanTheta - changeInYMeters);
