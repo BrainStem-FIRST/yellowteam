@@ -26,6 +26,9 @@ public class MathUtils {
         return format(num, 2);
     }
     public static String format3(Number num) { return format(num, 3); }
+    public static String formatVec(Vector2d v) {
+        return "[" + format3(v.x) + ", " + format3(v.y) + "]";
+    }
     public static String format(Number num, int decimalPlaces) {
         StringBuilder decimals = new StringBuilder();
         for (int i=0; i<decimalPlaces; i++)

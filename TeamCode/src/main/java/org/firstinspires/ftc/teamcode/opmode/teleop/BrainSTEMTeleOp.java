@@ -87,6 +87,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         int framesRunning = 0;
         long startTimeNano = System.nanoTime();
 
+        robot.turret.update();
         while (opModeIsActive()) {
             gp1.update();
             gp2.update();

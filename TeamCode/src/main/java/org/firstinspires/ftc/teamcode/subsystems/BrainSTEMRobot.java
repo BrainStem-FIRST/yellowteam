@@ -66,10 +66,11 @@ public class BrainSTEMRobot {
         this.g1 = g1;
     }
     public void update(boolean useTurretLookAhead) {
-        turret.updateLookAheadTime(useTurretLookAhead);
-
         if(enablePinpoint)
             drive.updatePoseEstimate();
+        turret.updateLookAheadTime(useTurretLookAhead);
+        shooter.updateProperties();
+
 
         Pose2d pose = drive.localizer.getPose();
 
@@ -93,6 +94,8 @@ public class BrainSTEMRobot {
         Drawing.drawRobotSimple(fieldOverlay, turretPose, 5);
         fieldOverlay.setStroke("purple");
         Drawing.drawRobotSimple(fieldOverlay, exitPose, 3);
+        fieldOverlay.setStroke("blue");
+        Drawing.drawRobotSimple(fieldOverlay, new Pose2d(shooter.prevExitPos, 0), 3);
 
         limelight.addLimelightInfo(fieldOverlay);
 
@@ -111,8 +114,16 @@ public class BrainSTEMRobot {
         fieldOverlay.strokeLine(
                 exitPosition.x,
                 exitPosition.y,
-                exitPosition.x + dist * Math.cos(turret.currentAbsoluteAngleRad),
-                exitPosition.y + dist * Math.sin(turret.currentAbsoluteAngleRad)
+                exitPosition.x + dist * Math.cos(turret.absoluteTargetAngleRad),
+                exitPosition.y + dist * Math.sin(turret.absoluteTargetAngleRad)
+        );
+        double speedMag = Math.hypot(ShootingMath.relativeBallExitVelocityMps.x, ShootingMath.relativeBallExitVelocityMps.y);
+        fieldOverlay.setStroke("red");
+        fieldOverlay.strokeLine(
+                exitPosition.x,
+                exitPosition.y,
+                exitPosition.x + 1.5 * speedMag * Math.cos(turret.absoluteTargetAngleRad),
+                exitPosition.y + 1.5 * speedMag * Math.sin(turret.absoluteTargetAngleRad)
         );
     }
 }

@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.utils.math.Vec;
 public class Turret extends Component {
     public static class TestingParams {
         public boolean actuallyPowerTurret = true;
-        public boolean testRRControl = false;
+        public boolean testNewControl = true;
     }
     public static class GoalParams {
         public double nearRedShotsGoalX = -65, nearRedShotsGoalY = 65, farRedShotsGoalX = -66, farRedShotsGoalY = 65;
@@ -38,8 +38,8 @@ public class Turret extends Component {
         public int LEFT_BOUND = 300;
     }
     public static class PowerTuning {
-        public double rightKp = 0.003, rightKi = 0, rightKd = 0.000; // old kD: 0.0005
-        public double leftKp = 0.003, leftKi = 0, leftKd = 0.000; // old kD: 0.001
+        public double rightKp = 0.002, rightKi = 0, rightKd = 0.000; // old kD: 0.0005
+        public double leftKp = 0.002, leftKi = 0, leftKd = 0.000; // old kD: 0.001
         public double noPowerThreshold = 3;
         public double linearDistToResetKiThreshold = 1;
         public double headingDegToResetKiThreshold = 1;
@@ -50,7 +50,7 @@ public class Turret extends Component {
         public double moveLeftKf = 0.08;
         public double inThresholdKfPower = 0.01;
 
-        public double kX = 0.001, kV = 0.01, kA = 0.02, mathRes = 0.01;
+        public double kV = 0.07, kA = 0.005, mathRes = 0.001;
     }
     public static TestingParams testingParams = new TestingParams();
     public static GoalParams goalParams = new GoalParams();
@@ -101,13 +101,9 @@ public class Turret extends Component {
         return turretMotor.getCurrentPosition();
     }
 
-    public double calculateTurretPowerRR() {
-        double positionError = MathUtils.angleNormDeltaRad(relativeTargetAngleRad - currentRelativeAngleRad);
-        double velocityError = MathUtils.angleNormDeltaRad(relativeTargetAngleRadVel - currentRelativeAngleRadVel);
-        double accelError = MathUtils.angleNormDeltaRad(relativeTargetAngleRadAccel - currentRelativeAngleRadAccel);
-        return positionError * powerTuning.kX + velocityError * powerTuning.kV + accelError * powerTuning.kA;
-//        double accelPower = relativeTargetAngleRadAccel * powerTuning.kA;
-//        return accelPower + (testingParams.rawAccelControl ? 0 : calculateTurretPower(target, currentEncoder));
+    public double calculateTurretPowerNew(int ticks, int currentEncoder) {
+        double extraPower = inRange ? powerTuning.kA * relativeTargetAngleRadAccel + powerTuning.kV * relativeTargetAngleRadVel : 0;
+        return extraPower + calculateTurretPower(ticks, currentEncoder);
     }
     public double calculateTurretPower(int ticks, int currentEncoder) {
         targetEncoder = Range.clip(ticks, turretParams.RIGHT_BOUND, turretParams.LEFT_BOUND);
@@ -243,8 +239,7 @@ public class Turret extends Component {
 //                Vector2d futureExitPosition = ShootingMath.calculateExitPositionInches(futureRobotPose, turretEncoder, ballExitAngleRad);
                 Vector2d turretPos = getTurretPose(currentRobotPose, 0).position;
                 Vector2d futureTurretPos = getTurretPose(futureRobotPose, 0).position;
-                double ballExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(robot.shooter.getAvgMotorVelocity(), ShootingMath.shooterSystemParams.powerEfficiencyCoefficient);
-                absoluteTargetAngleRad = ShootingMath.calculateAbsoluteTurretTargetAngleRad(targetPose, futureRobotPose, turretPos, futureTurretPos, ballExitSpeedMps);
+                absoluteTargetAngleRad = ShootingMath.calculateAbsoluteTurretTargetAngleRad(targetPose, futureTurretPos, robot.shooter.targetExitVelMps, robot.shooter.robotVelAtExitPosInchesPerSec);
 
                 // updating TARGET relative angle values
                 prevRelativeTargetAngleRad = relativeTargetAngleRad;
@@ -275,8 +270,8 @@ public class Turret extends Component {
                 targetTurretPosition += robot.shooter.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
 
                 if(testingParams.actuallyPowerTurret) {
-                    if (testingParams.testRRControl)
-                        turretMotor.setPower(calculateTurretPowerRR());
+                    if (testingParams.testNewControl)
+                        turretMotor.setPower(calculateTurretPowerNew(targetTurretPosition, turretEncoder));
                     else
                         turretMotor.setPower(calculateTurretPower(targetTurretPosition, turretEncoder));
                 }
@@ -336,6 +331,7 @@ public class Turret extends Component {
         telemetry.addData("turret target relative angle vel", Math.toDegrees(relativeTargetAngleRadVel));
         telemetry.addData("turret target relative angle accel", Math.toDegrees(relativeTargetAngleRadAccel));
         telemetry.addLine();
+        telemetry.addData("turret target rel vel deg", Math.toDegrees(relativeTargetAngleRadVel));
         telemetry.addData("turret current absolute angle deg", Math.toDegrees(currentAbsoluteAngleRad));
         telemetry.addData("turret target absolute angle deg", Math.toDegrees(absoluteTargetAngleRad));
         telemetry.addData("relative target angle ACCEL", relativeTargetAngleRadAccel);

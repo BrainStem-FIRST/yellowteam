@@ -20,7 +20,6 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 @Config
 public class Shooter extends Component {
@@ -38,8 +37,14 @@ public class Shooter extends Component {
         public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
     }
     public static class EnergyLossParams {
-        public double m = -0.002;
-        public double b = 0.72;
+        public double distanceM = 0, distanceB = 0.392;
+//        public double m = -0.002;
+//        public double b = 0.72;
+
+        public double empiricalGoalHeightInches = 38;
+        public double empiricalExitPosDistFromGoalNegOffset = 0;
+        public boolean testingEfficiency = false;
+        public double testingEfficiencyCoef = 1;
     }
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065;
@@ -68,8 +73,9 @@ public class Shooter extends Component {
     public final PIDController shooterPID;
     private double ballExitAngleRad;
     private double nearVelocityAdjustment, farVelocityAdjustment;
-    public Vector2d ballExitPosition;
-    private double targetMotorVelTps, avgMotorVelTps, prevVelTps, exitVelMps;
+    public Vector2d ballExitPosition, prevExitPos;
+    private double targetMotorVelTps, avgMotorVelTps, prevVelTps;
+    public double curExitVelMps, targetExitVelMps;
     private double efficiencyCoef;
     private int ballsShot;
     public double lastMax, lastMin, lastDecel, velDropTime;
@@ -79,6 +85,9 @@ public class Shooter extends Component {
     private final ShooterLookup shooterLookup;
     private double ballExitPosInchesFromGoal;
     public boolean isNear;
+    public Vector2d robotVelAtExitPosInchesPerSec, robotDispAtExitPosInches;
+    public double robotSpeedAtExitPosInchesPerSec;
+    private double curTimeMs, dt;
 
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
         super(hardwareMap, telemetry, robot);
@@ -116,6 +125,9 @@ public class Shooter extends Component {
         allVelDropTimes = new ArrayList<>();
 
         shooterLookup = new ShooterLookup();
+        curTimeMs = System.currentTimeMillis();
+        if(robot != null)
+            ballExitPosition = ShootingMath.calculateExitPositionInches(robot.drive.localizer.getPose(), robot.turret.getTurretEncoder(), ballExitAngleRad);
     }
 
     public double getBallExitAngleRad() {
@@ -177,7 +189,7 @@ public class Shooter extends Component {
             ballExitAngleRad = testingParams.testingExitAngleRad;
         }
         else {
-            targetMotorVelTps = shooterLookup.lookupVelocityTicksPerSec(dist);
+//            targetMotorVelTps = shooterLookup.lookupVelocityTicksPerSec(dist);
             ballExitAngleRad = shooterLookup.lookupExitAngleRad(dist);
         }
         setShooterVelocityPID(targetMotorVelTps, avgMotorVelTps);
@@ -189,22 +201,40 @@ public class Shooter extends Component {
         hoodLeftServo.setPosition(position);
         hoodRightServo.setPosition(position);
     }
-
-    @Override
-    public void update(){
+    public void updateProperties() {
         avgMotorVelTps = getAvgMotorVelocity();
-        efficiencyCoef = energyLossParams.m * Math.toDegrees(ballExitAngleRad) + energyLossParams.b;
-        exitVelMps = ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVelTps, efficiencyCoef);
+        efficiencyCoef = energyLossParams.testingEfficiency ? energyLossParams.testingEfficiencyCoef : energyLossParams.distanceM * ballExitPosInchesFromGoal + energyLossParams.distanceB;
+        curExitVelMps = ShootingMath.ticksPerSecToExitSpeedMps(avgMotorVelTps, efficiencyCoef);
         int turretEncoder = robot.turret.getTurretEncoder();
 
         Pose2d robotPose = robot.drive.localizer.getPose();
+        prevExitPos = new Vector2d(ballExitPosition.x, ballExitPosition.y);
         ballExitPosition = ShootingMath.calculateExitPositionInches(robotPose, turretEncoder, ballExitAngleRad);
         double deltaX = robot.turret.targetPose.position.x - ballExitPosition.x;
         double deltaY = robot.turret.targetPose.position.y - ballExitPosition.y;
         ballExitPosInchesFromGoal = Math.hypot(deltaX, deltaY);
 
-        isNear = robotPose.position.x < 24;
+        targetMotorVelTps = shooterLookup.lookupVelocityTicksPerSec(ballExitPosInchesFromGoal);
+        targetExitVelMps = ShootingMath.ticksPerSecToExitSpeedMps(targetMotorVelTps, efficiencyCoef);
 
+        double prevTimeMs = curTimeMs;
+        curTimeMs = System.currentTimeMillis();
+        robotDispAtExitPosInches = ballExitPosition.minus(prevExitPos);
+        dt = (curTimeMs - prevTimeMs) / 1000;
+        robotVelAtExitPosInchesPerSec = robotDispAtExitPosInches.div(dt);
+        this.robotSpeedAtExitPosInchesPerSec = Math.hypot(robotVelAtExitPosInchesPerSec.x, robotVelAtExitPosInchesPerSec.y);
+
+
+        if(ShootingMath.enableRelativeVelocity) {
+            double relativeShooterVelMps = Math.hypot(ShootingMath.relativeBallExitVelocityMps.x, ShootingMath.relativeBallExitVelocityMps.y);
+            targetMotorVelTps = ShootingMath.exitMpsToMotorTicksPerSec(relativeShooterVelMps, efficiencyCoef);
+        }
+
+        isNear = robotPose.position.x < 24;
+    }
+
+    @Override
+    public void update(){
         switch (shooterState) {
             case OFF:
                 setShooterPower(0);
@@ -269,15 +299,22 @@ public class Shooter extends Component {
 //        telemetry.addData("  state", shooterState);
 //        telemetry.addData("isNear", isNear);
         telemetry.addData("  ball exit pos dist from goal", MathUtils.format3(ballExitPosInchesFromGoal));
-        telemetry.addData("  lookup motor vel", targetMotorVelTps);
+        telemetry.addData("  target vel", targetMotorVelTps);
         telemetry.addData("  avg motor vel TPS", avgMotorVelTps);
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  shooter high power", shooterMotorHigh.getPower());
-        telemetry.addData("  exit vel MPS", exitVelMps);
-        telemetry.addData("  efficiency coef", efficiencyCoef);
-        double changeInYMeters = ShootingMath.shooterSystemParams.ballRadiusMeters - ShootingMath.calculateExactExitHeightMeters(ballExitAngleRad);
+//        telemetry.addData("  efficiency coef", efficiencyCoef);
+        telemetry.addData("  exit vel MPS using efficiencyCoef", curExitVelMps);
+        double changeInYMeters = energyLossParams.empiricalGoalHeightInches * 0.0254 - ShootingMath.calculateExactExitHeightMeters(ballExitAngleRad);
         telemetry.addData("change in y meters", changeInYMeters);
-        telemetry.addData("  ACTUAL exit vel MPS", EfficiencyCoefficientTester.calculateTargetExitVelocity(ballExitPosInchesFromGoal * 0.0254, changeInYMeters, ballExitAngleRad));
+        telemetry.addData("  ACTUAL exit vel MPS", EfficiencyCoefficientTester.calculateTargetExitVelocity((ballExitPosInchesFromGoal - energyLossParams.empiricalExitPosDistFromGoalNegOffset) * 0.0254, changeInYMeters, ballExitAngleRad));
+
+        telemetry.addLine();
+        telemetry.addData("dt", dt);
+        telemetry.addData("exit disp in one frame", MathUtils.format3(Math.hypot(robotDispAtExitPosInches.x, robotDispAtExitPosInches.y)));
+        telemetry.addData("relative exit vel mps", MathUtils.formatVec(ShootingMath.relativeBallExitVelocityMps));
+        telemetry.addData("robot vel at exit pos in/s", MathUtils.formatVec(robotVelAtExitPosInchesPerSec));
+        telemetry.addData("robot speed at exit pos in/s", robotSpeedAtExitPosInchesPerSec);
 //        telemetry.addData("shooter velocity error", targetMotorVelTps - avgMotorVelTps);
 //        telemetry.addData("  ball vel drops", Arrays.toString(velDrops.toArray()));
 //        telemetry.addData("  post shot vels", Arrays.toString(postShotVels.toArray()));
