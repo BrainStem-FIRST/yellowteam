@@ -16,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
@@ -305,14 +306,14 @@ public class LimelightLocalization extends LLParent {
     }
     private Pose2d calculateRobotPose(Pose2d cameraPose) {
         Pose2d turretPose = Limelight.getTurretPose(cameraPose);
-        return Turret.getRobotPose(turretPose, robot.turret.turretMotor.getCurrentPosition());
+        return ShootingMath.getRobotPose(turretPose, robot.shootingSystem.getTurretEncoder());
     }
     private boolean canUpdateDrivetrainReliably() {
         OdoInfo odoVel = robot.drive.pinpoint().getMostRecentVelocity();
         return Math.abs(Math.toDegrees(odoVel.headingRad)) < params.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < params.maxUpdateTranslationalVel;
     }
     private boolean canUpdateTurretReliably() {
-        return robot.turret.turretMotor.getVelocity() < params.maxUpdateTurretVelTicksPerSec && Math.abs(robot.turret.getTurretEncoder()) <= params.turretUpdateEncoderRange;
+        return robot.shootingSystem.getTurretVelTps() < params.maxUpdateTurretVelTicksPerSec && Math.abs(robot.shootingSystem.getTurretEncoder()) <= params.turretUpdateEncoderRange;
     }
     private boolean isInLocalizationZone() {
         Pose2d odoPose = robot.drive.localizer.getPose();

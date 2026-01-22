@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import static org.firstinspires.ftc.teamcode.subsystems.Turret.turretParams;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
@@ -50,23 +52,12 @@ public class ShootingMath {
     public static TurretSystemParams turretSystemParams = new TurretSystemParams();
     public static boolean enableRelativeVelocity = true;
 
-    public static Vector2d calculateTargetExitPositionInches(Pose2d robotPose, Pose2d targetPose, double ballExitAngleRad) {
-        double hoodAngleRad = Math.PI * .5 - ballExitAngleRad;
-        Vector2d turretPos = Turret.getTurretPose(robotPose, 0).position;
-        Vector2d targetToTurret = new Vector2d(turretPos.x - targetPose.position.x, turretPos.y - targetPose.position.y);
-        targetToTurret = targetToTurret.div(Math.hypot(targetToTurret.x, targetToTurret.y));
-        double shooterCombinedRadiusInches = (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) / 0.0254;
-        Vector2d turretToExitPos = targetToTurret.times(-shooterSystemParams.flywheelOffsetFromTurretInches + Math.cos(hoodAngleRad) * shooterCombinedRadiusInches);
-        return turretPos.plus(turretToExitPos);
-    }
-
     // what this is used for as of 11/23
     // calculating distance from exit position to goal in updateShooterSystem
     // calculating current and future exit position pose for turret relative velocity correction
     // dashboard field telemetry and raw subsystem testing
-    public static Vector2d calculateExitPositionInches(Pose2d robotPose, int turretEncoder, double ballExitAngleRad) {
+    public static Vector2d calculateExitPositionInches(Pose2d turretPose, double ballExitAngleRad) {
         double hoodAngleRad = Math.PI * 0.5 - ballExitAngleRad;
-        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
         double shooterCombinedRadiusInches = (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) / 0.0254;
         double offsetFromTurretInches = shooterSystemParams.flywheelOffsetFromTurretInches - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
 
@@ -143,27 +134,30 @@ public class ShootingMath {
 //        double relativeExitSpeedMps = ticksPerSecond - (exitPositionSpeedTowardsGoalMps * shooterSystemParams.flywheelSpeedRelativeVelocityMultiplier);
 //        return exitMpsToMotorTicksPerSec(relativeExitSpeedMps);
 //    }
-    public static Vector2d relativeBallExitVelocityMps = new Vector2d(0, 0);
+//    public static Vector2d relativeBallExitVelocityMps = new Vector2d(0, 0);
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
-    public static double calculateAbsoluteTurretTargetAngleRad(Pose2d targetPose, Vector2d futureTurretPos, double targetExitSpeedMps, Vector2d robotVelAtExitPosInchesPerSec) {
-        Vector2d globalExitVelMps = new Vector2d(targetPose.position.x - futureTurretPos.x, targetPose.position.y - futureTurretPos.y);
+    public static Vector2d calculateActualTargetExitVel(Vector2d targetPos, Vector2d futureTurretPos, double globalExitSpeedMps, Vector2d robotVelAtExitPosInchesPerSec) {
+        Vector2d globalExitVelMps = new Vector2d(targetPos.x - futureTurretPos.x, targetPos.y - futureTurretPos.y);
         globalExitVelMps = globalExitVelMps.div(Math.hypot(globalExitVelMps.x, globalExitVelMps.y)); // normalizing vector
-        globalExitVelMps = globalExitVelMps.times(targetExitSpeedMps);
+        globalExitVelMps = globalExitVelMps.times(globalExitSpeedMps);
 
-        double targetAngleRad;
-        // account for relative velocity
-        if (enableRelativeVelocity) {
-            // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
-            relativeBallExitVelocityMps = globalExitVelMps.minus(robotVelAtExitPosInchesPerSec.times(0.0254));
-            // find angle to shoot at relative velocity
-            targetAngleRad = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
-        }
-        // find angle to shoot at without any relative velocity calculations
-        else
-            targetAngleRad = Math.atan2(globalExitVelMps.y, globalExitVelMps.x);
-
-        return targetAngleRad;
+        return globalExitVelMps.minus(robotVelAtExitPosInchesPerSec.times(0.0254));
+//        Vector2d actualTargetEXitVel;
+//        double targetAngleRad;
+//        // account for relative velocity
+//        if (enableRelativeVelocity) {
+//            // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
+//            actualTargetEXitVel = ;
+//            // find angle to shoot at relative velocity
+//            targetAngleRad = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
+//        }
+//        // find angle to shoot at without any relative velocity calculations
+//        else
+//            targetAngleRad = Math.atan2(globalExitVelMps.y, globalExitVelMps.x);
+//            actualTargetEXitVel =
+//
+//        return targetAngleRad;
     }
 
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
@@ -208,5 +202,20 @@ public class ShootingMath {
         double totalLinearDistanceMm = -0.00125315 * Math.pow(hoodPivotAngleDeg, 2) + 0.858968 * hoodPivotAngleDeg + 63.03978;
         double linearDistanceToExtendMm = totalLinearDistanceMm - hoodSystemParams.restingDistanceMm;
         return linearDistanceToExtendMm / hoodSystemParams.servoRangeMm;
+    }
+
+    public static Pose2d getTurretPose(Pose2d robotPose, double turretRelativeAngleRad) {
+        double robotHeading = robotPose.heading.toDouble();
+        double xOffset = -Math.cos(robotHeading) * turretParams.offsetFromCenter;
+        double yOffset = -Math.sin(robotHeading) * turretParams.offsetFromCenter;
+        return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + turretRelativeAngleRad);
+    }
+    public static Pose2d getRobotPose(Pose2d turretPose, int turretPosition) {
+        double relTurretAngleRad = Turret.getTurretRelativeAngleRad(turretPosition);
+        double robotHeading = turretPose.heading.toDouble() - relTurretAngleRad;
+        if(robotHeading > Math.PI)
+            robotHeading -= Math.PI * 2;
+        Vector2d robotTurretVec = new Vector2d(turretParams.offsetFromCenter * Math.cos(robotHeading), turretParams.offsetFromCenter * Math.sin(robotHeading));
+        return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
     }
 }

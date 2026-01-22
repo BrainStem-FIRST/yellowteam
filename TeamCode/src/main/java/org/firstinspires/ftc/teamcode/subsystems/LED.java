@@ -52,7 +52,7 @@ public class LED extends Component {
             return;
         }
 
-        double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
+        double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shootingSystem.getShooterVelTps());
         if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance) {
             if (shooterFlashTimer.seconds() > shooterFlashOnTime + shooterFlashOffTime)
                 shooterFlashTimer.reset();

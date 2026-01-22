@@ -108,14 +108,7 @@ public class AutoCommands {
     public Action speedUpShooter() {
         return packet -> {
             robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
-            return Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) >= BrainSTEMTeleOp.firstShootTolerance;
-        };
-    }
-
-    public Action maxShooterSpeed() {
-        return packet -> {
-            robot.shooter.setShooterPower(1);
-            return false;
+            return Math.abs(robot.shootingSystem.getShooterVelTps() - robot.shooter.shooterPID.getTarget()) >= BrainSTEMTeleOp.firstShootTolerance;
         };
     }
 

@@ -19,6 +19,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.LED;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.Limelight;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
@@ -48,8 +50,7 @@ public class LocalizationTest extends LinearOpMode {
         limelight3A.start();
         FtcDashboard.getInstance().startCameraStream(limelight3A, ftcDashboardFPS);
 
-        turret = new Turret(hardwareMap, telemetry, null);
-        turret.resetEncoders();
+        ShootingSystem shootingSystem = new ShootingSystem(hardwareMap, null);
 
         ArrayList<Pose2d> prevLlCameraPoses = new ArrayList<>();
 
@@ -78,8 +79,8 @@ public class LocalizationTest extends LinearOpMode {
 
             drive.updatePoseEstimate();
             Pose2d pinpointRobotPose = drive.localizer.getPose();
-            int turretEncoder = turret.getTurretEncoder();
-            Pose2d pinpointTurretPose = Turret.getTurretPose(pinpointRobotPose, turretEncoder);
+            int turretEncoder = shootingSystem.getTurretEncoder();
+            Pose2d pinpointTurretPose = ShootingMath.getTurretPose(pinpointRobotPose, turretEncoder);
             Pose2d pinpointCameraPose = Limelight.getLimelightPose(pinpointTurretPose);
 
             if (useMegaTag2)
@@ -101,7 +102,7 @@ public class LocalizationTest extends LinearOpMode {
                 llCameraPose = new Pose2d(cameraPos.x, cameraPos.y, cameraHeading);
                 if (llCameraPose.position.x != 0 || llCameraPose.position.y != 0 || llCameraPose.heading.toDouble() != 0) {
                     llTurretPoses = Limelight.getTurretPose(llCameraPose);
-                    llRobotPose = Turret.getRobotPose(llTurretPoses, turretEncoder);
+                    llRobotPose = ShootingMath.getRobotPose(llTurretPoses, turretEncoder);
                 }
             }
 
@@ -121,7 +122,7 @@ public class LocalizationTest extends LinearOpMode {
                 }
                 filteredLlCameraPose = new Pose2d(x / prevLlCameraPoses.size(), y / prevLlCameraPoses.size(), hRad / prevLlCameraPoses.size());
                 filteredLlTurretPose = Limelight.getTurretPose(filteredLlCameraPose);
-                filteredLlRobotPose = Turret.getRobotPose(filteredLlTurretPose, turretEncoder);
+                filteredLlRobotPose = ShootingMath.getRobotPose(filteredLlTurretPose, turretEncoder);
             }
 
 

@@ -179,8 +179,8 @@ public class Collection extends Component {
             case TRANSFER:
                 break;
             case INTAKE:
-                double shooterError = Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget());
-                double errorThreshold = robot.shooter.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
+                double shooterError = Math.abs(robot.shootingSystem.getShooterVelTps() - robot.shooter.shooterPID.getTarget());
+                double errorThreshold = robot.shootingSystem.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
                 if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(params.INTAKE_SPEED);
                 else

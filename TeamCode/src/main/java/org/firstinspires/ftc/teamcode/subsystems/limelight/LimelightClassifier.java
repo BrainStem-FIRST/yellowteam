@@ -9,6 +9,7 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 
 import java.util.Arrays;
@@ -110,8 +111,8 @@ public class LimelightClassifier extends LLParent {
     }
     private double getCameraY() {
         Pose2d robotPose = robot.drive.localizer.getPose();
-        int turretEncoder = robot.turret.getTurretEncoder();
-        Pose2d turretPose = Turret.getTurretPose(robotPose, turretEncoder);
+        int turretEncoder = robot.shootingSystem.getTurretEncoderRaw();
+        Pose2d turretPose = ShootingMath.getTurretPose(robotPose, turretEncoder);
         double turretAngleRad = Turret.getTurretRelativeAngleRad(turretEncoder) + robotPose.heading.toDouble();
         double dy = params.forwardDistFromTurret * Math.sin(turretAngleRad);
         return turretPose.position.y + dy;

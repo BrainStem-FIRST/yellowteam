@@ -193,7 +193,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if (Math.abs(robot.shooter.getAvgMotorVelocity() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance && robot.turret.inRange())
+                else if (Math.abs(robot.shootingSystem.getShooterVelTps() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance && robot.turret.inRange())
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())
@@ -237,9 +237,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         // draw goal
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.turret.targetPose.position.x, robot.turret.targetPose.position.y, 3);
-        Pose2d defaultGoalPose = robot.turret.targetPose;
-        fieldOverlay.strokeCircle(defaultGoalPose.position.x, defaultGoalPose.position.y, 3);
+        fieldOverlay.strokeCircle(robot.shootingSystem.targetPos.x, robot.shootingSystem.targetPos.y, 3);
+        Vector2d defaultGoalPos = robot.shootingSystem.targetPos;
+        fieldOverlay.strokeCircle(defaultGoalPos.x, defaultGoalPos.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
 }

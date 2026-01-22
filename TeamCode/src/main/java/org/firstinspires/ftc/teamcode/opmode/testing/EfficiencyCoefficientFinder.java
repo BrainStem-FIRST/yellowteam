@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
@@ -66,15 +67,16 @@ public class EfficiencyCoefficientFinder extends OpMode {
         robot.collection.collectorMotor.setPower(collectPower);
 
         if (controls.targetShooterVelocityTicksPerSec == 0 || !controls.powerShooter)
-            robot.shooter.setShooterPower(0);
+            robot.shootingSystem.setShooterPower(0);
         else {
-            shooterVelTicksPerSec = robot.shooter.getAvgMotorVelocity();
+            shooterVelTicksPerSec = robot.shootingSystem.getShooterVelTps();
             robot.shooter.setShooterVelocityPID(controls.targetShooterVelocityTicksPerSec, shooterVelTicksPerSec);
-            robot.shooter.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
+            robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
 
             Pose2d start = createPose(experiment.startPose);
             // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
-            Vector2d exitPosition = ShootingMath.calculateExitPositionInches(start, 0, controls.ballExitAngleRad);
+            Pose2d turretPose = ShootingMath.getTurretPose(start, 0);
+            Vector2d exitPosition = ShootingMath.calculateExitPositionInches(turretPose, controls.ballExitAngleRad);
             avgDistMeters = calculateAvgDist(experiment.distanceInches, exitPosition) * 0.0254;
             if (avgDistMeters < 0)
                 telemetry.addLine("__INPUT DISTANCES ARE NOT VALID");
@@ -96,11 +98,11 @@ public class EfficiencyCoefficientFinder extends OpMode {
             actualExitVelocityMetersPerSecUsingPowerLoss = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, powerEfficiencyCoefficient); // this should equal actualExitVelocityMetersPerSecUsingRealWorldData
             expectedDistancesOfTravel = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, actualExitVelocityMetersPerSecUsingPowerLoss); // this should equal avgDistMeters
 
-            Pose2d turretPose = Turret.getTurretPose(start, 0);
+            robot.shootingSystem.sendHardwareInfo();
             telemetry.addLine("a MISC=====");
             telemetry.addData("b turret pose", MathUtils.formatPose3(turretPose));
             telemetry.addData("c exit pos X inches", exitPosition.x);
-            telemetry.addData("d left hood pos", robot.shooter.hoodLeftServo.getPosition());
+            telemetry.addData("d left hood pos", robot.shootingSystem.getHoodPosition());
             telemetry.addLine();
             telemetry.addLine("e CALCULATIONS============");
             telemetry.addData("f change in Y from ball exit position (meters)", changeInYMeters);

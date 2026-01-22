@@ -177,13 +177,12 @@ public abstract class RRAutoFar extends LinearOpMode {
                     telemetry.addData("current", robot.collection.collectorMotor.getCurrent(CurrentUnit.MILLIAMPS));
                     telemetry.addData("balls shot", robot.shooter.getBallsShot());
                     telemetry.addData("intake p", robot.collection.getIntakePower());
-                    telemetry.addData("shooter error", robot.shooter.shooterPID.getTarget() - robot.shooter.getAvgMotorVelocity());
                     telemetry.addData("autoX, y, heading", PoseStorage.autoX + ", " + PoseStorage.autoY + ", " + Math.floor(PoseStorage.autoHeading * 180 / Math.PI));
                     telemetry.update();
                     return true;
                 }
         );
-        robot.turret.resetEncoders();
+        robot.shootingSystem.resetTurretEncoder();
 
         telemetry.addData("alliance", alliance);
         telemetry.addData("auto string", customizable.collectionOrder);

@@ -193,7 +193,7 @@ public abstract class AutoPid extends LinearOpMode {
                     return true;
                 }
         );
-        robot.turret.resetEncoders();
+        robot.shootingSystem.resetTurretEncoder();
 
         telemetry.addData("alliance", alliance);
         telemetry.addData("auto string", customizable.collectionOrder);
