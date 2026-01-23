@@ -183,6 +183,7 @@ public class Turret extends Component {
         prevTargetRelAngleRad = targetRelAngleRad;
         targetRelAngleRad = MathUtils.angleNormDeltaRad(robot.shootingSystem.absoluteTargetAngleRad - robot.shootingSystem.futureRobotPose.heading.toDouble());
 
+        // TODO: re-look at noise of these variables; i might need to filter it out
         prevTargetRelAngleRadVel = targetRelAngleRadVel;
         targetRelAngleRadVel = (targetRelAngleRad - prevTargetRelAngleRad) / robot.shootingSystem.dt;
         if(Math.abs(targetRelAngleRadVel) < turretParams.mathRes)

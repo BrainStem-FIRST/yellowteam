@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
+import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.MotorCacher;
 import org.firstinspires.ftc.teamcode.utils.misc.ServoImplCacher;
 
@@ -122,7 +123,7 @@ public class ShootingSystem {
 
         hoodLeftServo.updateProperties();
         hoodRightServo.updateProperties();
-        
+
         Pose2d robotPose = robot.drive.localizer.getPose();
         futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAhead);
         isNear = robotPose.position.x < 24;
@@ -156,8 +157,14 @@ public class ShootingSystem {
         turretPose = ShootingMath.getTurretPose(robotPose, robot.turret.currentRelativeAngleRad);
         prevBallExitPos = ballExitPos;
         ballExitPos = ShootingMath.calculateExitPositionInches(turretPose, ballExitAngleRad);
-        robotVelAtExitPosIps = ballExitPos.minus(prevBallExitPos);
-        robotVelAtExitPosIps = robotVelAtExitPosIps.div(dt);
+//        robotVelAtExitPosIps = ballExitPos.minus(prevBallExitPos);
+//        robotVelAtExitPosIps = robotVelAtExitPosIps.div(dt);
+        OdoInfo vel = robot.drive.pinpoint().previousVelocities.get(0);
+        Vector2d robotVelCm = new Vector2d(vel.x, vel.y);
+        Vector2d relativeExitPos = ballExitPos.minus(robotPose.position);
+        Vector2d robotTanVel = new Vector2d(-relativeExitPos.y, relativeExitPos.x*1).times(vel.headingRad); // v = r * w
+        robotVelAtExitPosIps = robotVelCm.plus(robotTanVel);
+        robotSpeedAtExitPosIps = Math.hypot(robotVelAtExitPosIps.x, robotVelAtExitPosIps.y);
         robotSpeedAtExitPosIps = Math.hypot(robotVelAtExitPosIps.x, robotVelAtExitPosIps.y);
 
         double deltaX = targetPos.x - ballExitPos.x;
