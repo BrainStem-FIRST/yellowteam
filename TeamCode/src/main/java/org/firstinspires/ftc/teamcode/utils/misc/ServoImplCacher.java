@@ -3,18 +3,24 @@ package org.firstinspires.ftc.teamcode.utils.misc;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 public class ServoImplCacher {
-    private double pos;
+    private double curPos, targetPos;
     private final ServoImplEx servo;
     public ServoImplCacher(ServoImplEx servo) {
         this.servo = servo;
     }
     public void updateProperties() {
-        pos = servo.getPosition();
+        curPos = servo.getPosition();
     }
     public double getPosition() {
-        return pos;
+        return curPos;
+    }
+    public double getTargetPosition() {
+        return targetPos;
     }
     public void setPosition(double p) {
-        servo.setPosition(p);
+        targetPos = p;
+    }
+    public void sendInfo() {
+        servo.setPosition(targetPos);
     }
 }

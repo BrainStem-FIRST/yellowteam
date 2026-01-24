@@ -14,8 +14,6 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
-import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
 @TeleOp(name="Power Efficiency Finder", group="Testing")
@@ -69,7 +67,7 @@ public class EfficiencyCoefficientFinder extends OpMode {
         if (controls.targetShooterVelocityTicksPerSec == 0 || !controls.powerShooter)
             robot.shootingSystem.setShooterPower(0);
         else {
-            shooterVelTicksPerSec = robot.shootingSystem.getShooterVelTps();
+            shooterVelTicksPerSec = robot.shootingSystem.filteredShooterSpeedTps;
             robot.shooter.setShooterVelocityPID(controls.targetShooterVelocityTicksPerSec, shooterVelTicksPerSec);
             robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
 

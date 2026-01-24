@@ -89,16 +89,17 @@ public class Shooter extends Component {
 
             case UPDATE:
                 if(testingParams.testing)
-                    setShooterVelocityPID(testingParams.testingVel, robot.shootingSystem.getShooterVelTps());
+                    setShooterVelocityPID(testingParams.testingVel, robot.shootingSystem.filteredShooterSpeedTps);
                 else
-                    setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.getShooterVelTps());
+                    setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.filteredShooterSpeedTps);
                 break;
         }
-        robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad));
+        double pos = ShootingMath.calculateHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad);
+        robot.shootingSystem.setHoodPosition(pos);
         updateBallShotTracking();
     }
     public void updateBallShotTracking() {
-        double dif = robot.shootingSystem.getShooterVelTps() - robot.shootingSystem.getPrevShooterVelTps();
+        double dif = robot.shootingSystem.filteredShooterSpeedTps - robot.shootingSystem.getPrevShooterVelTps();
         if(dif > 0)
             increasing = true;
         else if(dif == 0)
@@ -138,11 +139,13 @@ public class Shooter extends Component {
         telemetry.addLine("SHOOTER------");
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  shooter power", robot.shootingSystem.getShooterPower());
-        telemetry.addData("  current vel tps", robot.shootingSystem.getShooterVelTps());
-        telemetry.addData("  current vel mps", robot.shootingSystem.curExitVelMps);
+        telemetry.addData("  shooter filtered vel tps", robot.shootingSystem.filteredShooterSpeedTps);
+        telemetry.addData("  shooter raw vel tps", robot.shootingSystem.rawShooterSpeedTps);
+        telemetry.addData("  shooter filtered vel mps", robot.shootingSystem.curExitSpeedMps);
 
         telemetry.addLine();
         telemetry.addLine("HOOD------");
+        telemetry.addData("  hood pos", robot.shootingSystem.getHoodPosition());
     }
     public void setBallsShot(int n) {
         ballsShot = n;

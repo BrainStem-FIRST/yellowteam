@@ -195,7 +195,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if (Math.abs(robot.shootingSystem.getShooterVelTps() - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance && robot.turret.inRange())
+                else if (Math.abs(robot.shootingSystem.filteredShooterSpeedTps - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance && robot.turret.inRange())
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())

@@ -38,9 +38,9 @@ public class Turret extends Component {
         public double moveLeftKf = 0.08;
         public double inThresholdKfPower = 0.01;
 
-        public double kV = 0.07, kA = 0.005;
-        public double kAJoystick = 0.005;
-        public double tauVel = 0.05, tauAccel = 0.05;
+        public double kV = 0.04, kA = 0.003;
+        public double kAJoystick = 0.00;
+        public double tauVel = 0.1, tauAccel = 0.1;
         public double transitionTime = 0.2;
     }
     public static TestingParams testingParams = new TestingParams();

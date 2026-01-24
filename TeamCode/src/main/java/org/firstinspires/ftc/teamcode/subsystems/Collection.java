@@ -55,7 +55,7 @@ public class Collection extends Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.65;
         public double DELAY_PERIOD = 0.2;
-        public double INTAKE_SLOW_SPEED = 0.3, INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0;
+        public double INTAKE_SLOW_SPEED = 0.3, INTAKE_SPEED = 0.95, SHOOTER_ERROR_INTAKE_SPEED = 0.95;
         public double OUTTAKE_SPEED = -0.5;
         public double LASER_BALL_THRESHOLD = 2.5;
         public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
@@ -179,7 +179,7 @@ public class Collection extends Component {
             case TRANSFER:
                 break;
             case INTAKE:
-                double shooterError = Math.abs(robot.shootingSystem.getShooterVelTps() - robot.shooter.shooterPID.getTarget());
+                double shooterError = Math.abs(robot.shootingSystem.filteredShooterSpeedTps - robot.shooter.shooterPID.getTarget());
                 double errorThreshold = robot.shootingSystem.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
                 if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(params.INTAKE_SPEED);
