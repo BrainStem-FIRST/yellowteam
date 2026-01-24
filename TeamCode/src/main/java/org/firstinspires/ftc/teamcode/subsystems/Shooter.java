@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -20,14 +19,12 @@ public class Shooter extends Component {
         public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 90;
         public double shotVelDropThreshold = 50;
         public double noiseVariance = 40;
-        public boolean printShootInfo = false;
         public int startingShooterSpeedAdjustment = 0;
         public double minPower = -0.15, maxPower = 0.99;
         public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
     }
     public static class TestingParams {
         public boolean testing = false;
-        public double testingExitSpeedMetersPerSec = 5;
         public double testingVel = 1500;
         public double testingExitAngleRad = 1.0472;
     }
@@ -94,7 +91,7 @@ public class Shooter extends Component {
                 if(testingParams.testing)
                     setShooterVelocityPID(testingParams.testingVel, robot.shootingSystem.getShooterVelTps());
                 else
-                    setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetBallExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.getShooterVelTps());
+                    setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.getShooterVelTps());
                 break;
         }
         robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad));
@@ -141,6 +138,8 @@ public class Shooter extends Component {
         telemetry.addLine("SHOOTER------");
         telemetry.addData("  pid target vel", shooterPID.getTarget());
         telemetry.addData("  shooter power", robot.shootingSystem.getShooterPower());
+        telemetry.addData("  current vel tps", robot.shootingSystem.getShooterVelTps());
+        telemetry.addData("  current vel mps", robot.shootingSystem.curExitVelMps);
 
         telemetry.addLine();
         telemetry.addLine("HOOD------");

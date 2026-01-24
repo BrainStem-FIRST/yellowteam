@@ -20,19 +20,14 @@ public class Turret extends Component {
         public double offsetFromCenter = 3.442; // offset of center of turret from center of robot in inches
 
         public int fineAdjust = 5;
-        public int lookAheadAvgNum = 5;
-        public double rawLookAheadTime = 0.2; // time to look ahead for pose prediction
-        // variable deciding how to smooth out discontinuities in look ahead time
-//        public double startLookAheadSmoothValue = 0.5;
-//        public double endLookAheadSmoothValue = 0.5;
         public double TICKS_PER_REV = 1228.5, ticksPerRad = TICKS_PER_REV / (2 * Math.PI);
         public int RIGHT_BOUND = -300;
         public int LEFT_BOUND = 300;
         public double mathRes = 0.001;
     }
     public static class PowerTuning {
-        public double rightKp = 0.002, rightKi = 0, rightKd = 0.0005; // old kD: 0.0005
-        public double leftKp = 0.002, leftKi = 0, leftKd = 0.0005; // old kD: 0.001
+        public double rightKp = 0.003, rightKi = 0, rightKd = 0.000; // old kD: 0.0005
+        public double leftKp = 0.003, leftKi = 0, leftKd = 0.000; // old kD: 0.001
         public double noPowerThreshold = 3;
         public double linearDistToResetKiThreshold = 1;
         public double headingDegToResetKiThreshold = 1;
@@ -43,7 +38,10 @@ public class Turret extends Component {
         public double moveLeftKf = 0.08;
         public double inThresholdKfPower = 0.01;
 
-        public double kV = 0.07, kA = 0.005, mathRes = 0.001;
+        public double kV = 0.07, kA = 0.005;
+        public double kAJoystick = 0.005;
+        public double tauVel = 0.05, tauAccel = 0.05;
+        public double transitionTime = 0.2;
     }
     public static TestingParams testingParams = new TestingParams();
 //    public static GoalParams goalParams = new GoalParams();
@@ -58,7 +56,7 @@ public class Turret extends Component {
     public int targetEncoder;
     private double motorError;
     private double kF;
-    private ElapsedTime timeSinceStartTracking;
+    private final ElapsedTime lerpTimer;
 
     public double targetRelAngleRad, prevTargetRelAngleRad;
     protected double targetRelAngleRadVel, prevTargetRelAngleRadVel;
@@ -75,7 +73,7 @@ public class Turret extends Component {
 
         pidController = new PIDController(powerTuning.rightKp, powerTuning.rightKi, powerTuning.rightKd);
         turretState = TurretState.CENTER;
-        timeSinceStartTracking = new ElapsedTime();
+        lerpTimer = new ElapsedTime();
     }
 
     @Override
@@ -91,8 +89,11 @@ public class Turret extends Component {
                 int targetTurretPosition = (int) (targetRelAngleRad * turretParams.ticksPerRad);
                 targetTurretPosition += robot.shootingSystem.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
 
+                if(!inRange)
+                    lerpTimer.reset();
+
                 if(testingParams.actuallyPowerTurret) {
-                    if (testingParams.testNewControl && timeSinceStartTracking.seconds() > 0.1)
+                    if (testingParams.testNewControl )
                         robot.shootingSystem.setTurretPower(calculateTurretPowerNew(targetTurretPosition, turretEncoder));
                     else
                         robot.shootingSystem.setTurretPower(calculateTurretPower(targetTurretPosition, turretEncoder));
@@ -102,7 +103,7 @@ public class Turret extends Component {
                 break;
 
             case CENTER:
-                timeSinceStartTracking.reset();
+                lerpTimer.reset();
                 inRange = true;
                 if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
                     robot.shootingSystem.setTurretPower(0);
@@ -127,7 +128,9 @@ public class Turret extends Component {
     }
 
     public double calculateTurretPowerNew(int ticks, int currentEncoder) {
-        double extraPower = inRange ? powerTuning.kA * targetRelAngleRadAccel + powerTuning.kV * targetRelAngleRadVel : 0;
+        double extraPower = inRange ? powerTuning.kA * targetRelAngleRadAccel + powerTuning.kV * targetRelAngleRadVel + powerTuning.kAJoystick * robot.g1.gamepad.right_stick_x : 0;
+        extraPower = MathUtils.lerp(0, extraPower, Math.min(lerpTimer.seconds() / powerTuning.transitionTime, 1));
+        extraPower = Range.clip(extraPower, -0.99, 0.99);
         return extraPower + calculateTurretPower(ticks, currentEncoder);
     }
     public double calculateTurretPower(int ticks, int currentEncoder) {
@@ -180,16 +183,25 @@ public class Turret extends Component {
         return turretPosition / turretTicksPerRadian;
     }
     private void updatePosVelAccel() {
+        // updating position variables
         prevTargetRelAngleRad = targetRelAngleRad;
         targetRelAngleRad = MathUtils.angleNormDeltaRad(robot.shootingSystem.absoluteTargetAngleRad - robot.shootingSystem.futureRobotPose.heading.toDouble());
 
-        // TODO: re-look at noise of these variables; i might need to filter it out
+        // updating velocity variables
         prevTargetRelAngleRadVel = targetRelAngleRadVel;
-        targetRelAngleRadVel = (targetRelAngleRad - prevTargetRelAngleRad) / robot.shootingSystem.dt;
+        double rawTargetRelAngleRadVel = -robot.shootingSystem.odoVel.headingRad;
+//        double rawTargetRelAngleRadVel = MathUtils.angleNormDeltaRad(targetRelAngleRad - prevTargetRelAngleRad) / robot.shootingSystem.dt;
+        // low pass filter:
+        // a = e^(-dt/tau)
+        // x1 = ax0 + (1-a)x
+        double aVel = Math.exp(-robot.shootingSystem.dt / powerTuning.tauVel);
+        targetRelAngleRadVel = aVel * prevTargetRelAngleRadVel + (1 - aVel) * rawTargetRelAngleRadVel;
         if(Math.abs(targetRelAngleRadVel) < turretParams.mathRes)
             targetRelAngleRadVel = 0;
 
-        targetRelAngleRadAccel = (targetRelAngleRadVel - prevTargetRelAngleRadVel) / robot.shootingSystem.dt;
+        double rawTargetRelAngleRadAccel = (targetRelAngleRadVel - prevTargetRelAngleRadVel) / robot.shootingSystem.dt;
+        double aAccel = Math.exp(-robot.shootingSystem.dt / powerTuning.tauAccel);
+        targetRelAngleRadAccel = aAccel * targetRelAngleRadAccel + (1 - aAccel) * rawTargetRelAngleRadAccel;
         if(Math.abs(targetRelAngleRadAccel) < turretParams.mathRes)
             targetRelAngleRadAccel = 0;
 

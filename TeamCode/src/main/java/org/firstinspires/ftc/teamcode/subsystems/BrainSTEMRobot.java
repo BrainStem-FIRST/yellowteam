@@ -113,7 +113,7 @@ public class BrainSTEMRobot {
                 shootingSystem.ballExitPos.x + dist * Math.cos(shootingSystem.absoluteTargetAngleRad),
                 shootingSystem.ballExitPos.y + dist * Math.sin(shootingSystem.absoluteTargetAngleRad)
         );
-        double speedMag = Math.hypot(shootingSystem.actualTargetBallExitVelMps.x, shootingSystem.actualTargetBallExitVelMps.y);
+        double speedMag = shootingSystem.actualTargetExitSpeedMps;
         fieldOverlay.setStroke("red");
         fieldOverlay.strokeLine(
                 shootingSystem.ballExitPos.x,

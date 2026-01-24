@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import java.util.ArrayList;
 
 @Config
-@TeleOp(name="Pose Prediction Error Recorder", group="Data Recording")
+@TeleOp(name="Pose Prediction Error Recorder", group="Testing")
 public class PosePredictionErrorRecorder extends OpMode {
     public static int currentMode = 0;
     public static boolean showError = false, showAcceleration = true, showVelocity = false;

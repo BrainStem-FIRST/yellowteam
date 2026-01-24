@@ -20,8 +20,10 @@ public class EfficiencyCoefficientTester extends OpMode {
         public double ballExitAngleRad = Math.toRadians(40);
         public boolean powerShooter = true;
         public boolean powerIntake = true;
-        public double efficiencyCoefficient = 0.392;
+        public double efficiencyCoefM = -0.0766393, efficiencyCoefB = 0.446492;
         public double distanceToShootBallInches = 120; // distance to shoot ball from exit position of robot
+        public double velToShootBallTps = 1200;
+        public boolean useVelOverDistance = true;
         public double heightToShootBallInches = 0; // height to shoot ball from ground
     }
     public static class Experiment {
@@ -63,25 +65,32 @@ public class EfficiencyCoefficientTester extends OpMode {
             Pose2d start = new Pose2d(0, 0, 0);
             Vector2d exitPosition = ShootingMath.calculateExitPositionInches(ShootingMath.getTurretPose(start, 0), controls.ballExitAngleRad);
 
-            totalDistanceTraveledMeters = controls.distanceToShootBallInches * 0.0254;
+            double efficiencyCoefficient = controls.efficiencyCoefB + controls.ballExitAngleRad * controls.efficiencyCoefM;
+            double targetVelMetersPerSec;
 
-            double initialHeightMeters = ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
-            double finalHeightMeters = ShootingMath.shooterSystemParams.ballRadiusMeters + (controls.heightToShootBallInches * 0.0254);
-            changeInYMeters = finalHeightMeters - initialHeightMeters;
+            double targetExitVelTicksPerSec;
 
-            double targetVelMetersPerSec = calculateTargetExitVelocity(totalDistanceTraveledMeters, changeInYMeters, controls.ballExitAngleRad);
+            if(!controls.useVelOverDistance) {
+                totalDistanceTraveledMeters = (controls.distanceToShootBallInches - BrainSTEMRobot.length / 2 + Math.abs(exitPosition.x)) * 0.0254;
 
-            // vel target = vel actual * getEfficiency(vel target)
-            // vel actual = vel target / getEfficiency(vel target)
-            double targetExitVelTicksPerSec = ShootingMath.exitMpsToMotorTicksPerSec(targetVelMetersPerSec, controls.efficiencyCoefficient);
+                double initialHeightMeters = ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
+                double finalHeightMeters = ShootingMath.shooterSystemParams.ballRadiusMeters + (controls.heightToShootBallInches * 0.0254);
+                changeInYMeters = finalHeightMeters - initialHeightMeters;
+
+                targetVelMetersPerSec = calculateTargetExitVelocity(totalDistanceTraveledMeters, changeInYMeters, controls.ballExitAngleRad);
+                targetExitVelTicksPerSec = ShootingMath.exitMpsToMotorTicksPerSec(targetVelMetersPerSec, efficiencyCoefficient);
+            }
+            else {
+                targetVelMetersPerSec = ShootingMath.ticksPerSecToExitSpeedMps(controls.velToShootBallTps, efficiencyCoefficient);
+                targetExitVelTicksPerSec = controls.velToShootBallTps;
+            }
 
             robot.shooter.setShooterVelocityPID(targetExitVelTicksPerSec, robot.shootingSystem.getShooterVelTps());
-            robot.shootingSystem.sendHardwareInfo();
             telemetry.addData("a| exit pos X inches", exitPosition.x);
             telemetry.addData("b| distance meters", totalDistanceTraveledMeters);
             telemetry.addData("c| change in Y from ball exit position (m)", changeInYMeters);
             telemetry.addData("d| ball exit angle degrees", Math.toDegrees(controls.ballExitAngleRad));
-            telemetry.addData("e| efficiency coefficient", controls.efficiencyCoefficient);
+            telemetry.addData("e| efficiency coefficient", efficiencyCoefficient);
             telemetry.addData("f| target exit velocity mps", targetVelMetersPerSec);
             telemetry.addData("g| target exit velocity tps", targetExitVelTicksPerSec);
             telemetry.addData("i| current shooter vel tps", robot.shootingSystem.getShooterVelTps());
@@ -91,6 +100,7 @@ public class EfficiencyCoefficientTester extends OpMode {
             telemetry.addData("m| dt", robot.shootingSystem.dt);
             telemetry.update();
         }
+        robot.shootingSystem.sendHardwareInfo();
     }
 
     public static double calculateTargetExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {

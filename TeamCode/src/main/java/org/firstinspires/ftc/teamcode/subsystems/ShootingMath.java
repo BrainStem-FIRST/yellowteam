@@ -7,7 +7,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.teamcode.utils.math.Vec;
+import org.firstinspires.ftc.teamcode.utils.math.Vector3d;
 
 @Config
 public class ShootingMath {
@@ -137,27 +137,15 @@ public class ShootingMath {
 //    public static Vector2d relativeBallExitVelocityMps = new Vector2d(0, 0);
     // calculates where the turret should point given a bunch of shooterSystemParams
     // can specify whether to enable or disable relative velocity prediction w/ static constant above
-    public static Vector2d calculateActualTargetExitVel(Vector2d targetPos, Vector2d futureTurretPos, double globalExitSpeedMps, Vector2d robotVelAtExitPosInchesPerSec) {
-        Vector2d globalExitVelMps = new Vector2d(targetPos.x - futureTurretPos.x, targetPos.y - futureTurretPos.y);
-        globalExitVelMps = globalExitVelMps.div(Math.hypot(globalExitVelMps.x, globalExitVelMps.y)); // normalizing vector
-        globalExitVelMps = globalExitVelMps.times(globalExitSpeedMps);
+    public static Vector3d calculateActualTargetExitVel(double targetBallTravelAngle, double ballExitAngleRad, double targetVelMps, Vector2d robotVelAtExitPosMps) {
+        Vector3d ballTravelDir = new Vector3d(Math.cos(targetBallTravelAngle),0, Math.sin(targetBallTravelAngle));
+        Vector2d shootingAngle = new Vector2d(Math.cos(ballExitAngleRad), Math.sin(ballExitAngleRad));
+        Vector3d absoluteTargetVelocity = ballTravelDir.times(shootingAngle.x).plus(Vector3d.j.times(shootingAngle.y));
+        absoluteTargetVelocity = absoluteTargetVelocity.times(targetVelMps);
 
-        return globalExitVelMps.minus(robotVelAtExitPosInchesPerSec.times(0.0254));
-//        Vector2d actualTargetEXitVel;
-//        double targetAngleRad;
-//        // account for relative velocity
-//        if (enableRelativeVelocity) {
-//            // velocity of ball relative to robot = velocity of ball relative to ground - velocity of robot relative to ground
-//            actualTargetEXitVel = ;
-//            // find angle to shoot at relative velocity
-//            targetAngleRad = Math.atan2(relativeBallExitVelocityMps.y, relativeBallExitVelocityMps.x);
-//        }
-//        // find angle to shoot at without any relative velocity calculations
-//        else
-//            targetAngleRad = Math.atan2(globalExitVelMps.y, globalExitVelMps.x);
-//            actualTargetEXitVel =
-//
-//        return targetAngleRad;
+        if(ShootingSystem.miscParams.enableShootingWhileMoving)
+            return absoluteTargetVelocity.minus(new Vector3d(robotVelAtExitPosMps.x, 0, robotVelAtExitPosMps.y));
+        return absoluteTargetVelocity;
     }
 
     // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams

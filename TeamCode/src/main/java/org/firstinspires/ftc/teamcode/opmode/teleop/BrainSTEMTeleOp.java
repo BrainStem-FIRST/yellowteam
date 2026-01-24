@@ -28,7 +28,7 @@ import java.util.List;
 
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
-    public static boolean printCollector = false, printShooter = false, printTurret = true, printLimelight = false;
+    public static boolean printCollector = false, printShooter = true, printTurret = false, printShootingSystem = true, printLimelight = false;
     public static double[] blueCornerResetPose = { 64.25, 62.75, -90 };
     public static double[] redCornerResetPose = { 64.25, -62.75, 90 };
     public static double firstShootTolerance = 40;
@@ -115,6 +115,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
                 robot.turret.printInfo();
             if (printShooter)
                 robot.shooter.printInfo();
+            if(printShootingSystem)
+                robot.shootingSystem.printInfo(telemetry);
 
             updateDashboardField();
 
