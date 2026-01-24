@@ -35,7 +35,7 @@ public class ShootingSystem {
     }
     public static class MiscParams {
         public boolean usingLookup = false;
-        public boolean enableShootingWhileMoving = true;
+        public boolean enableShootingWhileMoving = false;
         public int lookAheadAvgNum = 5;
         public double rawLookAheadTime = 0.2; // time to look ahead for pose prediction
         public double shooterTau = 0.2;
@@ -166,6 +166,15 @@ public class ShootingSystem {
             updateLookupProperties(desiredBallDir, robotVel);
         else
             updatePhysicsProperties(desiredBallDir, robotVel);
+
+        double baseLength = Math.hypot(actualTargetExitVelMps.x, actualTargetExitVelMps.z);
+        hoodExitAngleRad = Math.atan2(actualTargetExitVelMps.y, baseLength);
+        hoodExitAngleRad = Range.clip(hoodExitAngleRad, hoodParams.minExitAngRad, hoodParams.maxExitAngRad);
+        absoluteTargetAngleRad = Math.atan2(actualTargetExitVelMps.z, actualTargetExitVelMps.x);
+
+        efficiencyCoef = calcEfficiencyCoef(hoodExitAngleRad);
+        curExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(filteredShooterSpeedTps, efficiencyCoef);
+        actualTargetExitSpeedMps = Math.hypot( baseLength, actualTargetExitVelMps.y );
     }
 
     // pro: yes velocity-based hood adjustment
@@ -194,14 +203,13 @@ public class ShootingSystem {
         }
         curExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(filteredShooterSpeedTps, efficiencyCoef);
 
-        actualTargetExitSpeedMps = ballTargetExitSpeedMps;
-        hoodExitAngleRad = ballExitAngleRad;
-        absoluteTargetAngleRad = desiredBallDir;
+//        actualTargetExitSpeedMps = ballTargetExitSpeedMps;
+//        hoodExitAngleRad = ballExitAngleRad;
+//        absoluteTargetAngleRad = desiredBallDir;
 
         // allows for shooting while moving
-//        actualTargetExitVelMps = ShootingMath.calculateActualTargetExitVel(desiredBallDir, ballExitAngleRad, ballTargetExitSpeedMps, robotVel);
-
-
+        double speed = physicsExitAngleRad == -1 ? ballTargetExitSpeedMps : curExitSpeedMps;
+        actualTargetExitVelMps = ShootingMath.calculateActualTargetExitVel(desiredBallDir, ballExitAngleRad, speed, robotVel);
     }
 
     // pro: easy to tune
@@ -214,15 +222,6 @@ public class ShootingSystem {
 
         // allows for shooting while moving
         actualTargetExitVelMps = ShootingMath.calculateActualTargetExitVel(desiredBallDir, ballExitAngleRad, ballTargetExitSpeedMps, robotVel);
-
-        double baseLength = Math.hypot(actualTargetExitVelMps.x, actualTargetExitVelMps.z);
-        hoodExitAngleRad = Math.atan2(actualTargetExitVelMps.y, baseLength);
-        hoodExitAngleRad = Range.clip(hoodExitAngleRad, hoodParams.minExitAngRad, hoodParams.maxExitAngRad);
-        absoluteTargetAngleRad = Math.atan2(actualTargetExitVelMps.z, actualTargetExitVelMps.x);
-
-        efficiencyCoef = calcEfficiencyCoef(hoodExitAngleRad);
-        curExitSpeedMps = ShootingMath.ticksPerSecToExitSpeedMps(filteredShooterSpeedTps, efficiencyCoef);
-        actualTargetExitSpeedMps = Math.hypot( baseLength, actualTargetExitVelMps.y );
     }
     public void sendHardwareInfo() {
         turretMotor.sendInfo();
