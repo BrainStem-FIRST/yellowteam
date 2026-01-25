@@ -180,11 +180,11 @@ public class Collection extends Component {
                 break;
             case INTAKE:
                 double shooterError = Math.abs(robot.shootingSystem.filteredShooterSpeedTps - robot.shooter.shooterPID.getTarget());
-                double errorThreshold = robot.shootingSystem.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
-                if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
+//                double errorThreshold = robot.shootingSystem.isNear ? Shooter.shooterParams.maxErrorThresholdNear : Shooter.shooterParams.maxErrorThresholdFar;
+//                if (getClutchState() == ClutchState.UNENGAGED || shooterError < errorThreshold)
                     collectorMotor.setPower(params.INTAKE_SPEED);
-                else
-                    collectorMotor.setPower(params.SHOOTER_ERROR_INTAKE_SPEED);
+//                else
+//                    collectorMotor.setPower(params.SHOOTER_ERROR_INTAKE_SPEED);
                 break;
         }
 
