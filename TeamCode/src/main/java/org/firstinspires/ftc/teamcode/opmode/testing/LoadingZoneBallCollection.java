@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.utils.pidDrive.DrivePath;
 import org.firstinspires.ftc.teamcode.utils.pidDrive.Tolerance;
 import org.firstinspires.ftc.teamcode.utils.pidDrive.Waypoint;
 
-@TeleOp(name="Loading Zone Ball Collection", group="Testing")
+@TeleOp(name="Loading Zone Ball Collection", group="TestingParams")
 public class LoadingZoneBallCollection extends OpMode {
     private BrainSTEMRobot robot;
     private AutoCommands autoCommands;

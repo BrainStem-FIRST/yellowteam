@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
-@TeleOp(name="Power Efficiency Finder", group="Testing")
+@TeleOp(name="Power Efficiency Finder", group="TestingParams")
 @Config
 public class EfficiencyCoefficientFinder extends OpMode {
     public static class Controls {
@@ -69,18 +69,18 @@ public class EfficiencyCoefficientFinder extends OpMode {
         else {
             shooterVelTicksPerSec = robot.shootingSystem.filteredShooterSpeedTps;
             robot.shooter.setShooterVelocityPID(controls.targetShooterVelocityTicksPerSec, shooterVelTicksPerSec);
-            robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
+            robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(controls.ballExitAngleRad));
 
             Pose2d start = createPose(experiment.startPose);
             // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
             Pose2d turretPose = ShootingMath.getTurretPose(start, 0);
-            Vector2d exitPosition = ShootingMath.calculateExitPositionInches(turretPose, controls.ballExitAngleRad);
+            Vector2d exitPosition = ShootingMath.getExitPositionInches(turretPose, controls.ballExitAngleRad);
             avgDistMeters = calculateAvgDist(experiment.distanceInches, exitPosition) * 0.0254;
             if (avgDistMeters < 0)
                 telemetry.addLine("__INPUT DISTANCES ARE NOT VALID");
 
             // change in y = final y - initial y
-            changeInYMeters = ShootingMath.shooterSystemParams.ballRadiusMeters - ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
+            changeInYMeters = ShootingMath.shooterSystemParams.ballRadiusMeters - ShootingMath.getExactExitHeightMeters(controls.ballExitAngleRad);
 
             shooterVelMetersPerSec = ShootingMath.ticksPerSecToExitSpeedMps(shooterVelTicksPerSec, 1);
             theoreticalDistMeters = calculateExpectedDistanceOfTravel(changeInYMeters, controls.ballExitAngleRad, shooterVelMetersPerSec);

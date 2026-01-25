@@ -87,7 +87,7 @@ public class Turret extends Component {
                 }
                 updatePosVelAccel();
                 int targetTurretPosition = (int) (targetRelAngleRad * turretParams.ticksPerRad);
-                targetTurretPosition += robot.shootingSystem.isNear ? nearEncoderAdjustment : farEncoderAdjustment;
+                targetTurretPosition += robot.shootingSystem.distState != ShootingSystem.Dist.FAR ? nearEncoderAdjustment : farEncoderAdjustment;
 
                 if(!inRange)
                     lerpTimer.reset();
@@ -248,7 +248,7 @@ public class Turret extends Component {
     }
 
     public void changeEncoderAdjustment(int amount) {
-        if(robot.shootingSystem.isNear)
+        if(robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
             nearEncoderAdjustment += amount;
         else
             farEncoderAdjustment += amount;

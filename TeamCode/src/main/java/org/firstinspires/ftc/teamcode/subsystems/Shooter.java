@@ -63,7 +63,7 @@ public class Shooter extends Component {
         allVelDropTimes = new ArrayList<>();
     }
     public void setShooterVelocityPID(double targetVelocityTicksPerSec, double currentShooterVelocity) {
-        if (robot.shootingSystem.isNear)
+        if (robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
             shooterPID.setTarget(targetVelocityTicksPerSec + nearVelocityAdjustment);
         else
             shooterPID.setTarget(targetVelocityTicksPerSec + farVelocityAdjustment);
@@ -94,7 +94,7 @@ public class Shooter extends Component {
                     setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.filteredShooterSpeedTps);
                 break;
         }
-        double pos = ShootingMath.calculateHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad);
+        double pos = ShootingMath.getHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad);
         robot.shootingSystem.setHoodPosition(pos);
         updateBallShotTracking();
     }
@@ -155,7 +155,7 @@ public class Shooter extends Component {
     }
 
     public void changeVelocityAdjustment(double amount) {
-        if (robot.shootingSystem.isNear)
+        if (robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
             nearVelocityAdjustment += amount;
         farVelocityAdjustment += amount;
     }

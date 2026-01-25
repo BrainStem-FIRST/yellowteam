@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 
-@TeleOp(name="Power Efficiency Tester", group="Testing")
+@TeleOp(name="Power Efficiency Tester", group="TestingParams")
 @Config
 public class EfficiencyCoefficientTester extends OpMode {
     public static class Controls {
@@ -48,7 +48,7 @@ public class EfficiencyCoefficientTester extends OpMode {
     @Override
     public void loop() {
         robot.shootingSystem.updateInfo(false);
-        robot.shootingSystem.setHoodPosition(ShootingMath.calculateHoodServoPosition(controls.ballExitAngleRad));
+        robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(controls.ballExitAngleRad));
 
         if (gamepad1.aWasPressed())
             controls.powerShooter = !controls.powerShooter;
@@ -63,7 +63,7 @@ public class EfficiencyCoefficientTester extends OpMode {
         else {
             // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
             Pose2d start = new Pose2d(0, 0, 0);
-            Vector2d exitPosition = ShootingMath.calculateExitPositionInches(ShootingMath.getTurretPose(start, 0), controls.ballExitAngleRad);
+            Vector2d exitPosition = ShootingMath.getExitPositionInches(ShootingMath.getTurretPose(start, 0), controls.ballExitAngleRad);
 
             double efficiencyCoefficient = controls.efficiencyCoefB + controls.ballExitAngleRad * controls.efficiencyCoefM;
             double targetVelMetersPerSec;
@@ -73,7 +73,7 @@ public class EfficiencyCoefficientTester extends OpMode {
             if(!controls.useVelOverDistance) {
                 totalDistanceTraveledMeters = (controls.distanceToShootBallInches - BrainSTEMRobot.length / 2 + Math.abs(exitPosition.x)) * 0.0254;
 
-                double initialHeightMeters = ShootingMath.calculateExactExitHeightMeters(controls.ballExitAngleRad);
+                double initialHeightMeters = ShootingMath.getExactExitHeightMeters(controls.ballExitAngleRad);
                 double finalHeightMeters = ShootingMath.shooterSystemParams.ballRadiusMeters + (controls.heightToShootBallInches * 0.0254);
                 changeInYMeters = finalHeightMeters - initialHeightMeters;
 

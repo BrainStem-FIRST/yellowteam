@@ -97,7 +97,7 @@ public class BrainSTEMRobot {
 
         // draw where turret is pointed
         fieldOverlay.setAlpha(1);
-        double dist = Math.hypot(shootingSystem.ballExitPos.x - shootingSystem.targetPos.x, shootingSystem.ballExitPos.y - shootingSystem.targetPos.y);
+        double dist = Math.hypot(shootingSystem.ballExitPos.x - shootingSystem.goalPos.x, shootingSystem.ballExitPos.y - shootingSystem.goalPos.y);
 
         fieldOverlay.setStroke("purple");
         fieldOverlay.strokeLine(

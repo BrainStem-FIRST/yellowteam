@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.utils.math.Vector3d;
 
 @Config
 public class ShootingMath {
+    public static double g = 9.81;
     // stores all parameters of the shooter/hood/turret system
     public static class ShooterSystemParams {
         public double flywheelHeightMeters = 0.2413;
@@ -33,7 +34,7 @@ public class ShootingMath {
     public static HoodSystemParams hoodSystemParams = new HoodSystemParams();
     public static TurretSystemParams turretSystemParams = new TurretSystemParams();
 
-    public static Vector2d calculateExitPositionInches(Pose2d turretPose, double ballExitAngleRad) {
+    public static Vector2d getExitPositionInches(Pose2d turretPose, double ballExitAngleRad) {
         double hoodAngleRad = Math.PI * 0.5 - ballExitAngleRad;
         double shooterCombinedRadiusInches = (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) / 0.0254;
         double offsetFromTurretInches = shooterSystemParams.flywheelOffsetFromTurretInches - Math.cos(hoodAngleRad) * shooterCombinedRadiusInches;
@@ -48,15 +49,13 @@ public class ShootingMath {
     public static double approximateExitHeightM(boolean useHighArc) {
         double hoodAngleDeg = useHighArc ? hoodSystemParams.highArcHoodAngleDegEstimation : hoodSystemParams.lowArcHoodAngleDegEstimation;
         double exitAngleRad = Math.toRadians(90 - hoodAngleDeg);
-        return calculateExactExitHeightMeters(exitAngleRad);
+        return getExactExitHeightMeters(exitAngleRad);
     }
-
-    // calculates exact ball exit height
-    public static double calculateExactExitHeightMeters(double exitAngleRad) {
+    public static double getExactExitHeightMeters(double exitAngleRad) {
         double hoodAngleRad = Math.PI * 0.5 - exitAngleRad;
         return shooterSystemParams.flywheelHeightMeters + (shooterSystemParams.flywheelRadiusMeters + shooterSystemParams.ballRadiusMeters) * Math.sin(hoodAngleRad);
     }
-    // finds exit speed of ball (meters per sec) if flywheel is spinning at ticksPerSec
+
     public static double ticksPerSecToExitSpeedMps(double motorTicksPerSec, double efficiencyCoefficient) {
         double motorRevPerSec = motorTicksPerSec / shooterSystemParams.shooterMotorTicksPerRev;
         double motorAngularVel = motorRevPerSec * 2 * Math.PI;
@@ -64,8 +63,6 @@ public class ShootingMath {
         double flywheelTangentialVel = flywheelAngularVel * shooterSystemParams.flywheelRadiusMeters;
         return flywheelTangentialVel * efficiencyCoefficient;
     }
-
-    // finds required speed of flywheel (encoder ticks per sec) to shoot the ball at a speed of mps
     public static double exitMpsToMotorTicksPerSec(double ballExitMps, double efficiencyCoefficient) {
         double flywheelTangentialVel = ballExitMps / efficiencyCoefficient;
         double flywheelAngularVel = flywheelTangentialVel / shooterSystemParams.flywheelRadiusMeters;
@@ -74,6 +71,22 @@ public class ShootingMath {
         return motorRevPerSec * shooterSystemParams.shooterMotorTicksPerRev;
     }
 
+
+
+    ///  THE BIG FOURRRR
+    public static double[] calculateLaunchVector(double d, double h, double phi) {
+        double theta = Math.atan(2 * h / d - Math.tan(phi)); // desired exit angle
+
+        double num = g * d * d;
+        double denom = 2 * (d * Math.tan(theta) - h) * Math.pow(Math.cos(theta), 2);
+        double v = Math.sqrt(num / denom);
+
+        return new double[] {v, theta};
+    }
+    public static double calculateImpactAngle(double d, double h, double v, double theta) {
+        double tanPhi = Math.tan(theta) - g * d / Math.pow(v * Math.cos(theta), 2);
+        return Math.atan(tanPhi);
+    }
     public static Vector3d calculateActualTargetExitVel(double targetBallTravelAngle, double ballExitAngleRad, double targetVelMps, Vector2d robotVelAtExitPosMps) {
         Vector3d ballTravelDir = new Vector3d(Math.cos(targetBallTravelAngle),0, Math.sin(targetBallTravelAngle));
         Vector2d shootingAngle = new Vector2d(Math.cos(ballExitAngleRad), Math.sin(ballExitAngleRad));
@@ -82,19 +95,9 @@ public class ShootingMath {
 
         return absoluteTargetVelocity.minus(new Vector3d(robotVelAtExitPosMps.x, 0, robotVelAtExitPosMps.y));
     }
-
-    // calculates desired exit angle (radians) for ball given a bunch of shooterSystemParams
-    // can specify whether to enable or disable relative velocity prediction w/ static constant above
-    // TODO - USE BALL EXIT VELOCITY INSTEAD OF ROBOT VELOCITY
-    public static double calculateBallExitAngleRad(boolean useHighArc, double y, double distanceInches, double ballExitSpeedMps) {
-
+    public static double calculateBallExitAngleRad(boolean useHighArc, double y, double x, double v) {
         // Physics formula rearranged for angle: tan(θ) = (v² ± √(v⁴ - g(gx² + 2yv²))) / (gx)
-        double g = 9.81;
-        double x = distanceInches * 0.0254; // convert inches to meters
-
-        double v = ballExitSpeedMps;
         double sign = useHighArc ? 1 : -1;
-
         double discriminant = v*v*v*v - g*(g*x*x + 2*y*v*v);
         if (discriminant <= 0)
             return -1;
@@ -103,8 +106,9 @@ public class ShootingMath {
         return Math.atan(tanTheta);
     }
 
-    // calculates the position to put the linear actuators to on the shooter hood
-    public static double calculateHoodServoPosition(double ballExitAngleRadians) {
+
+
+    public static double getHoodServoPosition(double ballExitAngleRadians) {
         double hoodAngleFromXAxisRadians = Math.PI * 0.5 - ballExitAngleRadians;
         double hoodExitAngleDeg = Range.clip(Math.toDegrees(hoodAngleFromXAxisRadians), hoodSystemParams.minAngleDeg, hoodSystemParams.maxAngleDeg);
         double hoodPivotAngleDeg = hoodExitAngleDeg + hoodSystemParams.hoodPivotAngleOffsetFromHoodExitAngleDeg;

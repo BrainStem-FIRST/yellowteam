@@ -239,8 +239,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         // draw goal
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.shootingSystem.targetPos.x, robot.shootingSystem.targetPos.y, 3);
-        Vector2d defaultGoalPos = robot.shootingSystem.targetPos;
+        fieldOverlay.strokeCircle(robot.shootingSystem.goalPos.x, robot.shootingSystem.goalPos.y, 3);
+        Vector2d defaultGoalPos = robot.shootingSystem.goalPos;
         fieldOverlay.strokeCircle(defaultGoalPos.x, defaultGoalPos.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
