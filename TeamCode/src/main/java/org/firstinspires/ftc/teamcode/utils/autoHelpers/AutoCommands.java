@@ -53,7 +53,7 @@ public class AutoCommands {
                 if(robot.collection.isBackBallDetected())
                     distanceSensorTimer.reset();
 
-                if(robot.collection.getIntakePower() == Collection.params.SHOOTER_ERROR_INTAKE_SPEED) {
+                if(robot.collection.getIntakePower() == Collection.params.impossibleShotIntakePow) {
                     distanceSensorTimer.reset();
                     timeSinceLastVelDrop.reset();
                 }

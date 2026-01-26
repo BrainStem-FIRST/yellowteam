@@ -55,7 +55,7 @@ public class EfficiencyCoefficientTester extends OpMode {
         if(gamepad1.rightBumperWasPressed())
             controls.powerIntake = !controls.powerIntake;
 
-        double collectPower = controls.powerIntake ? Collection.params.INTAKE_SPEED : 0;
+        double collectPower = controls.powerIntake ? Collection.params.normIntakePow : 0;
         robot.collection.collectorMotor.setPower(collectPower);
 
         if (!controls.powerShooter)

@@ -21,7 +21,6 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.math.Vec;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
@@ -240,8 +239,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         // draw goal
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.shootingSystem.goalPos.x, robot.shootingSystem.goalPos.y, 3);
-        Vector2d defaultGoalPos = new Vector2d(robot.shootingSystem.goalPos.x, robot.shootingSystem.goalPos.z);
+        fieldOverlay.strokeCircle(robot.shootingSystem.goalPosIn.x, robot.shootingSystem.goalPosIn.y, 3);
+        Vector2d defaultGoalPos = new Vector2d(robot.shootingSystem.goalPosIn.x, robot.shootingSystem.goalPosIn.z);
         fieldOverlay.strokeCircle(defaultGoalPos.x, defaultGoalPos.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }
