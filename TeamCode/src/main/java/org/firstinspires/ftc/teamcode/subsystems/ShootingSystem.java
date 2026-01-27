@@ -41,7 +41,6 @@ public class ShootingSystem {
         public double nearImpactAng = Math.toRadians(-30), midImpactAng = -Math.toRadians(25), farImpactAng = Math.toRadians(-25);
         public double nearStateThreshold = 58;
     }
-    public static GoalParams goalParams = new GoalParams();
     public static class HoodParams {
         public double downPWM = 900, upPWM = 2065;
         public double minExitAngRad = Math.toRadians(35), maxExitAngRad = Math.toRadians(85);
@@ -58,9 +57,17 @@ public class ShootingSystem {
         public double minEfficiencyCoef = 0.3327, maxEfficiencyCoef = 0.4000;
         public double maxShootWhileMovingSpeed = 0.6;
     }
+    public static class JoystickVelParams {
+        // theory: velocity will stabilize with constant joystick input over time
+        public double xM = 0,  xB = 0;
+        public double yM = 0, yB = 0;
+        public double aM = 0, aB = 0;
+    }
     public static TestingParams testingParams = new TestingParams();
+    public static GoalParams goalParams = new GoalParams();
     public static HoodParams hoodParams = new HoodParams();
     public static GeneralParams generalParams = new GeneralParams();
+    public static JoystickVelParams jvParams = new JoystickVelParams();
 
     public enum Dist {
         NEAR, MID, FAR
@@ -83,6 +90,7 @@ public class ShootingSystem {
 
     public Vector2d robotVelAtExitPosIps;
     public double robotSpeedAtExitPosIps;
+
     public Vector3d actualTargetExitVelMps;
     public double actualTurretTargetAngleRad;
     public double actualTargetExitSpeedMps;
@@ -182,6 +190,15 @@ public class ShootingSystem {
 
         Pose2d robotPose = robot.drive.localizer.getPose();
         futureRobotPose = robot.drive.pinpoint().getNextPoseSimple(currentLookAhead);
+//        OdoInfo stabilizedVel = calcStabilizedJoystickVel(robot.g1.gamepad.left_stick_x, -robot.g1.gamepad.left_stick_y, -robot.g1.gamepad.right_stick_x);
+//        OdoInfo curVel = robot.drive.pinpoint().previousVelocities.isEmpty() ? new OdoInfo(0, 0, 0) : robot.drive.pinpoint().previousVelocities.get(0);
+//        double accel;
+//        if(Math.abs(stabilizedVel.x - curVel.x) < jvParams.accelNoise
+//                && Math.abs(stabilizedVel.y - curVel.y) < jvParams.accelNoise
+//                && Math.abs(stabilizedVel.headingRad - curVel.headingRad) < jvParams.accelNoise)
+//            accel = 0;
+//        else
+//            accel =
 
         updateGoalProperties(robotPose.position);
 
@@ -203,16 +220,16 @@ public class ShootingSystem {
                 robot.collection.getClutchState() == Collection.ClutchState.ENGAGED &&
                 robot.turret.inRange &&
                 ((distState != Dist.FAR && testingParams.enableShootingWhileMovingNear) || (distState == Dist.FAR && testingParams.enableShootingWhileMovingFar));
-        Vector2d robotVel = robotVelAtExitPosIps.times(shootingWhileMoving ? 0.0254 : 0);
+        Vector2d robotExitPosVel = robotVelAtExitPosIps.times(shootingWhileMoving ? 0.0254 : 0);
         if(testingParams.usingLookup)
-            updateLookupProperties(desiredBallDir, robotVel);
+            updateLookupProperties(desiredBallDir, robotExitPosVel);
         else
-            updatePhysicsProperties(desiredBallDir, shootingWhileMoving, robotVel);
+            updatePhysicsProperties(desiredBallDir, shootingWhileMoving, robotExitPosVel);
     }
 
     // pro: yes velocity-based hood adjustment
     // con: math is weird
-    private void updatePhysicsProperties(double desiredBallDir, boolean shootWhileMoving, Vector2d robotVel) {
+    private void updatePhysicsProperties(double desiredBallDir, boolean shootWhileMoving, Vector2d robotExitPosVel) {
         // get delta y of projectory (need approximate exit height of the ball)
         double exitHeightM = ShootingMath.approximateExitHeightM(distState == Dist.NEAR);
         relGoalHeightM = (goalPosIn.y * 0.0254 - exitHeightM);
@@ -224,7 +241,7 @@ public class ShootingSystem {
         if(shootWhileMoving) {
             ballExitAngleRad = launchVector[1];
 
-            actualTargetExitVelMps = ShootingMath.calculateActualTargetExitVel(desiredBallDir, launchVector[1], launchVector[0], robotVel);
+            actualTargetExitVelMps = ShootingMath.calculateActualTargetExitVel(desiredBallDir, launchVector[1], launchVector[0], robotExitPosVel);
             double baseLength = Math.hypot(actualTargetExitVelMps.x, actualTargetExitVelMps.z);
             hoodExitAngleRad = Range.clip(Math.atan2(actualTargetExitVelMps.y, baseLength), hoodParams.minExitAngRad, hoodParams.maxExitAngRad);
             actualTurretTargetAngleRad = Math.atan2(actualTargetExitVelMps.z, actualTargetExitVelMps.x);
@@ -312,7 +329,7 @@ public class ShootingSystem {
         ballExitPos = ShootingMath.getExitPositionInches(turretPose, approxBallExitAng);
         futureBallExitPos = ShootingMath.getExitPositionInches(futureTurretPose, approxBallExitAng);
 
-        odoVel = !robot.drive.pinpoint().previousVelocities.isEmpty() ? robot.drive.pinpoint().previousVelocities.get(0) : new OdoInfo(0, 0, 0);
+        odoVel = robot.drive.pinpoint().getNextVelAdvanced();
         Vector2d robotVelCm = new Vector2d(odoVel.x, odoVel.y);
         Vector2d relativeExitPos = ballExitPos.minus(robotPose.position);
         Vector2d robotTanVel = new Vector2d(-relativeExitPos.y, relativeExitPos.x*1).times(odoVel.headingRad); // v = r * w
@@ -363,6 +380,20 @@ public class ShootingSystem {
     public void printInfo(Telemetry telemetry) {
         telemetry.addLine();
         telemetry.addLine("SHOOTING SYSTEM-------");
+        telemetry.addData("-----raw x accel", robot.drive.pinpoint().getMostRecentAcceleration().x);
+        telemetry.addData("-----raw y accel", robot.drive.pinpoint().getMostRecentAcceleration().y);
+        telemetry.addData("-----raw heading accel", robot.drive.pinpoint().getMostRecentAcceleration().headingRad);
+        telemetry.addData("-----filtered x accel", robot.drive.pinpoint().filteredAccel.x);
+        telemetry.addData("-----filtered y accel", robot.drive.pinpoint().filteredAccel.y);
+        telemetry.addData("-----filtered h accel", robot.drive.pinpoint().filteredAccel.headingRad);
+        double[] xAccels = robot.drive.pinpoint().getPreviousXAccels();
+        double[] yAccels = robot.drive.pinpoint().getPreviousYAccels();
+        double[] headingAccels = robot.drive.pinpoint().getPreviousHeadingAccels();
+        double[] frames = new double[xAccels.length];
+        telemetry.addData("-----X ACCEL COVARIANCE", MathUtils.covariance(frames, xAccels));
+        telemetry.addData("-----Y ACCEL COVARIANCE", MathUtils.covariance(frames, yAccels));
+        telemetry.addData("-----HEADING ACCEL COVARIANCE", MathUtils.covariance(frames, headingAccels));
+
         telemetry.addData("shooting while moving", shootingWhileMoving);
         telemetry.addData("efficiency coef", efficiencyCoef);
         telemetry.addData("absolute turret target rad", actualTurretTargetAngleRad);
@@ -375,6 +406,7 @@ public class ShootingSystem {
         telemetry.addData("future ball inches from goal", futureExitPosGoalDistIn);
         telemetry.addData("absolute target exit speed mps", ballTargetExitSpeedMps);
         telemetry.addData("dt", dt);
+        telemetry.addData("--------pinpoint dt", robot.drive.pinpoint().dt);
         telemetry.addLine();
         telemetry.addData("rel height to target meters", relGoalHeightM);
         telemetry.addData("dist state", distState);
@@ -406,6 +438,14 @@ public class ShootingSystem {
         double rawE = generalParams.efficiencyCoefM * ballExitAngleRad + generalParams.efficiencyCoefB;
         return Range.clip(generalParams.minEfficiencyCoef, rawE, generalParams.maxEfficiencyCoef);
     }
+    public OdoInfo calcStabilizedJoystickVel(double ljx, double ljy, double rjx) {
+        return new OdoInfo(
+                jvParams.xM * ljx + jvParams.xB,
+                jvParams.yM * ljy + jvParams.yB,
+                jvParams.aM * rjx + jvParams.aB
+        );
+    }
+
     public void setShooterPowerRaw(double p) {
         shooterHighMotor.setPowerRaw(p);
         shooterLowMotor.setPowerRaw(p);

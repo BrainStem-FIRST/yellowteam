@@ -52,6 +52,22 @@ public class MathUtils {
     public static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
     }
+    public static double covariance(double[] a, double[] b) {
+        if(a.length != b.length)
+            throw new IllegalArgumentException("lists are of length " + a.length + " & " + b.length + "respectively; they must match");
+        double sum = 0;
+        double meanA = mean(a);
+        double meanB = mean(b);
+        for(int i = 0; i < a.length; i++) {
+            sum += (a[i] - meanA) * (b[i] - meanB);
+        }
+        return sum / (a.length - 1);
+    }
+    public static double mean(double[] l) {
+        double sum = 0;
+        for (double v : l) sum += v;
+        return sum / l.length;
+    }
 
     public static String formatPose2(Pose2d pose) {
         if (pose == null)
