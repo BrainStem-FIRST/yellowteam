@@ -87,8 +87,8 @@ public class ShootingMath {
         double tanPhi = Math.tan(theta) - g * d / Math.pow(v * Math.cos(theta), 2);
         return Math.atan(tanPhi);
     }
-    public static Vector3d calculateActualTargetExitVel(double targetBallTravelAngle, double ballExitAngleRad, double targetVelMps, Vector2d robotVelAtExitPosMps) {
-        Vector3d ballTravelDir = new Vector3d(Math.cos(targetBallTravelAngle),0, Math.sin(targetBallTravelAngle));
+    public static Vector3d calculateActualTargetExitVel(double topViewBallDir, double ballExitAngleRad, double targetVelMps, Vector2d robotVelAtExitPosMps) {
+        Vector3d ballTravelDir = new Vector3d(Math.cos(topViewBallDir),0, Math.sin(topViewBallDir));
         Vector2d shootingAngle = new Vector2d(Math.cos(ballExitAngleRad), Math.sin(ballExitAngleRad));
         Vector3d absoluteTargetVelocity = ballTravelDir.times(shootingAngle.x).plus(Vector3d.j.times(shootingAngle.y));
         absoluteTargetVelocity = absoluteTargetVelocity.times(targetVelMps);

@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
@@ -31,21 +32,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     public static boolean printCollector = false, printShooter = true, printTurret = false, printShootingSystem = true, printLimelight = false;
     public static double[] blueCornerResetPose = { 64.25, 62.75, -90 };
     public static double[] redCornerResetPose = { 64.25, -62.75, 90 };
-    public static double firstShootTolerance = 40;
-
-    public enum PosePredictType {
-        SIMPLE,
-        ADVANCED,
-        CONTROL
-    }
+    public static double firstShootTolerance = 0.1, physicsShootTolerance = 0.05;
     public static double noMoveJoystickThreshold = 0.1;
 
     BrainSTEMRobot robot;
 
     GamepadTracker gp1;
     GamepadTracker gp2;
-
-    private Pose2d lastFrameSimplePrediction, lastFrameAdvancedPrediction;
     private final Alliance alliance;
     private boolean currentlyMoving;
     private List<LynxModule> allHubs;
@@ -56,17 +49,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
-//        allHubs = hardwareMap.getAll(LynxModule.class);
-//        for(LynxModule hub : allHubs) {
-//            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-//        }
-
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(11);
         Pose2d startPose = new Pose2d(PoseStorage.autoX, PoseStorage.autoY, PoseStorage.autoHeading);
-        lastFrameSimplePrediction = startPose;
-        lastFrameAdvancedPrediction = startPose;
         currentlyMoving = false;
 
         telemetry.setMsTransmissionInterval(20); // faster telemetry speed
@@ -143,12 +128,13 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             return;
         }
         currentlyMoving = Math.abs(gamepad1.left_stick_x) > noMoveJoystickThreshold || Math.abs(gamepad1.left_stick_y) > noMoveJoystickThreshold || Math.abs(gamepad1.right_stick_x) > noMoveJoystickThreshold;
+        double amp = robot.shootingSystem.shootingWhileMoving ? ShootingSystem.generalParams.maxShootWhileMovingSpeed : 1;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
                         -gamepad1.left_stick_y,
                         -gamepad1.left_stick_x
-                ),
-                -gamepad1.right_stick_x
+                ).times(amp),
+                -gamepad1.right_stick_x * amp
         ));
     }
 
@@ -195,7 +181,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if (Math.abs(robot.shootingSystem.filteredShooterSpeedTps - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance && robot.turret.inRange())
+                else if ((ShootingSystem.testingParams.usingLookup ? Math.abs(robot.shootingSystem.curExitSpeedMps - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance : robot.shootingSystem.physicsExitAngleRads[0] != -1 || Math.abs(robot.shootingSystem.actualTargetExitSpeedMps - robot.shootingSystem.curExitSpeedMps) < physicsShootTolerance) && robot.turret.inRange())
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())

@@ -12,16 +12,15 @@ import java.util.ArrayList;
 @Config
 public class Shooter extends Component {
     public static class ShooterParams {
-        public double kP = 0.005;
+        public double kP = 0.5;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kF = 0.00045;
-        public double maxErrorThresholdNear = 750, maxErrorThresholdFar = 90;
-        public double shotVelDropThreshold = 50;
-        public double noiseVariance = 40;
+        public double kV = 0.122;
+        public double shotVelDropThreshold = 0.05;
+        public double noiseVariance = 0.03;
         public int startingShooterSpeedAdjustment = 0;
         public double minPower = -0.15, maxPower = 0.99;
-        public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
+        public double shotRecoveryPower = 0.99, shotRecoveryError = 0.08;
     }
     public static class TestingParams {
         public boolean testing = false;
@@ -62,18 +61,18 @@ public class Shooter extends Component {
         allLastDecels = new ArrayList<>();
         allVelDropTimes = new ArrayList<>();
     }
-    public void setShooterVelocityPID(double targetVelocityTicksPerSec, double currentShooterVelocity) {
+    public void setShooterVelocityPID(double targetVelocityMps, double currentShooterVelocityMps) {
         if (robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
-            shooterPID.setTarget(targetVelocityTicksPerSec + nearVelocityAdjustment);
+            shooterPID.setTarget(targetVelocityMps + nearVelocityAdjustment);
         else
-            shooterPID.setTarget(targetVelocityTicksPerSec + farVelocityAdjustment);
+            shooterPID.setTarget(targetVelocityMps + farVelocityAdjustment);
 
-        double pidOutput = -shooterPID.update(currentShooterVelocity);
-        double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
+        double pidOutput = -shooterPID.update(currentShooterVelocityMps);
+        double feedForward = shooterParams.kV * targetVelocityMps;
         double totalPower = pidOutput + feedForward;
 
         totalPower = Range.clip(totalPower, shooterParams.minPower, shooterParams.maxPower);
-        double error = targetVelocityTicksPerSec - currentShooterVelocity;
+        double error = targetVelocityMps - currentShooterVelocityMps;
         if(error > shooterParams.shotRecoveryError)
             totalPower = shooterParams.shotRecoveryPower;
 
@@ -91,10 +90,10 @@ public class Shooter extends Component {
                 if(testingParams.testing)
                     setShooterVelocityPID(testingParams.testingVel, robot.shootingSystem.filteredShooterSpeedTps);
                 else
-                    setShooterVelocityPID(ShootingMath.exitMpsToMotorTicksPerSec(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.efficiencyCoef), robot.shootingSystem.filteredShooterSpeedTps);
+                    setShooterVelocityPID(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.curExitSpeedMps);
                 break;
         }
-        double pos = ShootingMath.getHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.ballExitAngleRad);
+        double pos = ShootingMath.getHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.hoodExitAngleRad);
         robot.shootingSystem.setHoodPosition(pos);
         updateBallShotTracking();
     }

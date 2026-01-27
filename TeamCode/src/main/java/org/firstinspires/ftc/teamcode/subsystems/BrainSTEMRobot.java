@@ -92,6 +92,8 @@ public class BrainSTEMRobot {
         Drawing.drawRobotSimple(fieldOverlay, shootingSystem.turretPose, 5);
         fieldOverlay.setStroke("purple");
         Drawing.drawRobotSimple(fieldOverlay, new Pose2d(shootingSystem.ballExitPos, 0), 3);
+        fieldOverlay.setStroke("gray");
+        Drawing.drawRobotSimple(fieldOverlay, new Pose2d(shootingSystem.futureBallExitPos, 0), 3);
 
         limelight.addLimelightInfo(fieldOverlay);
 
@@ -110,16 +112,16 @@ public class BrainSTEMRobot {
         fieldOverlay.strokeLine(
                 shootingSystem.ballExitPos.x,
                 shootingSystem.ballExitPos.y,
-                shootingSystem.ballExitPos.x + dist * Math.cos(shootingSystem.absoluteTargetAngleRad),
-                shootingSystem.ballExitPos.y + dist * Math.sin(shootingSystem.absoluteTargetAngleRad)
+                shootingSystem.ballExitPos.x + dist * Math.cos(shootingSystem.actualTurretTargetAngleRad),
+                shootingSystem.ballExitPos.y + dist * Math.sin(shootingSystem.actualTurretTargetAngleRad)
         );
         double speedMag = shootingSystem.actualTargetExitSpeedMps;
         fieldOverlay.setStroke("red");
         fieldOverlay.strokeLine(
                 shootingSystem.ballExitPos.x,
                 shootingSystem.ballExitPos.y,
-                shootingSystem.ballExitPos.x + 1.5 * speedMag * Math.cos(shootingSystem.absoluteTargetAngleRad),
-                shootingSystem.ballExitPos.y + 1.5 * speedMag * Math.sin(shootingSystem.absoluteTargetAngleRad)
+                shootingSystem.ballExitPos.x + 1.5 * speedMag * Math.cos(shootingSystem.actualTurretTargetAngleRad),
+                shootingSystem.ballExitPos.y + 1.5 * speedMag * Math.sin(shootingSystem.actualTurretTargetAngleRad)
         );
     }
 }

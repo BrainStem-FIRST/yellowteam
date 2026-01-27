@@ -18,6 +18,7 @@ public class ResetTurretEncoderTele extends LinearOpMode {
         telemetry.addData("turret encoder", shootingSystem.getTurretEncoderRaw());
         telemetry.update();
         waitForStart();
+        while(opModeIsActive()) {}
 
     }
 }

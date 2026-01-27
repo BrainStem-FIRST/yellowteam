@@ -111,7 +111,7 @@ public class Turret extends Component {
                 }
 
                 robot.shootingSystem.setTurretPower(calculateTurretPower(0, turretEncoder));
-                robot.shootingSystem.absoluteTargetAngleRad = robot.drive.localizer.getPose().heading.toDouble();
+                robot.shootingSystem.actualTurretTargetAngleRad = robot.drive.localizer.getPose().heading.toDouble();
                 break;
         }
 
@@ -185,7 +185,7 @@ public class Turret extends Component {
     private void updatePosVelAccel() {
         // updating position variables
         prevTargetRelAngleRad = targetRelAngleRad;
-        targetRelAngleRad = MathUtils.angleNormDeltaRad(robot.shootingSystem.absoluteTargetAngleRad - robot.shootingSystem.futureRobotPose.heading.toDouble());
+        targetRelAngleRad = MathUtils.angleNormDeltaRad(robot.shootingSystem.actualTurretTargetAngleRad - robot.shootingSystem.futureRobotPose.heading.toDouble());
 
         // updating velocity variables
         prevTargetRelAngleRadVel = targetRelAngleRadVel;
