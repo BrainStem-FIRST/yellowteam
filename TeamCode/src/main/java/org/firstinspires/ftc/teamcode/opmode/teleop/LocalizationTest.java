@@ -11,13 +11,17 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.roadrunner.MecanumDrive;
+import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.LED;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
@@ -31,12 +35,12 @@ import java.util.ArrayList;
 @TeleOp(name="localization test")
 public class LocalizationTest extends LinearOpMode {
     public static double startX = -8.375, startY = -6.875, startA = Math.PI;
+    public static double mt2HeadingOffset = 0;
     public static int numPrevPosesToAvg = 10;
     public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true, drawFilteredPoses = true;
-    public static boolean useMegaTag2 = false;
+    public static boolean useMegaTag2 = true;
     public static int ftcDashboardFPS = 10;
-    private Limelight3A limelight3A;
-    private Turret turret;
+
     @Override
     public void runOpMode() throws InterruptedException {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -45,12 +49,14 @@ public class LocalizationTest extends LinearOpMode {
         MecanumDrive drive = new MecanumDrive(hardwareMap, new Pose2d(startX, startY, startA));
         LED led = new LED(hardwareMap, telemetry, null);
 
-        limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
+        Limelight3A limelight3A = hardwareMap.get(Limelight3A.class, "limelight");
         limelight3A.pipelineSwitch(0);
         limelight3A.start();
         FtcDashboard.getInstance().startCameraStream(limelight3A, ftcDashboardFPS);
 
-        ShootingSystem shootingSystem = new ShootingSystem(hardwareMap, null);
+        DcMotorEx motor = hardwareMap.get(DcMotorEx.class, "turret");
+        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         ArrayList<Pose2d> prevLlCameraPoses = new ArrayList<>();
 
@@ -78,17 +84,22 @@ public class LocalizationTest extends LinearOpMode {
             ));
 
             drive.updatePoseEstimate();
+
+
             Pose2d pinpointRobotPose = drive.localizer.getPose();
-            int turretEncoder = shootingSystem.getTurretEncoder();
-            Pose2d pinpointTurretPose = ShootingMath.getTurretPose(pinpointRobotPose, turretEncoder);
+            double relativeTurretAngle = Turret.getTurretRelativeAngleRad(motor.getCurrentPosition());
+
+            Pose2d pinpointTurretPose = ShootingMath.getTurretPose(pinpointRobotPose, relativeTurretAngle);
             Pose2d pinpointCameraPose = Limelight.getLimelightPose(pinpointTurretPose);
 
-            if (useMegaTag2)
-                limelight3A.updateRobotOrientation(Math.toDegrees(pinpointTurretPose.heading.toDouble()));
+            if (useMegaTag2) {
+                double heading = Math.toDegrees(pinpointTurretPose.heading.toDouble()) + mt2HeadingOffset;
+                limelight3A.updateRobotOrientation(heading);
+            }
 
             LLResult result = limelight3A.getLatestResult();
             Pose2d llCameraPose = new Pose2d(0, 0, 0);
-            Pose2d llTurretPoses = new Pose2d(0, 0, 0);
+            Pose2d llTurretPose = new Pose2d(0, 0, 0);
             Pose2d llRobotPose = new Pose2d(0, 0, 0);
             Pose2d filteredLlCameraPose = new Pose2d(0, 0, 0);
             Pose2d filteredLlTurretPose = new Pose2d(0, 0, 0);
@@ -98,11 +109,13 @@ public class LocalizationTest extends LinearOpMode {
                 Pose3D cameraPose3D = useMegaTag2 ? result.getBotpose_MT2() : result.getBotpose();
                 Position cameraPos = cameraPose3D.getPosition().toUnit(DistanceUnit.INCH);
                 double cameraHeading = cameraPose3D.getOrientation().getYaw(AngleUnit.RADIANS);
+                if (useMegaTag2)
+                    cameraHeading -= mt2HeadingOffset;
 
                 llCameraPose = new Pose2d(cameraPos.x, cameraPos.y, cameraHeading);
                 if (llCameraPose.position.x != 0 || llCameraPose.position.y != 0 || llCameraPose.heading.toDouble() != 0) {
-                    llTurretPoses = Limelight.getTurretPose(llCameraPose);
-                    llRobotPose = ShootingMath.getRobotPose(llTurretPoses, turretEncoder);
+                    llTurretPose = Limelight.getTurretPose(llCameraPose);
+                    llRobotPose = ShootingMath.getRobotPose(llTurretPose, relativeTurretAngle);
                 }
             }
 
@@ -122,13 +135,11 @@ public class LocalizationTest extends LinearOpMode {
                 }
                 filteredLlCameraPose = new Pose2d(x / prevLlCameraPoses.size(), y / prevLlCameraPoses.size(), hRad / prevLlCameraPoses.size());
                 filteredLlTurretPose = Limelight.getTurretPose(filteredLlCameraPose);
-                filteredLlRobotPose = ShootingMath.getRobotPose(filteredLlTurretPose, turretEncoder);
+                filteredLlRobotPose = ShootingMath.getRobotPose(filteredLlTurretPose, relativeTurretAngle);
             }
-
 
             if (gamepad1.y)
                 drive.localizer.setPose(filteredLlRobotPose);
-
 
             double xError = pinpointRobotPose.position.x - llRobotPose.position.x;
             double yError = pinpointRobotPose.position.y - llRobotPose.position.y;
@@ -141,6 +152,7 @@ public class LocalizationTest extends LinearOpMode {
             maxHeadingErrorRad = Math.max(maxHeadingErrorRad, headingErrorRad);
 
             telemetry.addData("reset errors", "gamepad1.a");
+            telemetry.addData("reset odo pose to ll", "gamepad1.y");
             telemetry.addLine("Pinpoint======================");
             telemetry.addData("pinpoint robot pose", MathUtils.formatPose3(pinpointRobotPose));
             telemetry.addData("pinpoint turret pose", MathUtils.formatPose3(pinpointTurretPose));
@@ -149,7 +161,7 @@ public class LocalizationTest extends LinearOpMode {
 
             telemetry.addLine("Limelight======================");
             telemetry.addData("ll robot pose", MathUtils.formatPose3(llRobotPose));
-            telemetry.addData("ll turret pose", MathUtils.formatPose3(llTurretPoses));
+            telemetry.addData("ll turret pose", MathUtils.formatPose3(llTurretPose));
             telemetry.addData("ll camera pose", MathUtils.formatPose3(llCameraPose));
             telemetry.addData("ll camera pose filtered", MathUtils.formatPose3(filteredLlCameraPose));
             telemetry.addLine();
@@ -174,7 +186,7 @@ public class LocalizationTest extends LinearOpMode {
                     packet.fieldOverlay().setStroke("green");
                     Drawing.drawRobotSimple(packet.fieldOverlay(), pinpointTurretPose, 3);
                     packet.fieldOverlay().setStroke("gray");
-                    Drawing.drawRobotSimple(packet.fieldOverlay(), llTurretPoses, 3);
+                    Drawing.drawRobotSimple(packet.fieldOverlay(), llTurretPose, 3);
                 }
                 if (drawCameraPose) {
                     packet.fieldOverlay().setStroke("black");

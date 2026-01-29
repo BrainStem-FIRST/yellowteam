@@ -11,21 +11,31 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.video.KalmanFilter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Objects;
 
 @Config
 public final class PinpointLocalizer implements Localizer {
     public static class PosePredictParams {
-        public int numPrevDeltaTimesToTrack = 10;
-
         public int numPrevVelocitiesToTrack = 4;
         public double maxLinearSpeedPerSecond = 10, maxHeadingDegSpeedPerSecond = 20;
         public boolean clampSpeeds = false;
         public double velocityDamping = 0.75;
         public double accelTau = 0.1;
+    }
+    public static class KalmanParams {
+        public double velXYProcessNoise = 0.2, velHeadingProcessNoise = 0.05;
+        public double accelXYProcessNoise = 0.6, accelHeadingProcessNoise = 0.15;
+
+        public double velXYMeasurementNoise = 3, velHeadingMeasurementNoise = 0.3;
+        public double accelXYMeasurementNoise = 40, accelHeadingMeasurementNoise = 1.7;
+
+
     }
     public static class Params {
         public double parYTicks = -0.946; // y position of the parallel encoder (in inches)
@@ -34,6 +44,7 @@ public final class PinpointLocalizer implements Localizer {
 
     public static Params PARAMS = new Params();
     public static PosePredictParams posePredictParams = new PosePredictParams();
+    public static KalmanParams kalmanParams = new KalmanParams();
 
 
     public final GoBildaPinpointDriver driver;
@@ -50,6 +61,9 @@ public final class PinpointLocalizer implements Localizer {
     public OdoInfo filteredAccel;
     private OdoInfo nextVelAdvanced;
     public double dt;
+
+    public KalmanFilter kalmanFilter;
+    private Mat A, H, Q, R;
     public PinpointLocalizer(HardwareMap hardwareMap, Pose2d initialPose) {
         // TODO: make sure your config has a Pinpoint device with this name
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
@@ -78,6 +92,25 @@ public final class PinpointLocalizer implements Localizer {
         previousAccelerations = new ArrayList<>();
         filteredAccel = new OdoInfo(0, 0, 0);
         nextVelAdvanced = new OdoInfo(0, 0, 0);
+
+        int stateSize = 6;
+        int numMeasurements = 3;
+        int type = CvType.CV_32F;
+        kalmanFilter = new KalmanFilter(stateSize, numMeasurements, 0, type);
+        A = Mat.eye(new Size(stateSize, stateSize), type);
+
+        H = Mat.eye(new Size(numMeasurements, stateSize), type);
+        Q = Mat.zeros(new Size(stateSize, stateSize), type);
+        Q.put(0, 0, kalmanParams.velXYProcessNoise);
+        Q.put(1, 1, kalmanParams.velXYProcessNoise);
+        Q.put(2, 2, kalmanParams.velHeadingProcessNoise);
+        Q.put(3, 3, kalmanParams.accelXYProcessNoise);
+        Q.put(4, 4, kalmanParams.accelXYProcessNoise);
+        Q.put(5, 5, kalmanParams.accelHeadingProcessNoise);
+
+        R = Mat.zeros(new Size(stateSize, stateSize), type);
+        kalmanFilter.set_measurementMatrix(H);
+        kalmanFilter.set_processNoiseCov(Q);
     }
 
     @Override
@@ -110,6 +143,9 @@ public final class PinpointLocalizer implements Localizer {
 
     private void updatePreviousVelocitiesAndAccelerations(double vx, double vy, double vh) {
         dt = (System.nanoTime() - lastUpdateTimeNano) * 1.0 * 1e-9; // delta time is in seconds
+
+        A.put(0, 1, dt);
+        kalmanFilter.set_transitionMatrix(A);
 
         // remove oldest velocity
         if (previousVelocities.size() >= posePredictParams.numPrevVelocitiesToTrack)

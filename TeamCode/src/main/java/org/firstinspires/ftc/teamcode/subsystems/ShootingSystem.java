@@ -56,6 +56,8 @@ public class ShootingSystem {
         public double efficiencyCoefM = -0.0766393, efficiencyCoefB = 0.446492;
         public double minEfficiencyCoef = 0.3327, maxEfficiencyCoef = 0.4000;
         public double maxShootWhileMovingSpeed = 0.6;
+
+        // estimated accel thresholds: position: 20, heading: 5
     }
     public static class JoystickVelParams {
         // theory: velocity will stabilize with constant joystick input over time
@@ -380,6 +382,9 @@ public class ShootingSystem {
     public void printInfo(Telemetry telemetry) {
         telemetry.addLine();
         telemetry.addLine("SHOOTING SYSTEM-------");
+        telemetry.addData("----raw x vel", robot.drive.pinpoint().getMostRecentVelocity().x);
+        telemetry.addData("----raw y vel", robot.drive.pinpoint().getMostRecentVelocity().y);
+        telemetry.addData("----raw heading vel", robot.drive.pinpoint().getMostRecentVelocity().headingRad);
         telemetry.addData("-----raw x accel", robot.drive.pinpoint().getMostRecentAcceleration().x);
         telemetry.addData("-----raw y accel", robot.drive.pinpoint().getMostRecentAcceleration().y);
         telemetry.addData("-----raw heading accel", robot.drive.pinpoint().getMostRecentAcceleration().headingRad);

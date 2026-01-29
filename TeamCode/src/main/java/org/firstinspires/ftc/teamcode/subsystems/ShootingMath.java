@@ -123,12 +123,14 @@ public class ShootingMath {
         double yOffset = -Math.sin(robotHeading) * turretParams.offsetFromCenter;
         return new Pose2d(robotPose.position.x + xOffset, robotPose.position.y + yOffset, robotHeading + turretRelativeAngleRad);
     }
-    public static Pose2d getRobotPose(Pose2d turretPose, int turretPosition) {
-        double relTurretAngleRad = Turret.getTurretRelativeAngleRad(turretPosition);
-        double robotHeading = turretPose.heading.toDouble() - relTurretAngleRad;
+    public static Pose2d getRobotPose(Pose2d turretPose, double turretRelativeAngleRad) {
+        double robotHeading = turretPose.heading.toDouble() - turretRelativeAngleRad;
         if(robotHeading > Math.PI)
             robotHeading -= Math.PI * 2;
-        Vector2d robotTurretVec = new Vector2d(turretParams.offsetFromCenter * Math.cos(robotHeading), turretParams.offsetFromCenter * Math.sin(robotHeading));
+        Vector2d robotTurretVec = new Vector2d(
+                turretParams.offsetFromCenter * Math.cos(robotHeading),
+                turretParams.offsetFromCenter * Math.sin(robotHeading)
+        );
         return new Pose2d(turretPose.position.x + robotTurretVec.x, turretPose.position.y + robotTurretVec.y, robotHeading);
     }
 }
