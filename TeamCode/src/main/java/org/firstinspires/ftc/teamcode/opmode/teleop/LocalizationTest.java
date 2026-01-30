@@ -32,12 +32,12 @@ import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import java.util.ArrayList;
 
 @Config
-@TeleOp(name="localization test")
+@TeleOp(name="localization test", group="Competition")
 public class LocalizationTest extends LinearOpMode {
     public static double startX = -8.375, startY = -6.875, startA = Math.PI;
     public static double mt2HeadingOffset = 0;
     public static int numPrevPosesToAvg = 10;
-    public static boolean drawRobotPoses = false, drawTurretPoses = true, drawCameraPose = true, drawFilteredPoses = true;
+    public static boolean drawRobotPoses = true, drawTurretPoses = true, drawCameraPose = true, drawFilteredPoses = true;
     public static boolean useMegaTag2 = true;
     public static int ftcDashboardFPS = 10;
 
@@ -171,6 +171,7 @@ public class LocalizationTest extends LinearOpMode {
             telemetry.addData("max y error", MathUtils.format3(maxYError));
             telemetry.addData("max translational error", MathUtils.format3(maxTranslationalError));
             telemetry.addData("max heading error deg", MathUtils.format3(Math.toDegrees(maxHeadingErrorRad)));
+
 
             telemetry.update();
 

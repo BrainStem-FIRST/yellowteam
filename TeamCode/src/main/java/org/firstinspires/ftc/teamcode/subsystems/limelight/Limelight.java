@@ -21,7 +21,7 @@ public class Limelight extends Component {
         public boolean clearSnapshots = false;
     }
     public static class HardwareParams {
-        public double distFromTurret = 5.892;
+        public double distFromTurret = 5.9148; // old: 5.892;
     }
     public static SnapshotParams snapshotParams = new SnapshotParams();
     public static HardwareParams hardwareParams = new HardwareParams();

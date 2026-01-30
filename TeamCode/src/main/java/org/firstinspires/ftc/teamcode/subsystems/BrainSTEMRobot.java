@@ -92,7 +92,7 @@ public class BrainSTEMRobot {
         Drawing.drawRobotSimple(fieldOverlay, shootingSystem.turretPose, 5);
         fieldOverlay.setStroke("purple");
         Drawing.drawRobotSimple(fieldOverlay, new Pose2d(shootingSystem.ballExitPos, 0), 3);
-        fieldOverlay.setStroke("gray");
+        fieldOverlay.setStroke("purple");
         Drawing.drawRobotSimple(fieldOverlay, new Pose2d(shootingSystem.futureBallExitPos, 0), 3);
 
         limelight.addLimelightInfo(fieldOverlay);

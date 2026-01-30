@@ -93,8 +93,11 @@ public class Shooter extends Component {
                     setShooterVelocityPID(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.curExitSpeedMps);
                 break;
         }
-        double pos = ShootingMath.getHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : robot.shootingSystem.hoodExitAngleRad);
-        robot.shootingSystem.setHoodPosition(pos);
+        if(testingParams.testing) {
+            robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(testingParams.testingExitAngleRad));
+        }
+        else if(robot.shootingSystem.physicsExitAngleRads[0] != -1)
+            robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(robot.shootingSystem.hoodExitAngleRad));
         updateBallShotTracking();
     }
     public void updateBallShotTracking() {
