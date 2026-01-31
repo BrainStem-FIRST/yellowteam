@@ -29,11 +29,9 @@ public final class PinpointLocalizer implements Localizer {
         public double accelTau = 0.1;
     }
     public static class KalmanParams {
-        public double velXYProcessNoise = 0.2, velHeadingProcessNoise = 0.05;
-        public double accelXYProcessNoise = 0.6, accelHeadingProcessNoise = 0.15;
-
-        public double velXYMeasurementNoise = 3, velHeadingMeasurementNoise = 0.3;
-        public double accelXYMeasurementNoise = 40, accelHeadingMeasurementNoise = 1.7;
+        public double velXYProcessNoise = 0.1, velHeadingProcessNoise = 0.05;
+        public double accelXYProcessNoise = 0.2, accelHeadingProcessNoise = 0.1;
+        public double velXYMeasurementNoise = 0.1, velHeadingMeasurementNoise = 0.05;
 
 
     }
@@ -63,7 +61,10 @@ public final class PinpointLocalizer implements Localizer {
     public double dt;
 
     public KalmanFilter kalmanFilter;
-    private Mat A, H, Q, R;
+    private Mat A;
+    private int stateSize, type;
+    public OdoInfo kalmanVelPrediction, kalmanVelEstimation;
+    public OdoInfo kalmanAccelPrediction, kalmanAccelEstimation;
     public PinpointLocalizer(HardwareMap hardwareMap, Pose2d initialPose) {
         // TODO: make sure your config has a Pinpoint device with this name
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
@@ -93,24 +94,26 @@ public final class PinpointLocalizer implements Localizer {
         filteredAccel = new OdoInfo(0, 0, 0);
         nextVelAdvanced = new OdoInfo(0, 0, 0);
 
-        int stateSize = 6;
+        stateSize = 6;
         int numMeasurements = 3;
-        int type = CvType.CV_32F;
+        type = CvType.CV_32F;
         kalmanFilter = new KalmanFilter(stateSize, numMeasurements, 0, type);
-        A = Mat.eye(new Size(stateSize, stateSize), type);
-
-        H = Mat.eye(new Size(numMeasurements, stateSize), type);
-        Q = Mat.zeros(new Size(stateSize, stateSize), type);
+        Mat H = Mat.eye(numMeasurements, stateSize, type);
+        Mat Q = Mat.zeros(stateSize, stateSize, type);
         Q.put(0, 0, kalmanParams.velXYProcessNoise);
         Q.put(1, 1, kalmanParams.velXYProcessNoise);
         Q.put(2, 2, kalmanParams.velHeadingProcessNoise);
         Q.put(3, 3, kalmanParams.accelXYProcessNoise);
         Q.put(4, 4, kalmanParams.accelXYProcessNoise);
-        Q.put(5, 5, kalmanParams.accelHeadingProcessNoise);
+        Q.put(3, 5, kalmanParams.accelHeadingProcessNoise);
+        Mat R = Mat.zeros(numMeasurements, numMeasurements, type);
+        R.put(0, 0, kalmanParams.velXYMeasurementNoise);
+        R.put(1, 1, kalmanParams.velXYMeasurementNoise);
+        R.put(2, 2, kalmanParams.velHeadingMeasurementNoise);
 
-        R = Mat.zeros(new Size(stateSize, stateSize), type);
         kalmanFilter.set_measurementMatrix(H);
         kalmanFilter.set_processNoiseCov(Q);
+        kalmanFilter.set_measurementNoiseCov(R);
     }
 
     @Override
@@ -135,6 +138,23 @@ public final class PinpointLocalizer implements Localizer {
             Vector2d robotVelocity = Rotation2d.fromDouble(-txPinpointRobot.heading.log()).times(worldVelocity);
 
             updatePreviousVelocitiesAndAccelerations(velX, velY, velHeadingRad);
+            if(!previousVelocities.isEmpty()) {
+                A = Mat.eye(stateSize, stateSize, type);
+                A.put(0, 3, dt);
+                A.put(1, 4, dt);
+                A.put(2, 5, dt);
+                kalmanFilter.set_transitionMatrix(A);
+                Mat prediction = kalmanFilter.predict();
+                kalmanVelPrediction = new OdoInfo(prediction.get(0, 0)[0], prediction.get(1, 0)[0], prediction.get(2, 0)[0]);
+                kalmanAccelPrediction = new OdoInfo(prediction.get(3, 0)[0], prediction.get(4, 0)[0], prediction.get(5, 0)[0]);
+                Mat measurement = new Mat(3, 1, CvType.CV_32F);
+                measurement.put(0, 0, previousVelocities.get(0).x);
+                measurement.put(1, 0, previousVelocities.get(0).y);
+                measurement.put(2, 0, previousVelocities.get(0).headingRad);
+                Mat estimated = kalmanFilter.correct(measurement);
+                kalmanVelEstimation = new OdoInfo(estimated.get(0, 0)[0], estimated.get(1, 0)[0], estimated.get(2, 0)[0]);
+                kalmanAccelEstimation = new OdoInfo(estimated.get(3, 0)[0], estimated.get(4, 0)[0], estimated.get(5, 0)[0]);
+            }
 
             return new PoseVelocity2d(robotVelocity, driver.getHeadingVelocity(UnnormalizedAngleUnit.RADIANS));
         }
@@ -143,9 +163,6 @@ public final class PinpointLocalizer implements Localizer {
 
     private void updatePreviousVelocitiesAndAccelerations(double vx, double vy, double vh) {
         dt = (System.nanoTime() - lastUpdateTimeNano) * 1.0 * 1e-9; // delta time is in seconds
-
-        A.put(0, 1, dt);
-        kalmanFilter.set_transitionMatrix(A);
 
         // remove oldest velocity
         if (previousVelocities.size() >= posePredictParams.numPrevVelocitiesToTrack)

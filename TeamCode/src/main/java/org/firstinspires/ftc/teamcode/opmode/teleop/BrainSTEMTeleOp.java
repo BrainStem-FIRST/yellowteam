@@ -69,9 +69,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
-        int framesRunning = 0;
-        long startTimeNano = System.nanoTime();
-
         robot.turret.update();
         while (opModeIsActive()) {
             gp1.update();
@@ -103,15 +100,30 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if(printShootingSystem)
                 robot.shootingSystem.printInfo(telemetry);
 
+            telemetry.addLine();
+            telemetry.addLine("KALMAN-------");
+            telemetry.addData("kalman pred vel x", robot.drive.pinpoint().kalmanVelPrediction.x);
+            telemetry.addData("kalman pred vel y", robot.drive.pinpoint().kalmanVelPrediction.y);
+            telemetry.addData("kalman pred vel heading", robot.drive.pinpoint().kalmanVelPrediction.headingRad);
+            telemetry.addData("kalman est vel x", robot.drive.pinpoint().kalmanVelEstimation.x);
+            telemetry.addData("kalman est vel y", robot.drive.pinpoint().kalmanVelEstimation.y);
+            telemetry.addData("kalman est vel heading", robot.drive.pinpoint().kalmanVelEstimation.headingRad);
+            telemetry.addData("kalman raw vel x", robot.drive.pinpoint().getMostRecentVelocity().x);
+            telemetry.addData("kalman raw vel y", robot.drive.pinpoint().getMostRecentVelocity().y);
+            telemetry.addData("kalman raw vel heading", robot.drive.pinpoint().getMostRecentVelocity().headingRad);
+            telemetry.addLine();
+            telemetry.addData("kalman pred accel x", robot.drive.pinpoint().kalmanAccelPrediction.x);
+            telemetry.addData("kalman pred accel y", robot.drive.pinpoint().kalmanAccelPrediction.y);
+            telemetry.addData("kalman pred accel heading", robot.drive.pinpoint().kalmanAccelPrediction.headingRad);
+            telemetry.addData("kalman est accel x", robot.drive.pinpoint().kalmanAccelEstimation.x);
+            telemetry.addData("kalman est accel y", robot.drive.pinpoint().kalmanAccelEstimation.y);
+            telemetry.addData("kalman est accel heading", robot.drive.pinpoint().kalmanAccelEstimation.headingRad);
+            telemetry.addData("kalman raw accel x", robot.drive.pinpoint().getMostRecentAcceleration().x);
+            telemetry.addData("kalman raw accel y", robot.drive.pinpoint().getMostRecentAcceleration().y);
+            telemetry.addData("kalman raw accel heading", robot.drive.pinpoint().getMostRecentAcceleration().headingRad);
+
             updateDashboardField();
 
-            // print delta time
-            framesRunning++;
-//            double timeRunning = (System.nanoTime() - startTimeNano) * 1.0 * 1e-9;
-            if(gp1.isFirstStart()) {
-                framesRunning = 0;
-                startTimeNano = System.nanoTime();
-            }
 //            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
             telemetry.update();
 
