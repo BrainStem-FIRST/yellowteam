@@ -11,21 +11,17 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.command.CommandScheduler;
-import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
-import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
 import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 import org.firstinspires.ftc.teamcode.utils.teleHelpers.GamepadTracker;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
-
-import java.util.List;
 
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
@@ -35,7 +31,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     public static boolean streamCameraToFTCDashboard = true;
     public static double[] blueCornerResetPose = { 64.25, 62.75, -90 };
     public static double[] redCornerResetPose = { 64.25, -62.75, 90 };
-    public static double firstShootTolerance = 0.1, physicsShootTolerance = 0.05;
+    public static double firstShootTolerance = 40, physicsShootTolerance = 0.05;
     public static double noMoveJoystickThreshold = 0.1;
 
     BrainSTEMRobot robot;
@@ -44,8 +40,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
     GamepadTracker gp2;
     private final Alliance alliance;
     private boolean currentlyMoving;
-    private List<LynxModule> allHubs;
-
     public BrainSTEMTeleOp(Alliance alliance) {
         this.alliance = alliance;
     }
@@ -73,16 +67,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             FtcDashboard.getInstance().startCameraStream(robot.limelight.limelight, 10);
 
         waitForStart();
-        robot.turret.update();
         while (opModeIsActive()) {
             gp1.update();
             gp2.update();
-
-            //telemetry.addData("TRACKING SHOOTER DATA", robot.shooter.isTrackingData());
-            //telemetry.addLine();
-            //telemetry.addData("SHOOTER ADJUSTMENT", robot.shooter.adjustment);
-            //telemetry.addData("TURRET ADJUSTMENT", robot.turret.adjustment);
-            //telemetry.addLine();
 
             updateDrive();
             updateDriver2();
@@ -92,43 +79,20 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             robot.update(currentlyMoving);
 
             telemetry.addData("Alliance", BrainSTEMRobot.alliance);
+            telemetry.addData("dt", robot.getDt());
 
             if (printCollector)
                 robot.collection.printInfo();
             if (printLimelight)
                 robot.limelight.printInfo();
             if (printTurret)
-                robot.turret.printInfo();
+                robot.shootingSystem.getTurret().printInfo();
             if (printShooter)
-                robot.shooter.printInfo();
+                robot.shootingSystem.getShooter().printInfo();
             if(printShootingSystem)
                 robot.shootingSystem.printInfo(telemetry);
 
             telemetry.addLine();
-            telemetry.addLine("KALMAN-------");
-            if(robot.drive.pinpoint().kalmanAccelEstimation != null) {
-//                telemetry.addData("kalman pred vel x", robot.drive.pinpoint().kalmanVelPrediction.x);
-//                telemetry.addData("kalman pred vel y", robot.drive.pinpoint().kalmanVelPrediction.y);
-//                telemetry.addData("kalman pred vel heading", robot.drive.pinpoint().kalmanVelPrediction.headingRad);
-//                telemetry.addData("kalman est vel x", robot.drive.pinpoint().kalmanVelEstimation.x);
-//                telemetry.addData("kalman est vel y", robot.drive.pinpoint().kalmanVelEstimation.y);
-//                telemetry.addData("kalman est vel heading", robot.drive.pinpoint().kalmanVelEstimation.headingRad);
-//                telemetry.addData("kalman raw vel x", robot.drive.pinpoint().getMostRecentVelocity().x);
-//                telemetry.addData("kalman raw vel y", robot.drive.pinpoint().getMostRecentVelocity().y);
-//                telemetry.addData("kalman raw vel heading", robot.drive.pinpoint().getMostRecentVelocity().headingRad);
-//                telemetry.addLine();
-//                telemetry.addData("kalman pred accel x", robot.drive.pinpoint().kalmanAccelPrediction.x);
-//                telemetry.addData("kalman pred accel y", robot.drive.pinpoint().kalmanAccelPrediction.y);
-//                telemetry.addData("kalman pred accel heading", robot.drive.pinpoint().kalmanAccelPrediction.headingRad);
-//                telemetry.addData("kalman est accel x", robot.drive.pinpoint().kalmanAccelEstimation.x);
-//                telemetry.addData("kalman est accel y", robot.drive.pinpoint().kalmanAccelEstimation.y);
-//                telemetry.addData("kalman est accel heading", robot.drive.pinpoint().kalmanAccelEstimation.headingRad);
-//                telemetry.addData("kalman raw accel x", robot.drive.pinpoint().getMostRecentAcceleration().x);
-//                telemetry.addData("kalman raw accel y", robot.drive.pinpoint().getMostRecentAcceleration().y);
-//                telemetry.addData("kalman raw accel heading", robot.drive.pinpoint().getMostRecentAcceleration().headingRad);
-            }
-
-            telemetry.addData("dt", robot.shootingSystem.dt);
             updateDashboardField();
 
 //            telemetry.addData("FPS", MathUtils.format2(framesRunning / timeRunning));
@@ -148,7 +112,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             return;
         }
         currentlyMoving = Math.abs(gamepad1.left_stick_x) > noMoveJoystickThreshold || Math.abs(gamepad1.left_stick_y) > noMoveJoystickThreshold || Math.abs(gamepad1.right_stick_x) > noMoveJoystickThreshold;
-        double amp = robot.shootingSystem.shootingWhileMoving ? ShootingSystem.generalParams.maxShootWhileMovingSpeed : 1;
+        double amp = robot.isShootingWhileMoving() ? ShootingSystem.generalParams.maxShootWhileMovingSpeed : 1;
         robot.drive.setDrivePowers(new PoseVelocity2d(
                 new Vector2d(
                         -gamepad1.left_stick_y,
@@ -176,16 +140,16 @@ public class BrainSTEMTeleOp extends LinearOpMode {
         }
 
         if (gp1.isFirstRightBumper())
-            if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE)
-                robot.shooter.shooterState = Shooter.ShooterState.OFF;
+            if (robot.shootingSystem.getShooterState() == ShootingSystem.ShooterState.UPDATE)
+                robot.shootingSystem.setShooterState(ShootingSystem.ShooterState.OFF);
             else
-                robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
+                robot.shootingSystem.setShooterState(ShootingSystem.ShooterState.UPDATE);
 
         if (gp1.isFirstLeftBumper()) {
-            if (robot.turret.turretState == Turret.TurretState.CENTER)
-                robot.turret.turretState = Turret.TurretState.TRACKING;
+            if (robot.shootingSystem.getTurretState() == ShootingSystem.TurretState.CENTER)
+                robot.shootingSystem.setTurretState(ShootingSystem.TurretState.TRACKING);
             else
-                robot.turret.turretState = Turret.TurretState.CENTER;
+                robot.shootingSystem.setTurretState(ShootingSystem.TurretState.CENTER);
         }
 
         if (gp1.isFirstBack()) {
@@ -201,7 +165,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if ((ShootingSystem.testingParams.usingLookup ? Math.abs(robot.shootingSystem.curExitSpeedMps - robot.shooter.shooterPID.getTarget()) <= firstShootTolerance : robot.shootingSystem.physicsExitAngleRads[0] != -1 || Math.abs(robot.shootingSystem.actualTargetExitSpeedMps - robot.shootingSystem.curExitSpeedMps) < physicsShootTolerance) && robot.turret.inRange())
+                else if ((ShootingSystem.testingParams.usingLookup ? Math.abs(robot.shootingSystem.getShooter().getPidError()) <= firstShootTolerance : robot.shootingSystem.physicsShotPossible() || Math.abs(robot.shootingSystem.getShooterErrorMps()) < physicsShootTolerance) && robot.shootingSystem.getTurret().inRange())
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())
@@ -216,14 +180,14 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             robot.collection.setFlickerState(Collection.FlickerState.FULL_UP_DOWN);
 
         if (gp2.isFirstDpadLeft())
-            robot.turret.changeEncoderAdjustment(Turret.turretParams.fineAdjust);
+            robot.shootingSystem.changeTurretEncoderAdjustment(Turret.turretParams.fineAdjust);
         if (gp2.isFirstDpadRight())
-            robot.turret.changeEncoderAdjustment(-Turret.turretParams.fineAdjust);
+            robot.shootingSystem.changeTurretEncoderAdjustment(-Turret.turretParams.fineAdjust);
 
         if (gp2.isFirstDpadUp())
-            robot.shooter.changeVelocityAdjustment(10);
+            robot.shootingSystem.changeShooterTicksAdjustment(10);
         if (gp2.isFirstDpadDown())
-            robot.shooter.changeVelocityAdjustment(-10);
+            robot.shootingSystem.changeShooterTicksAdjustment(-10);
 
         if(gp2.isFirstRightBumper()) {
             robot.limelight.localization.manualPoseUpdate = true;
@@ -234,8 +198,6 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             robot.drive.pinpoint().setPose(resetPose);
             robot.led.lastPinpointResetTimeMs = System.currentTimeMillis();
         }
-//        if (gp2.isFirstBack())
-//            robot.limelight.takePic();
     }
     private void updateDashboardField() {
         TelemetryPacket packet = new TelemetryPacket();
@@ -245,8 +207,8 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         // draw goal
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(robot.shootingSystem.goalPosIn.x, robot.shootingSystem.goalPosIn.y, 3);
-        Vector2d defaultGoalPos = new Vector2d(robot.shootingSystem.goalPosIn.x, robot.shootingSystem.goalPosIn.z);
+        fieldOverlay.strokeCircle(robot.shootingSystem.get2dGoalPos().x, robot.shootingSystem.get2dGoalPos().y, 3);
+        Vector2d defaultGoalPos = new Vector2d(robot.shootingSystem.get2dGoalPos().x, robot.shootingSystem.get2dGoalPos().y);
         fieldOverlay.strokeCircle(defaultGoalPos.x, defaultGoalPos.y, 3);
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
     }

@@ -72,8 +72,8 @@ public class Collection extends Component {
     public static Params params = new Params();
     private int framesRunning;
 
-    public Collection(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
-        super(hardwareMap, telemetry, robot);
+    public Collection(HardwareMap hardwareMap, Telemetry telemetry){
+        super(hardwareMap, telemetry);
 
         collectorMotor = hardwareMap.get(DcMotorEx.class, "intake");
         collectorMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -163,8 +163,7 @@ public class Collection extends Component {
         telemetry.addData("fr dist", frontRightLaserDist);
     }
 
-    @Override
-    public void update() {
+    public void updateProperties() {
         if (getCollectionState() != CollectionState.OFF || framesRunning % params.offDistanceSensorUpdatePeriod == 0) {
             backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
             backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());
@@ -172,7 +171,8 @@ public class Collection extends Component {
             frontRightLaserDist = voltageToDistance(frontRightLaser.getVoltage());
         }
         framesRunning++;
-
+    }
+    public void updateState(boolean shotPossible) {
         switch (getCollectionState()) {
             case OFF:
             case INTAKE_SLOW:
@@ -180,10 +180,7 @@ public class Collection extends Component {
             case TRANSFER:
                 break;
             case INTAKE:
-                if (getClutchState() == ClutchState.ENGAGED
-                        && (robot.shootingSystem.physicsExitAngleRads[0] == -1
-                        && robot.shootingSystem.actualTargetExitSpeedMps - robot.shootingSystem.curExitSpeedMps > BrainSTEMTeleOp.physicsShootTolerance
-                        || !robot.turret.inRange))
+                if (!shotPossible)
                     collectorMotor.setPower(params.impossibleShotIntakePow);
                 else
                     collectorMotor.setPower(params.normIntakePow);

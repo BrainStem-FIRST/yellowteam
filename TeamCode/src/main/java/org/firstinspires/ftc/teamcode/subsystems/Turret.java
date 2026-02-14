@@ -1,26 +1,23 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.Vector2d;
 import com.arcrobotics.ftclib.util.InterpLUT;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.subsystems.limelight.LimelightLocalization;
-import org.firstinspires.ftc.teamcode.utils.math.MathUtils;
 
 @Config
 public class Turret extends Component {
-    public static class TestingParams {
-        public boolean actuallyPowerTurret = true;
-    }
     public static class Params {
         public double offsetFromCenter = 3.442; // offset of center of turret from center of robot in inches
 
         public int fineAdjust = 5;
         public double TICKS_PER_REV = 1228.5, ticksPerRad = TICKS_PER_REV / (2 * Math.PI);
-        public int minBound = -300;
-        public int maxBound = 300;
+        public int minEncoderBound = -300;
+        public int maxEncoderBound = 300;
+        public double minAngle = Math.toRadians(-90);
+        public double maxAngle = Math.toRadians(90);
     }
     public static class PowerTuning {
         public double ignoreAngularVelocityThreshold = Math.toRadians(5);
@@ -30,77 +27,37 @@ public class Turret extends Component {
         public double[] kfLookupEncoders = new double[] {0, 0, 0, 0, 0};
         public double[] kfLookupPowers = new double[] {0, 0, 0, 0, 0};
     }
-    public static TestingParams testingParams = new TestingParams();
-//    public static GoalParams goalParams = new GoalParams();
     public static Params turretParams = new Params();
     public static PowerTuning powerTuning = new PowerTuning();
-    public enum TurretState {
-        TRACKING, CENTER
-    }
-    public TurretState turretState;
-    private int nearEncoderAdjustment, farEncoderAdjustment;
-    public double targetEncoder, targetVelocity, targetAngularVelocity, dot;
+    public double targetEncoder, targetVelocity, targetAngularVelocity;
     private double firstTimeWhereTargetVelIsZero;
 
-    private Vector2d perpVelVec;
-    public double currentEncoder, currentVelocity;
+    private double currentEncoder, currentVelocity;
     private double positionError, velocityError;
     private double kP, kF, dir;
-    private InterpLUT kFLookup;
+    private final InterpLUT kFLookup;
 
-    public double targetRelAngleRad;
+    private double targetAngle;
 
-    public double currentAbsoluteAngleRad;
-    public double currentRelativeAngleRad;
-    public boolean inRange;
+    private double currentRelativeAngleRad;
+    private boolean inRange;
+    private final DcMotorEx turretMotor;
 
-    public Turret(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot){
-        super(hardwareMap, telemetry, robot);
+    public Turret(HardwareMap hardwareMap, Telemetry telemetry){
+        super(hardwareMap, telemetry);
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         kFLookup = new InterpLUT();
         for(int i = 0; i < powerTuning.kfLookupEncoders.length; i++)
             kFLookup.add(powerTuning.kfLookupEncoders[i], powerTuning.kfLookupPowers[i]);
         kFLookup.createLUT();
-
-        turretState = TurretState.CENTER;
+        updateProperties();
     }
-
-    @Override
-    public void update() {
-        currentEncoder = robot.shootingSystem.getTurretEncoder();
-        currentVelocity = robot.shootingSystem.getTurretVelTps();
-        switch (turretState) {
-            case TRACKING:
-                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                    robot.shootingSystem.setTurretPower(0);
-                    break;
-                }
-                updateTarget();
-                targetEncoder = (int) (targetRelAngleRad * turretParams.ticksPerRad);
-                targetEncoder += robot.shootingSystem.distState != ShootingSystem.Dist.FAR ? nearEncoderAdjustment : farEncoderAdjustment;
-                targetEncoder = Range.clip(targetEncoder, turretParams.minBound, turretParams.maxBound);
-
-                if(testingParams.actuallyPowerTurret)
-                    robot.shootingSystem.setTurretPower(calculateTurretPowerNew());
-                else
-                    robot.shootingSystem.setTurretPower(0);
-                break;
-
-            case CENTER:
-                inRange = true;
-                if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
-                    robot.shootingSystem.setTurretPower(0);
-                    break;
-                }
-                targetEncoder = 0;
-                robot.shootingSystem.setTurretPower(calculateTurretPowerNew());
-                break;
-        }
-
+    public void updateProperties() {
+        currentEncoder = turretMotor.getCurrentPosition();
+        currentVelocity = turretMotor.getVelocity();
         currentRelativeAngleRad = currentEncoder / turretParams.ticksPerRad;
-        currentAbsoluteAngleRad = currentRelativeAngleRad + robot.drive.localizer.getPose().heading.toDouble();
     }
-
-    public double calculateTurretPowerNew() {
+    public double calculateTurretPower() {
         positionError = targetEncoder - currentEncoder;
         double timeSinceTargetVelFirstZero = (System.currentTimeMillis() - firstTimeWhereTargetVelIsZero) / 1000;
         velocityError = targetVelocity == 0 && timeSinceTargetVelFirstZero > powerTuning.decelTime ? 0 : targetVelocity - currentVelocity;
@@ -111,60 +68,45 @@ public class Turret extends Component {
         kF = kFLookup.get(input) * dir;
         return kP * positionError + kF + powerTuning.kV * targetVelocity + powerTuning.kVP * velocityError;
     }
+    public void setTarget(double relativeTargetAngle, double targetAngularVelocity) {
+        // updating position variables
+        this.targetAngle = relativeTargetAngle;
+        // mirrors the angle if the turret cannot reach it (visual cue)
+        if (this.targetAngle > Math.toRadians(90)) {
+            this.targetAngle = Math.PI - this.targetAngle;
+            inRange = false;
+        }
+        else if (this.targetAngle < Math.toRadians(-90)) {
+            this.targetAngle = -Math.PI - this.targetAngle;
+            inRange = false;
+        }
+        else
+            inRange = true;
+
+        targetEncoder = this.targetAngle * turretParams.ticksPerRad;
+        this.targetAngularVelocity = targetAngularVelocity;
+        double prevTargetVelocity = targetVelocity;
+        targetVelocity = targetAngularVelocity * turretParams.ticksPerRad;
+        if(targetVelocity == 0 && prevTargetVelocity != 0)
+            firstTimeWhereTargetVelIsZero = System.currentTimeMillis();
+    }
+    public void setPower(double power) {
+        turretMotor.setPower(power);
+    }
     private double getLogisticKf(double encoder, double direction) {
         if(direction == -1)
             encoder *= -1;
         double logisticPower = (powerTuning.staticU - powerTuning.staticB) / (1 + Math.exp(-powerTuning.staticK * (encoder-powerTuning.staticX0))) + powerTuning.staticB;
         return logisticPower * direction;
     }
-    public static double getTurretRelativeAngleRad(int turretPosition) {
-        double turretTicksPerRadian = (turretParams.TICKS_PER_REV) / (2 * Math.PI);
-        return turretPosition / turretTicksPerRadian;
-    }
-    private void updateTarget() {
-        // updating position variables
-        targetRelAngleRad = MathUtils.angleNormDeltaRad(robot.shootingSystem.actualTurretTargetAngleRad - robot.shootingSystem.futureRobotPose.heading.toDouble());
-        // mirrors the angle if the turret cannot reach it (visual cue)
-        if (targetRelAngleRad > Math.toRadians(ShootingMath.turretSystemParams.maxAngleDeg)) {
-            targetRelAngleRad = Math.PI - targetRelAngleRad;
-            inRange = false;
-        }
-        else if (targetRelAngleRad < Math.toRadians(ShootingMath.turretSystemParams.minAngleDeg)) {
-            targetRelAngleRad = -Math.PI - targetRelAngleRad;
-            inRange = false;
-        }
-        else
-            inRange = true;
-
-        targetEncoder = targetRelAngleRad * turretParams.ticksPerRad;
-        perpVelVec = new Vector2d(-robot.shootingSystem.futureExitPosRelativeToGoal.y, robot.shootingSystem.futureExitPosRelativeToGoal.x *1);
-        perpVelVec = perpVelVec.div(robot.shootingSystem.futureExitPosGoalDistIn);
-        dot = robot.shootingSystem.robotVelAtExitPosIps.dot(perpVelVec);
-        targetAngularVelocity = dot / robot.shootingSystem.futureExitPosGoalDistIn - robot.shootingSystem.odoVel.headingRad;
-        if(Math.abs(targetAngularVelocity) < powerTuning.ignoreAngularVelocityThreshold)
-            targetAngularVelocity = 0;
-        double prevTargetVelocity = targetVelocity;
-        targetVelocity = targetAngularVelocity * turretParams.ticksPerRad;
-        if(targetVelocity == 0 && prevTargetVelocity != 0)
-            firstTimeWhereTargetVelIsZero = System.currentTimeMillis();
-
-    }
 
     @Override
     public void printInfo() {
         double turretTicksPerDegree = turretParams.TICKS_PER_REV / 360.;
-        int turretEncoder = robot.shootingSystem.getTurretEncoder();
 
         telemetry.addLine("TURRET------");
-        telemetry.addData("state", turretState);
-        telemetry.addLine("OSCILATION DEBUGGING-----");
-        if(perpVelVec != null) {
-            telemetry.addData("perp vel vec mag", Math.hypot(perpVelVec.x, perpVelVec.y));
-            telemetry.addData("heading vel deg", Math.toDegrees(robot.shootingSystem.odoVel.headingRad));
-            telemetry.addData("dot", dot);
-        }
         telemetry.addLine("-----");
-        telemetry.addData("turret power", robot.shootingSystem.getTurretPower());
+        telemetry.addData("turret power", turretMotor.getPower());
         telemetry.addData("kP", kP);
         telemetry.addData("kf", kF);
         telemetry.addLine("-----");
@@ -172,10 +114,10 @@ public class Turret extends Component {
         telemetry.addData("target velocity", targetVelocity);
         telemetry.addData("target angular velocity", targetAngularVelocity);
         telemetry.addLine("-----");
-        telemetry.addData("current encoder", turretEncoder);
+        telemetry.addData("current encoder", currentEncoder);
         telemetry.addData("current velocity", currentVelocity);
         telemetry.addData("turret current relative angle deg", Math.toDegrees(currentRelativeAngleRad));
-        telemetry.addData("turret target relative angle deg", Math.toDegrees(targetRelAngleRad));
+        telemetry.addData("turret target relative angle deg", Math.toDegrees(targetAngle));
         telemetry.addData("dir", dir);
         telemetry.addLine("-----");
         telemetry.addData("angle degree error", positionError / turretTicksPerDegree);
@@ -184,14 +126,23 @@ public class Turret extends Component {
         telemetry.addLine("-----");
         telemetry.addData("inRange", inRange());
     }
-
-    public void changeEncoderAdjustment(int amount) {
-        if(robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
-            nearEncoderAdjustment += amount;
-        else
-            farEncoderAdjustment += amount;
-    }
     public boolean inRange() {
         return inRange;
+    }
+    public double getRelAngleRad() {
+        return currentRelativeAngleRad;
+    }
+    public double getAbsAngleRad(double robotHeading) {
+        return robotHeading + currentRelativeAngleRad;
+    }
+    public double ticksToAngle(double ticks) {
+        return ticks / turretParams.ticksPerRad;
+    }
+    public void resetEncoders() {
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+    public double getEncoder() {
+        return currentEncoder;
     }
 }
