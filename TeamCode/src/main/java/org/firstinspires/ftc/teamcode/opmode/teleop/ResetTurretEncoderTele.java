@@ -11,10 +11,11 @@ public class ResetTurretEncoderTele extends LinearOpMode {
     public void runOpMode() {
         Turret turret = new Turret(hardwareMap, telemetry);
         turret.resetEncoders();
-        telemetry.addData("turret encoder", turret.getEncoder());
-        telemetry.update();
         waitForStart();
-        while(opModeIsActive()) {}
+        while(opModeIsActive()) {
+            telemetry.addData("turret encoder", turret.getEncoder());
+            telemetry.update();
+        }
 
     }
 }

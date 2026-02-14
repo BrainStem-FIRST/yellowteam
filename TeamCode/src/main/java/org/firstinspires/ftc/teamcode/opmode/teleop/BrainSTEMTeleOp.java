@@ -86,9 +86,9 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (printLimelight)
                 robot.limelight.printInfo();
             if (printTurret)
-                robot.shootingSystem.getTurret().printInfo();
+                robot.shootingSystem.turret.printInfo();
             if (printShooter)
-                robot.shootingSystem.getShooter().printInfo();
+                robot.shootingSystem.shooter.printInfo();
             if(printShootingSystem)
                 robot.shootingSystem.printInfo(telemetry);
 
@@ -165,7 +165,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
             if (gp2.isFirstA())
                 if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
                     robot.collection.setCollectionState(Collection.CollectionState.OFF);
-                else if ((ShootingSystem.testingParams.usingLookup ? Math.abs(robot.shootingSystem.getShooter().getPidError()) <= firstShootTolerance : robot.shootingSystem.physicsShotPossible() || Math.abs(robot.shootingSystem.getShooterErrorMps()) < physicsShootTolerance) && robot.shootingSystem.getTurret().inRange())
+                else if ((ShootingSystem.testingParams.usingLookup ? Math.abs(robot.shootingSystem.shooter.getPidError()) <= firstShootTolerance : robot.shootingSystem.physicsShotPossible() || Math.abs(robot.shootingSystem.getShooterErrorMps()) < physicsShootTolerance) && robot.shootingSystem.turret.inRange())
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
         }
         if (gp2.isFirstB())

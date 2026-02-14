@@ -192,7 +192,7 @@ public abstract class AutoPid extends LinearOpMode {
                     return true;
                 }
         );
-        robot.shootingSystem.resetTurretEncoder();
+        robot.shootingSystem.turret.resetEncoders();
 
         telemetry.addData("alliance", alliance);
         telemetry.addData("auto string", customizable.collectionOrder);
@@ -201,7 +201,7 @@ public abstract class AutoPid extends LinearOpMode {
         waitForStart();
         autoTimer.reset();
 
-        robot.shooter.setBallsShot(0); // always start with 3 preloads
+        robot.shootingSystem.shooter.setBallsShot(0); // always start with 3 preloads
 
         Actions.runBlocking(
                 forcedStopAutoAction
@@ -300,7 +300,7 @@ public abstract class AutoPid extends LinearOpMode {
                 ),
                 new InstantAction(() -> autoState = AutoState.SHOOT),
 //                autoCommands.speedUpShooter(),
-                new InstantAction(() -> robot.shooter.setBallsShot(0)),
+                new InstantAction(() -> robot.shootingSystem.shooter.setBallsShot(0)),
                 autoCommands.flickerHalfUp(),
                 autoCommands.reverseIntake(),
                 new SleepAction(Collection.shootOuttakeTimeAuto),
@@ -567,7 +567,7 @@ public abstract class AutoPid extends LinearOpMode {
             private boolean first = true;
             @Override
             public boolean run(@NonNull TelemetryPacket telemetryPacket) {
-                if (robot.shooter.getBallsShot() == 3)
+                if (robot.shootingSystem.shooter.getBallsShot() == 3)
                     return false;
 
                 if (first) {

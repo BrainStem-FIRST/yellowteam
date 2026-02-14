@@ -84,8 +84,8 @@ public class ShootingSystem {
 
     private final ShooterLookup lookupTable;
 
-    private final Turret turret;
-    private final Shooter shooter;
+    public final Turret turret;
+    public final Shooter shooter;
     private double nearVelocityAdjustment, farVelocityAdjustment;
     private double nearEncoderAdjustment, farEncoderAdjustment;
 
@@ -358,12 +358,6 @@ public class ShootingSystem {
     }
     public DistState getDistState() {
         return distState;
-    }
-    public Turret getTurret() {
-        return turret;
-    }
-    public Shooter getShooter() {
-        return shooter;
     }
     public double getTargetShooterSpeedTps() {
         return targetShooterSpeedTps;

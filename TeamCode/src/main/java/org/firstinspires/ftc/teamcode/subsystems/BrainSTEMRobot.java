@@ -78,7 +78,7 @@ public class BrainSTEMRobot {
             boolean shotPossible = false; // TODO: figure this boolean out
             collection.updateState(shotPossible);
         }
-        shootingWhileMoving = (ShootingSystem.testingParams.enableShootingWhileMovingFar && shootingSystem.getDistState() == FAR || ShootingSystem.testingParams.enableShootingWhileMovingNear && shootingSystem.getDistState() == NEAR) && collection.getClutchState() == Collection.ClutchState.ENGAGED && shootingSystem.getTurret().inRange();
+        shootingWhileMoving = (ShootingSystem.testingParams.enableShootingWhileMovingFar && shootingSystem.getDistState() == FAR || ShootingSystem.testingParams.enableShootingWhileMovingNear && shootingSystem.getDistState() == NEAR) && collection.getClutchState() == Collection.ClutchState.ENGAGED && shootingSystem.turret.inRange();
         shootingSystem.updateProperties(dt, robotPose, futureRobotPose, drive.pinpoint().getMostRecentVelocity(), shootingWhileMoving);
         shootingSystem.updateState(dt, enableShooter, enableTurret);
 
@@ -90,7 +90,7 @@ public class BrainSTEMRobot {
         if(enableLED) {
             boolean updatingPose = limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE;
             boolean confirmingPose = false; // TODO: figure this boolean out too
-            led.update(updatingPose, confirmingPose, shootingSystem.getShooter().inTolerance(shootingSystem.getTargetShooterSpeedTps()), shootingSystem.getTurret().inRange(), collection.getClutchState() == Collection.ClutchState.ENGAGED, collection.getCollectionState() == Collection.CollectionState.INTAKE, collection.intakeHas3Balls());
+            led.update(updatingPose, confirmingPose, shootingSystem.shooter.inTolerance(shootingSystem.getTargetShooterSpeedTps()), shootingSystem.turret.inRange(), collection.getClutchState() == Collection.ClutchState.ENGAGED, collection.getCollectionState() == Collection.CollectionState.INTAKE, collection.intakeHas3Balls());
         }
     }
 
@@ -125,7 +125,7 @@ public class BrainSTEMRobot {
         double dist = Math.hypot(shootingSystem.getBallExitPos().x - shootingSystem.get2dGoalPos().x, shootingSystem.getBallExitPos().y - shootingSystem.get2dGoalPos().y);
 
         fieldOverlay.setStroke("purple");
-        double curAbsAng = shootingSystem.getTurret().getAbsAngleRad(robotPose.heading.toDouble());
+        double curAbsAng = shootingSystem.turret.getAbsAngleRad(robotPose.heading.toDouble());
         fieldOverlay.strokeLine(
                 shootingSystem.getBallExitPos().x,
                 shootingSystem.getBallExitPos().y,

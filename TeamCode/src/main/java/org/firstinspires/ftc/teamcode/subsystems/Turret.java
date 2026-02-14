@@ -29,7 +29,7 @@ public class Turret extends Component {
     }
     public static Params turretParams = new Params();
     public static PowerTuning powerTuning = new PowerTuning();
-    public double targetEncoder, targetVelocity, targetAngularVelocity;
+    private double targetEncoder, targetVelocity, targetAngularVelocity;
     private double firstTimeWhereTargetVelIsZero;
 
     private double currentEncoder, currentVelocity;
@@ -144,5 +144,8 @@ public class Turret extends Component {
     }
     public double getEncoder() {
         return currentEncoder;
+    }
+    public double getVelocity() {
+        return currentVelocity;
     }
 }

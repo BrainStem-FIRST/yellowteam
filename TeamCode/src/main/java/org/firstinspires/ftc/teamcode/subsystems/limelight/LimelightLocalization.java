@@ -218,7 +218,7 @@ public class LimelightLocalization extends LLParent {
             lastAvgTurretPose = new Pose2d(0, 0, 0);
 
         if (params.useMT2) {
-            double turretHeadingDeg = Math.toDegrees(robot.turret.currentAbsoluteAngleRad);
+            double turretHeadingDeg = Math.toDegrees(robot.shootingSystem.turret.getAbsAngleRad(robot.drive.localizer.getPose().heading.toDouble()));
             limelight.updateRobotOrientation(turretHeadingDeg);
         }
 
@@ -304,14 +304,14 @@ public class LimelightLocalization extends LLParent {
     }
     private Pose2d calculateRobotPose(Pose2d cameraPose) {
         Pose2d turretPose = Limelight.getTurretPose(cameraPose);
-        return ShootingMath.getRobotPose(turretPose, robot.turret.currentRelativeAngleRad);
+        return ShootingMath.getRobotPose(turretPose, robot.shootingSystem.turret.getRelAngleRad());
     }
     private boolean canUpdateDrivetrainReliably() {
         OdoInfo odoVel = robot.drive.pinpoint().getMostRecentVelocity();
         return Math.abs(Math.toDegrees(odoVel.headingRad)) < params.maxUpdateHeadingDegVel && Math.hypot(odoVel.x, odoVel.y) < params.maxUpdateTranslationalVel;
     }
     private boolean canUpdateTurretReliably() {
-        return robot.shootingSystem.getTurretVelTps() < params.maxUpdateTurretVelTicksPerSec;
+        return robot.shootingSystem.turret.getVelocity() < params.maxUpdateTurretVelTicksPerSec;
     }
     private boolean isInLocalizationZone() {
         Pose2d odoPose = robot.drive.localizer.getPose();
@@ -331,7 +331,7 @@ public class LimelightLocalization extends LLParent {
         Pose2d robotPoseToDraw = robotPose == null ? new Pose2d(0, 0, 0) : new Pose2d(robotPose.position, robotPose.heading);
         Drawing.drawRobot(fieldOverlay, robotPoseToDraw);
 
-        Pose2d turretPose = ShootingMath.getTurretPose(robotPoseToDraw, robot.turret.currentRelativeAngleRad);
+        Pose2d turretPose = ShootingMath.getTurretPose(robotPoseToDraw, robot.shootingSystem.turret.getRelAngleRad());
         Drawing.drawRobotSimple(fieldOverlay, turretPose, 3);
 
         Pose2d limelightPose = Limelight.getLimelightPose(turretPose);

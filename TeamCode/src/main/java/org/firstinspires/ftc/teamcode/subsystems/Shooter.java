@@ -50,6 +50,7 @@ public class Shooter extends Component {
     private final ServoImplEx hoodLeftServo, hoodRightServo;
     private double hoodPosition;
 
+    private int ballsShot;
     public Shooter(HardwareMap hardwareMap, Telemetry telemetry) {
         super(hardwareMap, telemetry);
 
@@ -146,5 +147,12 @@ public class Shooter extends Component {
     }
     public double getPower() {
         return shooterPower;
+    }
+
+    public int getBallsShot() {
+        return ballsShot; // TODO: re add ball tracking logic
+    }
+    public void setBallsShot(int num) {
+        ballsShot = num;
     }
 }

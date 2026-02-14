@@ -43,7 +43,7 @@ public class Limelight extends Component {
 
     // classifier detection data
     public Limelight(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
-        super(hardwareMap, telemetry, robot);
+        super(hardwareMap, telemetry);
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
         localization = new LimelightLocalization(robot, limelight);
@@ -75,7 +75,6 @@ public class Limelight extends Component {
                 break;
         }
     }
-    @Override
     public void update() {
         if (snapshotParams.clearSnapshots) {
             limelight.deleteSnapshots();
