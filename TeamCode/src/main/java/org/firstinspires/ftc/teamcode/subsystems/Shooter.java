@@ -1,28 +1,34 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PwmControl;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.utils.math.PIDController;
 
-import java.util.ArrayList;
-
 @Config
 public class Shooter extends Component {
     public static class ShooterParams {
-        public double kP = 0.5;
+        public double kP = 0.005;
         public double kI = 0.0;
         public double kD = 0.0;
-        public double kV = 0.122;
-        public double shotVelDropThreshold = 0.05;
-        public double noiseVariance = 0.03;
-        public int startingShooterSpeedAdjustment = 0;
+        public double kF = 0.00045;
+        public double tolerance = 40;
         public double minPower = -0.15, maxPower = 0.99;
-        public double shotRecoveryPower = 0.99, shotRecoveryError = 0.08;
-        public boolean disableHoodInterlock = true;
+        public double shotRecoveryPower = 0.99, shotRecoveryError = 40;
+        public double shooterTau = .2;
+        public double fineAdjust = 10;
     }
+    public static class HoodParams {
+        public double downPWM = 900, upPWM = 2065;
+    }
+
     public static class TestingParams {
         public boolean testing = false;
         public double testingVel = 1500;
@@ -30,136 +36,123 @@ public class Shooter extends Component {
     }
 
     public static ShooterParams shooterParams = new ShooterParams();
+    public static HoodParams hoodParams = new HoodParams();
     public static TestingParams testingParams = new TestingParams();
 
-    public enum ShooterState {
-        OFF, UPDATE
-    }
-    public ShooterState shooterState;
 
-    public final PIDController shooterPID;
-    private double nearVelocityAdjustment, farVelocityAdjustment;
+    private final PIDController shooterPID;
+
+    private final DcMotorEx shooterLowMotor, shooterHighMotor;
+    private double shooterLowSpeed, shooterHighSpeed;
+    private double filteredShooterSpeed, rawShooterSpeed;
+    private double shooterPower;
+
+    private final ServoImplEx hoodLeftServo, hoodRightServo;
+    private double hoodPosition;
+
     private int ballsShot;
-    public double lastMax, lastMin, lastDecel, velDropTime;
-    private final ArrayList<Double> allVelDrops, allPostShotVels, allLastDecels, allVelDropTimes;
-    private double mSOfLastMax;
-    private boolean increasing, wasPrevIncreasing;
+    public Shooter(HardwareMap hardwareMap, Telemetry telemetry) {
+        super(hardwareMap, telemetry);
 
-    public Shooter(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
-        super(hardwareMap, telemetry, robot);
+        shooterLowMotor = hardwareMap.get(DcMotorEx.class, "lowShoot");
+        shooterLowMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterLowMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterLowMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        shooterLowMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        shooterHighMotor = hardwareMap.get(DcMotorEx.class, "highShoot");
+        shooterHighMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooterHighMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterHighMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooterHighMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        hoodLeftServo = hardwareMap.get(ServoImplEx.class, "hoodLeft");
+        hoodLeftServo.setPwmRange(new PwmControl.PwmRange(hoodParams.downPWM, hoodParams.upPWM));
+
+        hoodRightServo = hardwareMap.get(ServoImplEx.class, "hoodRight");
+        hoodRightServo.setPwmRange(new PwmControl.PwmRange(hoodParams.downPWM, hoodParams.upPWM));
 
         shooterPID = new PIDController(shooterParams.kP, shooterParams.kI, shooterParams.kD);
 
-        shooterState = ShooterState.OFF;
-        lastMax = 0;
-        lastMin = Double.MAX_VALUE;
-        ballsShot = 0;
-        nearVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
-        farVelocityAdjustment = shooterParams.startingShooterSpeedAdjustment;
-
-        allVelDrops = new ArrayList<>();
-        allPostShotVels = new ArrayList<>();
-        allLastDecels = new ArrayList<>();
-        allVelDropTimes = new ArrayList<>();
+        updateProperties(0);
     }
-    public void setShooterVelocityPID(double targetVelocityMps, double currentShooterVelocityMps) {
-        if (robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
-            shooterPID.setTarget(targetVelocityMps + nearVelocityAdjustment);
-        else
-            shooterPID.setTarget(targetVelocityMps + farVelocityAdjustment);
-
-        double pidOutput = -shooterPID.update(currentShooterVelocityMps);
-        double feedForward = shooterParams.kV * targetVelocityMps;
+    public void setShooterVelocityPID(double targetVelocityTicksPerSec, double currentShooterVelocity) {
+        shooterPID.setTarget(targetVelocityTicksPerSec);
+        double pidOutput = -shooterPID.update(currentShooterVelocity);
+        double feedForward = shooterParams.kF * targetVelocityTicksPerSec;
         double totalPower = pidOutput + feedForward;
 
         totalPower = Range.clip(totalPower, shooterParams.minPower, shooterParams.maxPower);
-        double error = targetVelocityMps - currentShooterVelocityMps;
+        double error = targetVelocityTicksPerSec - currentShooterVelocity;
         if(error > shooterParams.shotRecoveryError)
             totalPower = shooterParams.shotRecoveryPower;
 
-        robot.shootingSystem.setShooterPower(totalPower);
+        setShooterPower(totalPower);
     }
 
-    @Override
-    public void update(){
-        switch (shooterState) {
-            case OFF:
-                robot.shootingSystem.setShooterPower(0);
-                break;
+    public void updateProperties(double dt) {
+        shooterHighSpeed = shooterHighMotor.getVelocity();
+        shooterLowSpeed = shooterLowMotor.getVelocity();
+        rawShooterSpeed = (shooterHighSpeed + shooterLowSpeed) * .5;
+        double a = shooterParams.shooterTau == 0 ? 0 : Math.exp(-dt / shooterParams.shooterTau);
+        filteredShooterSpeed = filteredShooterSpeed * a + rawShooterSpeed * (1-a);
+        shooterPower = shooterHighMotor.getPower();
 
-            case UPDATE:
-                if(testingParams.testing)
-                    setShooterVelocityPID(testingParams.testingVel, robot.shootingSystem.filteredShooterSpeedTps);
-                else
-                    setShooterVelocityPID(robot.shootingSystem.actualTargetExitSpeedMps, robot.shootingSystem.curExitSpeedMps);
-                break;
-        }
-        if(testingParams.testing) {
-            robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(testingParams.testingExitAngleRad));
-        }
-        else if(robot.shootingSystem.physicsExitAngleRads[0] != -1 || shooterParams.disableHoodInterlock)
-            robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(robot.shootingSystem.hoodExitAngleRad));
-        updateBallShotTracking();
+        hoodPosition = hoodLeftServo.getPosition();
     }
-    public void updateBallShotTracking() {
-        double dif = robot.shootingSystem.filteredShooterSpeedTps - robot.shootingSystem.getPrevShooterVelTps();
-        if(dif > 0)
-            increasing = true;
-        else if(dif == 0)
-            increasing = wasPrevIncreasing;
+    public void updateTarget(double targetShooterSpeedTps, double targetExitAngRad) {
+        if(testingParams.testing)
+            setShooterVelocityPID(testingParams.testingVel, filteredShooterSpeed);
         else
-            increasing = false;
+            setShooterVelocityPID(targetShooterSpeedTps, filteredShooterSpeed);
 
-        if(increasing && !wasPrevIncreasing) {  // means relative min detected
-            lastMin = robot.shootingSystem.getPrevShooterVelTps();
-            double velDrop = lastMax - lastMin;
-            velDropTime = (System.currentTimeMillis() - mSOfLastMax) / 1000;
-            lastDecel = velDrop / velDropTime;
-            if(velDrop >= shooterParams.shotVelDropThreshold
-            || shooterPID.getTarget() - lastMin >= shooterParams.noiseVariance) {
-                ballsShot++;
-                allVelDrops.add(velDrop);
-                allPostShotVels.add(lastMin);
-                allLastDecels.add(lastDecel);
-                allVelDropTimes.add(velDropTime);
-            }
-        }
-        if(wasPrevIncreasing && !increasing) { // means relative max detected
-            lastMax = robot.shootingSystem.getPrevShooterVelTps();
-            mSOfLastMax = System.currentTimeMillis();
-        }
-        wasPrevIncreasing = increasing;
-
-        if(robot.collection.getClutchState() != Collection.ClutchState.ENGAGED) {
-            ballsShot = 0;
-            allVelDrops.clear();
-            allPostShotVels.clear();
-            allLastDecels.clear();
-        }
+        double pos = ShootingMath.getHoodServoPosition(testingParams.testing ? testingParams.testingExitAngleRad : targetExitAngRad);
+        setHoodPosition(pos);
     }
     @Override
     public void printInfo() {
         telemetry.addLine("SHOOTER------");
         telemetry.addData("  pid target vel", shooterPID.getTarget());
-        telemetry.addData("  shooter power", robot.shootingSystem.getShooterPower());
-        telemetry.addData("  shooter filtered vel tps", robot.shootingSystem.filteredShooterSpeedTps);
-        telemetry.addData("  shooter raw vel tps", robot.shootingSystem.rawShooterSpeedTps);
-        telemetry.addData("  shooter filtered vel mps", robot.shootingSystem.curExitSpeedMps);
+        telemetry.addData("  shooter power", shooterPower);
+        telemetry.addData("  shooter filtered vel tps", filteredShooterSpeed);
+        telemetry.addData("  shooter raw vel tps", rawShooterSpeed);
+        telemetry.addData("  high motor vel", shooterHighSpeed);
+        telemetry.addData("  low motor vel", shooterLowSpeed);
 
         telemetry.addLine();
         telemetry.addLine("HOOD------");
-        telemetry.addData("  hood pos", robot.shootingSystem.getHoodPosition());
+        telemetry.addData("  hood pos", hoodPosition);
     }
-    public void setBallsShot(int n) {
-        ballsShot = n;
+    public boolean inTolerance(double targetSpeedTps) {
+        return (targetSpeedTps - filteredShooterSpeed) < shooterParams.tolerance;
     }
-    public int getBallsShot() {
-        return ballsShot;
+    public void setShooterPower(double power) {
+        shooterHighMotor.setPower(power);
+        shooterLowMotor.setPower(power);
     }
 
-    public void changeVelocityAdjustment(double amount) {
-        if (robot.shootingSystem.distState != ShootingSystem.Dist.FAR)
-            nearVelocityAdjustment += amount;
-        farVelocityAdjustment += amount;
+    public void setHoodPosition(double pos) {
+        hoodLeftServo.setPosition(pos);
+        hoodRightServo.setPosition(pos);
+    }
+
+    public double getFilteredShooterSpeed() {
+        return filteredShooterSpeed;
+    }
+    public double getHoodPosition() {
+        return hoodPosition;
+    }
+    public double getPidError() {
+        return shooterPID.getTarget() - filteredShooterSpeed;
+    }
+    public double getPower() {
+        return shooterPower;
+    }
+
+    public int getBallsShot() {
+        return ballsShot; // TODO: re add ball tracking logic
+    }
+    public void setBallsShot(int num) {
+        ballsShot = num;
     }
 }

@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
@@ -41,13 +42,13 @@ public class AutoCommands {
                     first = false;
                     distanceSensorTimer.reset();
                     timeSinceLastVelDrop.reset();
-                    oldBallsShot = robot.shooter.getBallsShot();
+                    oldBallsShot = robot.shootingSystem.shooter.getBallsShot();
                     totalTimer.reset();
                 }
 
-                if (oldBallsShot != robot.shooter.getBallsShot())
+                if (oldBallsShot != robot.shootingSystem.shooter.getBallsShot())
                     timeSinceLastVelDrop.reset();
-                oldBallsShot = robot.shooter.getBallsShot();
+                oldBallsShot = robot.shootingSystem.shooter.getBallsShot();
 //                telemetry.addData("time since last vel drop", timeSinceLastVelDrop.seconds());
 
                 if(robot.collection.isBackBallDetected())
@@ -58,7 +59,7 @@ public class AutoCommands {
                     timeSinceLastVelDrop.reset();
                 }
 
-                if(!alreadyOuttaked && totalTimer.seconds() > 1 && robot.shooter.getBallsShot() == 0 && robot.collection.getCollectionState() == Collection.CollectionState.INTAKE) {
+                if(!alreadyOuttaked && totalTimer.seconds() > 1 && robot.shootingSystem.shooter.getBallsShot() == 0 && robot.collection.getCollectionState() == Collection.CollectionState.INTAKE) {
                     robot.collection.setCollectionState(Collection.CollectionState.OUTTAKE);
                     timeSinceIntakeSwitch.reset();
                     timeSinceLastVelDrop.reset();
@@ -67,7 +68,7 @@ public class AutoCommands {
                 if(alreadyOuttaked && timeSinceIntakeSwitch.seconds() > Collection.shootOuttakeTimeAuto)
                     robot.collection.setCollectionState(Collection.CollectionState.INTAKE);
 
-                boolean done = totalTimer.seconds() > 3.5 || ((robot.shooter.getBallsShot() == 3 || timeSinceLastVelDrop.seconds() > 1.1) && distanceSensorTimer.seconds() >= 0.15);
+                boolean done = totalTimer.seconds() > 3.5 || ((robot.shootingSystem.shooter.getBallsShot() == 3 || timeSinceLastVelDrop.seconds() > 1.1) && distanceSensorTimer.seconds() >= 0.15);
 //                return totalTimer.seconds() < 2 && timeSinceFirstVelDrop.seconds() < 0.9;
                 return !done;
 //                return (timeSinceLastVelDrop.seconds() < maxTimeBetweenShots && robot.shooter.getBallsShot() < 3) || distanceSensorTimer.seconds() < 0.5;
@@ -92,14 +93,14 @@ public class AutoCommands {
     // TURRET
     public Action enableTurretTracking() {
         return packet -> {
-            robot.turret.turretState = Turret.TurretState.TRACKING;
+            robot.shootingSystem.setTurretState(ShootingSystem.TurretState.TRACKING);
             return false;
         };
     }
 
     public Action turretCenter() {
         return packet -> {
-            robot.turret.turretState = Turret.TurretState.CENTER;
+            robot.shootingSystem.setTurretState(ShootingSystem.TurretState.CENTER);
             return false;
         };
     }
@@ -107,14 +108,14 @@ public class AutoCommands {
     // SHOOTER
     public Action speedUpShooter() {
         return packet -> {
-            robot.shooter.shooterState = Shooter.ShooterState.UPDATE;
-            return Math.abs(robot.shootingSystem.filteredShooterSpeedTps - robot.shooter.shooterPID.getTarget()) >= BrainSTEMTeleOp.firstShootTolerance;
+            robot.shootingSystem.setShooterState(ShootingSystem.ShooterState.UPDATE);
+            return Math.abs(robot.shootingSystem.shooter.getPidError()) >= BrainSTEMTeleOp.firstShootTolerance;
         };
     }
 
     public Action stopShooter() {
         return packet -> {
-            robot.shooter.shooterState = Shooter.ShooterState.OFF;
+            robot.shootingSystem.setShooterState(ShootingSystem.ShooterState.OFF);
             return false;
         };
     }

@@ -20,8 +20,8 @@ public class LED extends Component {
     private final ElapsedTime shooterFlashTimer, turretFlashTimer;
     public double lastPinpointResetTimeMs;
 
-    public LED(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
-        super(hardwareMap, telemetry, robot);
+    public LED(HardwareMap hardwareMap, Telemetry telemetry) {
+        super(hardwareMap, telemetry);
 
         right_led = hardwareMap.get(ServoImplEx.class, "rightLED");
         left_led = hardwareMap.get(ServoImplEx.class, "leftLED");
@@ -35,15 +35,17 @@ public class LED extends Component {
     @Override
     public void printInfo() {}
 
-    @Override
-    public void update(){
-        if (robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE) {
+    public void update(boolean limelightUpdatingPose, boolean confirmLimelightPoseUpdate, boolean shooterErrorInRange, boolean turretInRange, boolean clutchEngaged, boolean intaking, boolean has3Balls) {
+        //robot.limelight.localization.getState() == LimelightLocalization.LocalizationState.UPDATING_POSE
+        //robot.limelight.localization.getPrevState() == LimelightLocalization.LocalizationState.UPDATING_POSE &&
+        //                robot.limelight.localization.successfullyFoundPose &&
+        //                robot.limelight.localization.getStateTime() < confirmSuccessfulPoseUpdateTime
+        // robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance
+        if (limelightUpdatingPose) {
             setLed(white);
             return;
         }
-        if (robot.limelight.localization.getPrevState() == LimelightLocalization.LocalizationState.UPDATING_POSE &&
-                robot.limelight.localization.successfullyFoundPose &&
-                robot.limelight.localization.getStateTime() < confirmSuccessfulPoseUpdateTime) {
+        if (confirmLimelightPoseUpdate) {
             setLed(blue);
             return;
         }
@@ -51,9 +53,7 @@ public class LED extends Component {
             setLed(blue);
             return;
         }
-
-        double error = Math.abs(robot.shooter.shooterPID.getTarget() - robot.shootingSystem.curExitSpeedMps);
-        if (robot.shooter.shooterState == Shooter.ShooterState.UPDATE && error > BrainSTEMTeleOp.firstShootTolerance) {
+        if (!shooterErrorInRange) {
             if (shooterFlashTimer.seconds() > shooterFlashOnTime + shooterFlashOffTime)
                 shooterFlashTimer.reset();
             else if (shooterFlashTimer.seconds() > shooterFlashOnTime) {
@@ -61,7 +61,7 @@ public class LED extends Component {
                 return;
             }
         }
-        if(!robot.turret.inRange()) {
+        if(!turretInRange) {
             if(turretFlashTimer.seconds() > turretFlashOnTime + turretFlashOffTime)
                 turretFlashTimer.reset();
             else if(turretFlashTimer.seconds() > turretFlashOnTime) {
@@ -69,13 +69,13 @@ public class LED extends Component {
                 return;
             }
         }
-        if (robot.collection.getClutchState() == Collection.ClutchState.ENGAGED) {
-            if (robot.collection.getCollectionState() == Collection.CollectionState.INTAKE)
+        if (clutchEngaged) {
+            if (intaking)
                 setLed(green);
             else
                 setLed(yellow);
         }
-        else if (robot.collection.intakeHas3Balls())
+        else if (has3Balls)
                 setLed(purple);
             else
                 setLed(red);

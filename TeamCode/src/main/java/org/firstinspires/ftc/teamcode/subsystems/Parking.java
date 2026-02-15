@@ -23,8 +23,8 @@ public class Parking extends Component {
     public ServoImplEx parkRightServo;
     private ParkState parkState;
 
-    public Parking(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
-        super(hardwareMap, telemetry, robot);
+    public Parking(HardwareMap hardwareMap, Telemetry telemetry) {
+        super(hardwareMap, telemetry);
 
         parkLeftServo = hardwareMap.get(ServoImplEx.class, "parkLeft");
         parkLeftServo.setPwmRange(new PwmControl.PwmRange(500, 2500));
@@ -63,6 +63,4 @@ public class Parking extends Component {
                 break;
         }
     }
-    @Override
-    public void update() {}
 }

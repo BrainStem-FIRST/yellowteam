@@ -7,15 +7,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public abstract class Component {
     protected final HardwareMap hardwareMap;
     protected final Telemetry telemetry;
-    protected final BrainSTEMRobot robot;
-
-    public Component(HardwareMap hardwareMap, Telemetry telemetry, BrainSTEMRobot robot) {
+    public Component(HardwareMap hardwareMap, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
-        this.robot = robot;
     }
 
     public abstract void printInfo();
-
-    public abstract void update();
 }

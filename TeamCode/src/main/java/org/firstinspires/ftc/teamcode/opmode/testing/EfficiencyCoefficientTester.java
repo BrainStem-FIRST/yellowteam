@@ -7,10 +7,12 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingMath;
 
 @TeleOp(name="Power Efficiency Tester", group="TestingParams")
@@ -32,34 +34,44 @@ public class EfficiencyCoefficientTester extends OpMode {
     public static Controls controls = new Controls();
     public static Experiment experiment = new Experiment();
 
-    private BrainSTEMRobot robot;
+    private Collection collection;
+    private Shooter shooter;
 
     double totalDistanceTraveledMeters, changeInYMeters;
+    private ElapsedTime timer;
 
     @Override
     public void init() {
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetry.setMsTransmissionInterval(20);
-        robot = new BrainSTEMRobot(Alliance.RED, telemetry, hardwareMap, new Pose2d(0, 0, 0));
+        collection = new Collection(hardwareMap, telemetry);
+        collection.setClutchState(Collection.ClutchState.ENGAGED);
 
-        robot.collection.clutchRight.setPosition(Collection.params.ENGAGED_POS);
-        robot.collection.clutchLeft.setPosition(Collection.params.ENGAGED_POS);
+        shooter = new Shooter(hardwareMap, telemetry);
+
+        timer = new ElapsedTime();
+        timer.reset();
     }
     @Override
     public void loop() {
-        robot.shootingSystem.updateInfo(false);
-        robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(controls.ballExitAngleRad));
+        double dt = timer.seconds();
+        timer.reset();
+
+        collection.updateProperties();
+        shooter.updateProperties(dt);
+
+        shooter.setHoodPosition(ShootingMath.getHoodServoPosition(controls.ballExitAngleRad));
 
         if (gamepad1.aWasPressed())
             controls.powerShooter = !controls.powerShooter;
         if(gamepad1.rightBumperWasPressed())
             controls.powerIntake = !controls.powerIntake;
 
-        double collectPower = controls.powerIntake ? Collection.params.normIntakePow : 0;
-        robot.collection.collectorMotor.setPower(collectPower);
+        if(gamepad1.aWasPressed())
+            collection.setCollectionState(collection.getCollectionState() == Collection.CollectionState.INTAKE ? Collection.CollectionState.OFF : Collection.CollectionState.INTAKE);
 
         if (!controls.powerShooter)
-            robot.shootingSystem.setShooterPower(0);
+            shooter.setShooterPower(0);
         else {
             // under the assumption that the turret is facing the robot's direction, only the x offset of the exit position matters
             Pose2d start = new Pose2d(0, 0, 0);
@@ -85,7 +97,7 @@ public class EfficiencyCoefficientTester extends OpMode {
                 targetExitVelTicksPerSec = controls.velToShootBallTps;
             }
 
-            robot.shooter.setShooterVelocityPID(targetExitVelTicksPerSec, robot.shootingSystem.filteredShooterSpeedTps);
+            shooter.setShooterVelocityPID(targetExitVelTicksPerSec, shooter.getFilteredShooterSpeed());
             telemetry.addData("a| exit pos X inches", exitPosition.x);
             telemetry.addData("b| distance meters", totalDistanceTraveledMeters);
             telemetry.addData("c| change in Y from ball exit position (m)", changeInYMeters);
@@ -93,14 +105,11 @@ public class EfficiencyCoefficientTester extends OpMode {
             telemetry.addData("e| efficiency coefficient", efficiencyCoefficient);
             telemetry.addData("f| target exit velocity mps", targetVelMetersPerSec);
             telemetry.addData("g| target exit velocity tps", targetExitVelTicksPerSec);
-            telemetry.addData("i| current shooter vel tps", robot.shootingSystem.filteredShooterSpeedTps);
-            telemetry.addData("j| shooter power", robot.shootingSystem.getShooterPower());
-            telemetry.addData("k| shooter high vel", robot.shootingSystem.getShooterHighVelTps());
-            telemetry.addData("l| shooter low vel", robot.shootingSystem.getShooterLowVelTps());
-            telemetry.addData("m| dt", robot.shootingSystem.dt);
+            telemetry.addData("i| current shooter vel tps", shooter.getFilteredShooterSpeed());
+            telemetry.addData("j| shooter power", shooter.getPower());
+            telemetry.addData("m| dt", dt);
             telemetry.update();
         }
-        robot.shootingSystem.sendHardwareInfo();
     }
 
     public static double calculateTargetExitVelocity(double distanceMeters, double changeInYMeters, double exitAngleRad) {
