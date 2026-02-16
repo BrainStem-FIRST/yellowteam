@@ -33,7 +33,8 @@ public class ShootingSystem {
         public double nearHeight = 38, midHeight = 39, farHeight = 42;
         public double nearImpactAng = Math.toRadians(-30), midImpactAng = -Math.toRadians(25), farImpactAng = Math.toRadians(-25);
         public double nearStateThreshold = 58;
-        public double classifierX = -24, classifierY = 68;
+
+        public double cornerX = 48, cornerRedY = 48;
     }
     public static class HoodParams {
         public double minExitAngRad = Math.toRadians(35), maxExitAngRad = Math.toRadians(85);
@@ -71,16 +72,17 @@ public class ShootingSystem {
     private double ballAbsTargetExitSpeedMps;
     private double turretAbsoluteTargetAngleRad, turretRelTargetAngleRad;
     private double turretTargetAngularVelocity;
+    private double turretAbsoluteCornerTargetAngleRad, turretRelCornerTargetAngleRad;
+    private double turretCornerTargetAngularVelocity;
     private double efficiencyCoef, idealEfficiencyCoef;
 
     private double targetShooterSpeedTps;
     private double ballExitAngleRad, hoodExitAngleRad;
     private final double[] physicsExitAngleRads;
-    private Vector2d ballExitPos, futureBallExitPos;
+    private Vector2d ballExitPos;
     private Vector2d exitPosRelativeToGoal;
     private double exitPosGoalDistIn, futureExitPosGoalDistIn;
-    private double classifierTurretTargetAngle;
-    private Pose2d absoluteTurretPose, futureTurretPose;
+    private Pose2d absoluteTurretPose;
 
     private final ShooterLookup lookupTable;
 
@@ -90,7 +92,7 @@ public class ShootingSystem {
     private double nearEncoderAdjustment, farEncoderAdjustment;
 
     public enum TurretState {
-        CENTER, TRACKING, CLASSIFIER
+        CENTER, GOAL_TRACKING, CORNER_TRACKING
     }
 
     public enum ShooterState {
@@ -114,13 +116,13 @@ public class ShootingSystem {
 
         distState = DistState.NEAR;
         if(BrainSTEMRobot.alliance == Alliance.BLUE) {
-            corner = new Vector2d(-72, -72);
+            corner = new Vector2d(goalParams.cornerX, -goalParams.cornerRedY);
             nearGoalPos = new Vector3d(goalParams.nearBlueX, goalParams.nearHeight, goalParams.nearBlueY);
             midGoalPos = new Vector3d(goalParams.midBlueX, goalParams.midHeight, goalParams.midBlueY);
             farGoalPos = new Vector3d(goalParams.farBlueX, goalParams.farHeight, goalParams.farBlueY);
         }
         else {
-            corner = new Vector2d(-72, 72);
+            corner = new Vector2d(goalParams.cornerX, goalParams.cornerRedY);
             nearGoalPos = new Vector3d(goalParams.nearRedX, goalParams.nearHeight, goalParams.nearRedY);
             midGoalPos = new Vector3d(goalParams.midRedX, goalParams.midHeight, goalParams.midRedY);
             farGoalPos = new Vector3d(goalParams.farRedX, goalParams.farHeight, goalParams.farRedY);
@@ -132,35 +134,46 @@ public class ShootingSystem {
         turret.updateProperties();
         shooter.updateProperties(dt);
         absoluteTurretPose = ShootingMath.getTurretPose(robotPose, turret.getAbsAngleRad(robotPose.heading.toDouble()));
-        futureTurretPose = ShootingMath.getTurretPose(futureRobotPose, turret.getRelAngleRad());
+        Pose2d futureTurretPose = ShootingMath.getTurretPose(futureRobotPose, turret.getRelAngleRad());
         updateGoalProperties(robotPose.position);
 
         updateTurretProperties(robotPose, absoluteTurretPose, futureTurretPose, odoVel);
 
-        double desiredBallDir = Math.atan2(goalPosIn.z - futureBallExitPos.y, goalPosIn.x - futureBallExitPos.x);
+        // NOTE: using turret pose instead of exit position because exit position changes with turret rotation
+        double desiredBallDir = Math.atan2(goalPosIn.z - futureTurretPose.position.y, goalPosIn.x - futureTurretPose.position.x);
 
         Vector2d robotExitPosVel = robotVelAtExitPosIps.times(shootingWhileMoving ? 0.0254 : 0);
         if(testingParams.usingLookup)
-            updateLookupProperties(desiredBallDir, robotExitPosVel, shooter.getFilteredShooterSpeed());
+            updateLookupProperties(desiredBallDir, robotExitPosVel);
         else
             updatePhysicsProperties(desiredBallDir, shootingWhileMoving, robotExitPosVel, shooter.getFilteredShooterSpeed());
-        turretRelTargetAngleRad = turretAbsoluteTargetAngleRad - robotPose.heading.toDouble();
+        turretRelTargetAngleRad = turretAbsoluteTargetAngleRad - futureRobotPose.heading.toDouble();
         targetShooterSpeedTps = ShootingMath.exitMpsToMotorTicksPerSec(targetShooterSpeedMps, idealEfficiencyCoef);
 
-        double robotSpeedPerpToGoal = new Vector2d(odoVel.x, odoVel.y).dot(new Vector2d(-exitPosRelativeToGoal.y, exitPosRelativeToGoal.x*1).div(exitPosGoalDistIn));
+        Vector2d robotVel = new Vector2d(odoVel.x, odoVel.y);
+        double robotSpeedPerpToGoal = robotVel.dot(new Vector2d(-exitPosRelativeToGoal.y, exitPosRelativeToGoal.x*1).div(exitPosGoalDistIn));
         turretTargetAngularVelocity = -odoVel.headingRad + robotSpeedPerpToGoal / exitPosGoalDistIn; // absolute w = w1 + v/r
+
+        if(turretState == TurretState.CORNER_TRACKING) {
+            turretAbsoluteCornerTargetAngleRad = Math.atan2(corner.y - futureTurretPose.position.y, corner.x - futureTurretPose.position.x);
+            turretRelCornerTargetAngleRad = turretAbsoluteCornerTargetAngleRad - futureRobotPose.heading.toDouble();
+            double robotSpeedPerpToCorner = robotVel.dot(new Vector2d(-(corner.y - robotPose.position.y), corner.x -robotPose.position.x));
+            double exitPosDistToCorner = Math.hypot(corner.x - ballExitPos.x, corner.y - ballExitPos.y);
+            turretCornerTargetAngularVelocity = -odoVel.headingRad + robotSpeedPerpToCorner / exitPosDistToCorner;
+        }
     }
-    public void updateState(double dt, boolean enableShooter, boolean enableTurret) {
+    public void updateState(boolean enableShooter, boolean enableTurret) {
         if(enableTurret) {
             switch (turretState) {
                 case CENTER:
-                    turret.setTarget(dt, 0);
+                    turret.setTarget(turretRelTargetAngleRad, 0);
                     break;
-                case TRACKING:
+                case GOAL_TRACKING:
                     double encoderAdjustment = distState == DistState.NEAR ? nearEncoderAdjustment : farEncoderAdjustment;
                     turret.setTarget(turretRelTargetAngleRad + turret.ticksToAngle(encoderAdjustment), turretTargetAngularVelocity);
-                case CLASSIFIER:
-                    turret.setTarget(dt, classifierTurretTargetAngle);
+                    break;
+                case CORNER_TRACKING:
+                    turret.setTarget(turretRelCornerTargetAngleRad, turretCornerTargetAngularVelocity);
             }
             turret.setPower(turret.calculateTurretPower());
         }
@@ -250,7 +263,7 @@ public class ShootingSystem {
 
     // pro: easy to tune
     // con: no velocity-based hood adjustment
-    private void updateLookupProperties(double desiredBallDir, Vector2d robotVel, double filteredShooterSpeedTps) {
+    private void updateLookupProperties(double desiredBallDir, Vector2d robotVel) {
         // getting lookup properties
         double lookupDist = Range.clip(exitPosGoalDistIn, lookupDistsI[0] + 0.01, lookupDistsI[lookupDistsI.length-1] - 0.01);
         ballExitAngleRad = lookupTable.lookupExitAngleRad(lookupDist);
@@ -269,7 +282,7 @@ public class ShootingSystem {
     private void updateTurretProperties(Pose2d robotPose, Pose2d absoluteTurretPose, Pose2d futureTurretPose, OdoInfo odoVel) {
         double approxBallExitAng = distState == DistState.FAR ? generalParams.approxFarExitAngRad : generalParams.approxNearExitAngRad;
         ballExitPos = ShootingMath.getExitPositionInches(absoluteTurretPose, approxBallExitAng);
-        futureBallExitPos = ShootingMath.getExitPositionInches(futureTurretPose, approxBallExitAng);
+        Vector2d futureBallExitPos = ShootingMath.getExitPositionInches(futureTurretPose, approxBallExitAng);
 
         Vector2d robotVelCm = new Vector2d(odoVel.x, odoVel.y);
         Vector2d relativeExitPos = ballExitPos.minus(robotPose.position);
@@ -284,11 +297,6 @@ public class ShootingSystem {
         double futureDx = goalPosIn.x - futureBallExitPos.x;
         double futureDy = goalPosIn.z - futureBallExitPos.y;
         futureExitPosGoalDistIn = Math.hypot(futureDx, futureDy);
-
-        double classifierDx = goalParams.classifierX - robotPose.position.x;
-        double classifierDy = goalParams.classifierY - robotPose.position.y;
-        double classifierAngle = Math.atan2(classifierDy, classifierDx);
-        classifierTurretTargetAngle = classifierAngle - robotPose.heading.toDouble();
     }
     private void updateGoalProperties(Vector2d robotPos) {
         double distToCorner = Math.hypot(corner.x - robotPos.x, corner.y - robotPos.y);

@@ -80,7 +80,7 @@ public class BrainSTEMRobot {
         }
         shootingWhileMoving = (ShootingSystem.testingParams.enableShootingWhileMovingFar && shootingSystem.getDistState() == FAR || ShootingSystem.testingParams.enableShootingWhileMovingNear && shootingSystem.getDistState() == NEAR) && collection.getClutchState() == Collection.ClutchState.ENGAGED && shootingSystem.turret.inRange();
         shootingSystem.updateProperties(dt, robotPose, futureRobotPose, drive.pinpoint().getMostRecentVelocity(), shootingWhileMoving);
-        shootingSystem.updateState(dt, enableShooter, enableTurret);
+        shootingSystem.updateState(enableShooter, enableTurret);
 
         if(enableLimelight) {
             limelight.update();

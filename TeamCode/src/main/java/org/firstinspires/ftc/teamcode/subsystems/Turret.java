@@ -20,11 +20,10 @@ public class Turret extends Component {
         public double maxAngle = Math.toRadians(90);
     }
     public static class PowerTuning {
-        public double ignoreAngularVelocityThreshold = Math.toRadians(5);
-        public double staticU = .14, staticB = .06, staticK = .01, staticX0 = 100;
-        public double kPM = 0, kPB = 0.001, kV = 0.0003, kVP = 0.001;
+        public double A = .01, k = .02, x0 = 150;
+        public double kV = 0.0003, kVP = 0.001;
         public double decelTime = .2;
-        public double[] kfLookupEncoders = new double[] {0, 0, 0, 0, 0};
+        public double[] kfLookupEncoders = new double[] {-350, -1, 0, 1, 350};
         public double[] kfLookupPowers = new double[] {0, 0, 0, 0, 0};
     }
     public static Params turretParams = new Params();
@@ -62,11 +61,13 @@ public class Turret extends Component {
         double timeSinceTargetVelFirstZero = (System.currentTimeMillis() - firstTimeWhereTargetVelIsZero) / 1000;
         velocityError = targetVelocity == 0 && timeSinceTargetVelFirstZero > powerTuning.decelTime ? 0 : targetVelocity - currentVelocity;
         dir = Math.signum(positionError);
-        kP = Math.max(0, powerTuning.kPM * Math.abs(positionError) + powerTuning.kPB);
-//        kF = getLogisticKf(currentEncoder, dir);
+        kP = calcLogisticKP(Math.abs(positionError));
         double input = currentEncoder * dir; // reversing input if traveling in the opposite direction
         kF = kFLookup.get(input) * dir;
         return kP * positionError + kF + powerTuning.kV * targetVelocity + powerTuning.kVP * velocityError;
+    }
+    private double calcLogisticKP(double errorMag) {
+        return powerTuning.A / (1 + Math.exp(-powerTuning.k * (errorMag - powerTuning.x0)));
     }
     public void setTarget(double relativeTargetAngle, double targetAngularVelocity) {
         // updating position variables
@@ -92,12 +93,6 @@ public class Turret extends Component {
     }
     public void setPower(double power) {
         turretMotor.setPower(power);
-    }
-    private double getLogisticKf(double encoder, double direction) {
-        if(direction == -1)
-            encoder *= -1;
-        double logisticPower = (powerTuning.staticU - powerTuning.staticB) / (1 + Math.exp(-powerTuning.staticK * (encoder-powerTuning.staticX0))) + powerTuning.staticB;
-        return logisticPower * direction;
     }
 
     @Override

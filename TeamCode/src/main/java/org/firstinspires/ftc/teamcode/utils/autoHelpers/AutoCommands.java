@@ -12,9 +12,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.teleop.BrainSTEMTeleOp;
 import org.firstinspires.ftc.teamcode.subsystems.BrainSTEMRobot;
 import org.firstinspires.ftc.teamcode.subsystems.Collection;
-import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.ShootingSystem;
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.utils.misc.PoseStorage;
 
 public class AutoCommands {
@@ -93,7 +91,7 @@ public class AutoCommands {
     // TURRET
     public Action enableTurretTracking() {
         return packet -> {
-            robot.shootingSystem.setTurretState(ShootingSystem.TurretState.TRACKING);
+            robot.shootingSystem.setTurretState(ShootingSystem.TurretState.GOAL_TRACKING);
             return false;
         };
     }

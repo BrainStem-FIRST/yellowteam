@@ -147,7 +147,7 @@ public class BrainSTEMTeleOp extends LinearOpMode {
 
         if (gp1.isFirstLeftBumper()) {
             if (robot.shootingSystem.getTurretState() == ShootingSystem.TurretState.CENTER)
-                robot.shootingSystem.setTurretState(ShootingSystem.TurretState.TRACKING);
+                robot.shootingSystem.setTurretState(ShootingSystem.TurretState.GOAL_TRACKING);
             else
                 robot.shootingSystem.setTurretState(ShootingSystem.TurretState.CENTER);
         }
