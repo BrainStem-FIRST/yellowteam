@@ -56,7 +56,7 @@ public class Collection extends Component {
         public double ENGAGED_POS = 0.1;
         public double DISENGAGED_POS = 0.65;
         public double DELAY_PERIOD = 0.5;
-        public double INTAKE_SLOW_SPEED = 0.3, normIntakePow = 0.95, impossibleShotIntakePow = 0.7;
+        public double INTAKE_SLOW_SPEED = 0.3, normIntakePow = 0.95, impossibleShotIntakePow = 0.6;
         public double OUTTAKE_SPEED = -0.5;
         public double LASER_BALL_THRESHOLD = 2.5;
         public double flickerLeftMinPwm = 1643, flickerLeftMaxPwm = 1493;
@@ -181,9 +181,7 @@ public class Collection extends Component {
                 break;
             case INTAKE:
                 if (getClutchState() == ClutchState.ENGAGED
-                        && (robot.shootingSystem.physicsExitAngleRads[0] == -1
-                        && robot.shootingSystem.actualTargetExitSpeedMps - robot.shootingSystem.curExitSpeedMps > BrainSTEMTeleOp.physicsShootTolerance
-                        || !robot.turret.inRange))
+                        && (!robot.shootingSystem.shooterGood() || !robot.turret.inRange()))
                     collectorMotor.setPower(params.impossibleShotIntakePow);
                 else
                     collectorMotor.setPower(params.normIntakePow);
