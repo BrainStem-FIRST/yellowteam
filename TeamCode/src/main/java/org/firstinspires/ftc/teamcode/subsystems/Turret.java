@@ -24,9 +24,8 @@ public class Turret extends Component {
     }
     public static class PowerTuning {
         public double ignoreAngularVelocityThreshold = Math.toRadians(5);
-        public double A = 1, x0 = 175, k = .02;
+        public double A = .01, x0 = 175, k = .02;
         public double kV = 0.0003, kVP = 0.001;
-        public double decelTime = .2;
         public double[] kfLookupEncoders = new double[] {-350, -1, 0, 1, 350};
         public double[] kfLookupPowers = new double[] {0, 0, 0, 0, 0};
     }
@@ -44,7 +43,7 @@ public class Turret extends Component {
     private Vector2d perpVelVec;
     public double currentEncoder, currentVelocity;
     private double positionError, velocityError;
-    private double kPPower, kF, dir;
+    private double kP, kF, dir;
     private final InterpLUT kFLookup;
 
     public double targetRelAngleRad;
@@ -104,13 +103,13 @@ public class Turret extends Component {
         velocityError = targetVelocity == 0 ? 0 : targetVelocity - currentVelocity;
         dir = Math.signum(positionError);
 
-        kPPower = getLogisticKPPower(Math.abs(positionError)) * dir;
+        kP = getLogisticKP(Math.abs(positionError));
 
         double input = Range.clip(currentEncoder * dir, turretParams.minBound, turretParams.maxBound); // reversing input if traveling in the opposite direction
         kF = kFLookup.get(input) * dir;
-        return kPPower + kF + powerTuning.kV * targetVelocity + powerTuning.kVP * velocityError;
+        return kP * positionError + kF + powerTuning.kV * targetVelocity + powerTuning.kVP * velocityError;
     }
-    private double getLogisticKPPower(double errorMag) {
+    private double getLogisticKP(double errorMag) {
         return powerTuning.A / (1 + Math.exp(-powerTuning.k * (errorMag - powerTuning.x0)) );
     }
     public static double getTurretRelativeAngleRad(int turretPosition) {
@@ -158,7 +157,7 @@ public class Turret extends Component {
         }
         telemetry.addLine("-----");
         telemetry.addData("turret power", robot.shootingSystem.getTurretPower());
-        telemetry.addData("kP", kPPower);
+        telemetry.addData("kP", kP);
         telemetry.addData("kf", kF);
         telemetry.addLine("-----");
         telemetry.addData("target encoder", targetEncoder);
