@@ -30,9 +30,9 @@ import java.util.List;
 @Config
 public class BrainSTEMTeleOp extends LinearOpMode {
     public static boolean printCollector = false,
-            printShooter = false, printTurret = false, printShootingSystem = false,
-            printLimelight = true;
-    public static boolean streamCameraToFTCDashboard = true;
+            printShooter = false, printTurret = true, printShootingSystem = false,
+            printLimelight = false;
+    public static boolean streamCameraToFTCDashboard = false;
     public static double[] blueCornerResetPose = { 64.25, 62.75, -90 };
     public static double[] redCornerResetPose = { 64.25, -62.75, 90 };
     public static double noMoveJoystickThreshold = 0.1;

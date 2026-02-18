@@ -97,7 +97,7 @@ public class Shooter extends Component {
         if(testingParams.testing) {
             robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(testingParams.testingExitAngleRad));
         }
-        else if(robot.shootingSystem.physicsExitAngleRads[0] != -1 || disableHoodInterlock)
+        else if(robot.shootingSystem.shootingWhileMoving || robot.shootingSystem.physicsExitAngleRads[0] != -1 || robot.shootingSystem.robotSpeedAtExitPosIps > ShootingSystem.hoodParams.robotVelThresholdToSetHood)
             robot.shootingSystem.setHoodPosition(ShootingMath.getHoodServoPosition(robot.shootingSystem.hoodExitAngleRad));
         updateBallShotTracking();
     }

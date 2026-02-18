@@ -16,13 +16,15 @@ public class Collection extends Component {
     public static double shootOuttakeTimeAuto = 0.12;
     public static double postShootOuttakeWaitAuto = 0.1;
     public static double shootOuttakeTime = 0.12;
+    public static boolean autoEngageClutch = true;
+    public static double autoEngageClutchMaxX = 0;
 
     public enum CollectionState {
         OFF, INTAKE_SLOW, INTAKE, OUTTAKE, TRANSFER
     }
 
     public enum ClutchState {
-        ENGAGED, UNENGAGED
+        ENGAGED, UNENGAGED, WAITING_TO_ENGAGE
     }
 
     public enum FlickerState {
@@ -129,6 +131,7 @@ public class Collection extends Component {
                 clutchLeft.setPosition(params.ENGAGED_POS);
                 break;
             case UNENGAGED:
+            case WAITING_TO_ENGAGE:
                 clutchRight.setPosition(params.DISENGAGED_POS);
                 clutchLeft.setPosition(params.DISENGAGED_POS);
                 break;
@@ -165,6 +168,26 @@ public class Collection extends Component {
 
     @Override
     public void update() {
+        if(!robot.turret.inRange)
+            setClutchState(ClutchState.UNENGAGED);
+        else if (autoEngageClutch && clutchState == ClutchState.UNENGAGED &&
+                robot.drive.localizer.getPose().position.x < autoEngageClutchMaxX) {
+            setClutchState(ClutchState.ENGAGED);
+            setCollectionState(CollectionState.INTAKE);
+        }
+
+        boolean turretAccurate = Math.abs(robot.turret.positionError) <= Turret.turretParams.maxClutchEngageError;
+        if (turretAccurate) {
+            if (clutchState == ClutchState.WAITING_TO_ENGAGE) {
+                setClutchState(ClutchState.ENGAGED);
+                setCollectionState(CollectionState.INTAKE);
+            }
+        }
+        else if (clutchState == ClutchState.ENGAGED) {
+            setClutchState(ClutchState.WAITING_TO_ENGAGE);
+            setCollectionState(CollectionState.OFF);
+        }
+
         if (getCollectionState() != CollectionState.OFF || framesRunning % params.offDistanceSensorUpdatePeriod == 0) {
             backLeftLaserDist = voltageToDistance(backBottomLaser.getVoltage());
             backRightLaserDist = voltageToDistance(backTopLaser.getVoltage());

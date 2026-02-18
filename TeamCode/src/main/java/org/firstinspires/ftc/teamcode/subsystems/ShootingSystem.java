@@ -44,6 +44,7 @@ public class ShootingSystem {
         public double downPWM = 900, upPWM = 2065;
         public double minExitAngRad = Math.toRadians(35), maxExitAngRad = Math.toRadians(85);
         public double resolution = 0.005;
+        public double robotVelThresholdToSetHood = 2;
     }
     public static class GeneralParams {
         public double firstShootTolerance = 0.1, physicsShootTolerance = 0.1;
@@ -390,6 +391,7 @@ public class ShootingSystem {
         telemetry.addData("shooting while moving", shootingWhileMoving);
         telemetry.addData("efficiency coef", efficiencyCoef);
         telemetry.addData("absolute turret target rad", actualTurretTargetAngleRad);
+        telemetry.addData("absolute turret target deg", Math.toDegrees(actualTurretTargetAngleRad));
         telemetry.addData("robot-relative target exit speed mps", actualTargetExitSpeedMps);
         telemetry.addData("ball exit angle rad", ballExitAngleRad);
         telemetry.addData("physics exit angle rad", MathUtils.format3(physicsExitAngleRads));
@@ -414,8 +416,9 @@ public class ShootingSystem {
     public void resetTurretEncoder() {
         turretMotor.resetEncoders();
     }
-    public void setTurretPower(double p) {
-        turretMotor.setPower(p);
+    public void setTurretVoltage(double voltage) {
+        double power = voltage / robot.drive.voltageSensor.getVoltage();
+        turretMotor.setPower(power);
     }
     public double getTurretPower() {
         return turretMotor.getPower();
